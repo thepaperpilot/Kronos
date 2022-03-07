@@ -1,19 +1,19 @@
 {
-	"title": "Profectus",
-	"id": "profectus",
+	"title": "Kronos",
+	"id": "kronos",
 	"author": "thepaperpilot",
 	"discordName": "The Paper Pilot Community",
 	"discordLink": "https://discord.gg/WzejVAx",
 
-	"versionNumber": "0.0",
-	"versionTitle": "Initial Commit",
+	"versionNumber": "0.3",
+	"versionTitle": "",
 
-	"allowGoBack": true,
+	"allowGoBack": false,
 	"defaultShowSmall": false,
 	"defaultDecimalsShown": 2,
 	"useHeader": true,
-	"banner": null,
-	"logo": "",
+	"banner": "banner.png",
+	"logo": "android-chrome-192x192.png",
 	"initialTabs": [ "main" ],
 
 	"maxTickLength": 3600,
