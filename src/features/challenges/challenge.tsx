@@ -1,3 +1,4 @@
+import { isArray } from "@vue/shared";
 import Toggle from "components/fields/Toggle.vue";
 import ChallengeComponent from "features/challenges/Challenge.vue";
 import {
@@ -25,7 +26,7 @@ import {
     ProcessedComputable
 } from "util/computed";
 import { createLazyProxy } from "util/proxies";
-import { computed, Ref, unref } from "vue";
+import { computed, Ref, unref, watch, WatchStopHandle } from "vue";
 
 export const ChallengeType = Symbol("ChallengeType");
 
@@ -55,13 +56,14 @@ export interface ChallengeOptions {
     onEnter?: VoidFunction;
 }
 
-interface BaseChallenge {
+export interface BaseChallenge {
     id: string;
     completions: PersistentRef<DecimalSource>;
     completed: Ref<boolean>;
     maxed: Ref<boolean>;
     active: PersistentRef<boolean>;
     toggle: VoidFunction;
+    complete: (remainInChallenge?: boolean) => void;
     type: typeof ChallengeType;
     [Component]: typeof ChallengeComponent;
     [GatherProps]: () => Record<string, unknown>;
@@ -87,17 +89,11 @@ export type GenericChallenge = Replace<
     {
         visibility: ProcessedComputable<Visibility>;
         canStart: ProcessedComputable<boolean>;
-        canComplete: ProcessedComputable<boolean>;
+        canComplete: ProcessedComputable<boolean | DecimalSource>;
         completionLimit: ProcessedComputable<DecimalSource>;
         mark: ProcessedComputable<boolean>;
     }
 >;
-
-export function createActiveChallenge(
-    challenges: GenericChallenge[]
-): Ref<GenericChallenge | undefined> {
-    return computed(() => challenges.find(challenge => challenge.active.value));
-}
 
 export function createChallenge<T extends ChallengeOptions>(
     optionsFunc: () => T & ThisType<Challenge<T>>
@@ -134,11 +130,7 @@ export function createChallenge<T extends ChallengeOptions>(
         challenge.toggle = function () {
             const genericChallenge = challenge as GenericChallenge;
             if (genericChallenge.active.value) {
-                if (
-                    genericChallenge.canComplete &&
-                    unref(genericChallenge.canComplete) &&
-                    !genericChallenge.maxed.value
-                ) {
+                if (unref(genericChallenge.canComplete) && !genericChallenge.maxed.value) {
                     let completions: boolean | DecimalSource = unref(genericChallenge.canComplete);
                     if (typeof completions === "boolean") {
                         completions = 1;
@@ -152,10 +144,38 @@ export function createChallenge<T extends ChallengeOptions>(
                 genericChallenge.active.value = false;
                 genericChallenge.onExit?.();
                 genericChallenge.reset?.reset();
-            } else if (unref(genericChallenge.canStart)) {
+            } else if (
+                unref(genericChallenge.canStart) &&
+                unref(genericChallenge.visibility) === Visibility.Visible &&
+                !genericChallenge.maxed.value
+            ) {
                 genericChallenge.reset?.reset();
                 genericChallenge.active.value = true;
                 genericChallenge.onEnter?.();
+            }
+        };
+        challenge.complete = function (remainInChallenge?: boolean) {
+            const genericChallenge = challenge as GenericChallenge;
+            let completions: boolean | DecimalSource = unref(genericChallenge.canComplete);
+            if (
+                genericChallenge.active.value &&
+                completions !== false &&
+                (completions === true || Decimal.neq(0, completions)) &&
+                !genericChallenge.maxed.value
+            ) {
+                if (typeof completions === "boolean") {
+                    completions = 1;
+                }
+                genericChallenge.completions.value = Decimal.min(
+                    Decimal.add(genericChallenge.completions.value, completions),
+                    unref(genericChallenge.completionLimit)
+                );
+                genericChallenge.onComplete?.();
+                if (remainInChallenge !== true) {
+                    genericChallenge.active.value = false;
+                    genericChallenge.onExit?.();
+                    genericChallenge.reset?.reset();
+                }
             }
         };
         processComputable(challenge as T, "visibility");
@@ -167,16 +187,6 @@ export function createChallenge<T extends ChallengeOptions>(
             }
             return unref(visibility);
         });
-        if (challenge.canStart == null) {
-            challenge.canStart = computed(
-                () =>
-                    unref((challenge as GenericChallenge).visibility) === Visibility.Visible &&
-                    Decimal.lt(
-                        (challenge as GenericChallenge).completions.value,
-                        unref((challenge as GenericChallenge).completionLimit)
-                    )
-            );
-        }
         if (challenge.canComplete == null) {
             challenge.canComplete = computed(() => {
                 const genericChallenge = challenge as GenericChallenge;
@@ -249,6 +259,34 @@ export function createChallenge<T extends ChallengeOptions>(
 
         return challenge as unknown as Challenge<T>;
     });
+}
+
+export function setupAutoComplete(
+    challenge: GenericChallenge,
+    autoActive: Computable<boolean> = true,
+    exitOnComplete = true
+): WatchStopHandle {
+    const isActive = typeof autoActive === "function" ? computed(autoActive) : autoActive;
+    return watch([challenge.canComplete, isActive], ([canComplete, isActive]) => {
+        if (canComplete && isActive) {
+            challenge.complete(!exitOnComplete);
+        }
+    });
+}
+
+export function createActiveChallenge(
+    challenges: GenericChallenge[]
+): Ref<GenericChallenge | undefined> {
+    return computed(() => challenges.find(challenge => challenge.active.value));
+}
+
+export function isAnyChallengeActive(
+    challenges: GenericChallenge[] | Ref<GenericChallenge | undefined>
+): Ref<boolean> {
+    if (isArray(challenges)) {
+        challenges = createActiveChallenge(challenges);
+    }
+    return computed(() => (challenges as Ref<GenericChallenge | undefined>).value != null);
 }
 
 declare module "game/settings" {

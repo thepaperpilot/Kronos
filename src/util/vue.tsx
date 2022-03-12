@@ -14,6 +14,7 @@ import {
     DefineComponent,
     defineComponent,
     isRef,
+    onUnmounted,
     PropType,
     ref,
     Ref,
@@ -113,6 +114,8 @@ export function setupHoldToClick(
         }
     }
 
+    onUnmounted(stop);
+
     return { start, stop, handleHolding };
 }
 
@@ -154,7 +157,7 @@ export function setRefValue<T>(ref: Ref<T | Ref<T>>, value: T) {
     }
 }
 
-type PropTypes =
+export type PropTypes =
     | typeof Boolean
     | typeof String
     | typeof Number

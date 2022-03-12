@@ -5,12 +5,14 @@ import { branchedResetPropagation, createTree, GenericTree } from "features/tree
 import { globalBus } from "game/events";
 import { createLayer, GenericLayer } from "game/layers";
 import player, { PlayerData } from "game/player";
-import { DecimalSource } from "lib/break_eternity";
-import Decimal, { format, formatTime } from "util/bignum";
+import Decimal, { DecimalSource, format, formatTime } from "util/bignum";
 import { render } from "util/vue";
 import { computed, toRaw } from "vue";
 import prestige from "./layers/prestige";
 
+/**
+ * @hidden
+ */
 export const main = createLayer(() => {
     const points = createResource<DecimalSource>(10);
     const best = trackBest(points);

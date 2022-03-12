@@ -9,7 +9,7 @@ import {
     StyleValue,
     Visibility
 } from "features/feature";
-import { DecimalSource } from "lib/break_eternity";
+import { DecimalSource } from "util/bignum";
 import {
     Computable,
     GetComputableType,
@@ -45,7 +45,7 @@ export interface BarOptions {
     mark?: Computable<boolean | string>;
 }
 
-interface BaseBar {
+export interface BaseBar {
     id: string;
     type: typeof BarType;
     [Component]: typeof BarComponent;

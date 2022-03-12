@@ -8,11 +8,11 @@ import {
     PersistentRef,
     PersistentState
 } from "game/persistence";
-import Decimal from "lib/break_eternity";
+import Decimal from "util/bignum";
 import { Computable, GetComputableType, processComputable } from "util/computed";
 import { createLazyProxy } from "util/proxies";
 import { Unsubscribe } from "nanoevents";
-import { computed, isRef, unref } from "vue";
+import { isRef, unref } from "vue";
 
 export const ResetType = Symbol("Reset");
 
@@ -21,7 +21,7 @@ export interface ResetOptions {
     onReset?: VoidFunction;
 }
 
-interface BaseReset {
+export interface BaseReset {
     id: string;
     reset: VoidFunction;
     type: typeof ResetType;
@@ -69,23 +69,10 @@ export function createReset<T extends ResetOptions>(
     });
 }
 
-export function setupAutoReset(
-    layer: GenericLayer,
-    reset: GenericReset,
-    autoActive: Computable<boolean> = true
-): Unsubscribe {
-    const isActive = typeof autoActive === "function" ? computed(autoActive) : autoActive;
-    return layer.on("update", () => {
-        if (unref(isActive)) {
-            reset.reset();
-        }
-    });
-}
-
 const listeners: Record<string, Unsubscribe | undefined> = {};
 export function trackResetTime(layer: GenericLayer, reset: GenericReset): PersistentRef<Decimal> {
     const resetTime = persistent<Decimal>(new Decimal(0));
-    listeners[layer.id] = layer.on("preUpdate", (diff: Decimal) => {
+    listeners[layer.id] = layer.on("preUpdate", diff => {
         resetTime.value = Decimal.add(resetTime.value, diff);
     });
     globalBus.on("reset", currentReset => {

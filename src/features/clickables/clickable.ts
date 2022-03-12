@@ -9,6 +9,8 @@ import {
     StyleValue,
     Visibility
 } from "features/feature";
+import { GenericLayer } from "game/layers";
+import { Unsubscribe } from "nanoevents";
 import {
     Computable,
     GetComputableType,
@@ -17,7 +19,7 @@ import {
     ProcessedComputable
 } from "util/computed";
 import { createLazyProxy } from "util/proxies";
-import { unref } from "vue";
+import { computed, unref } from "vue";
 
 export const ClickableType = Symbol("Clickable");
 
@@ -39,7 +41,7 @@ export interface ClickableOptions {
     onHold?: VoidFunction;
 }
 
-interface BaseClickable {
+export interface BaseClickable {
     id: string;
     type: typeof ClickableType;
     [Component]: typeof ClickableComponent;
@@ -129,5 +131,18 @@ export function createClickable<T extends ClickableOptions>(
         };
 
         return clickable as unknown as Clickable<T>;
+    });
+}
+
+export function setupAutoClick(
+    layer: GenericLayer,
+    clickable: GenericClickable,
+    autoActive: Computable<boolean> = true
+): Unsubscribe {
+    const isActive = typeof autoActive === "function" ? computed(autoActive) : autoActive;
+    return layer.on("update", () => {
+        if (unref(isActive) && unref(clickable.canClick)) {
+            clickable.onClick?.();
+        }
     });
 }

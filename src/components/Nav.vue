@@ -144,7 +144,6 @@ function openDiscord() {
 .nav > .banner {
     height: 100%;
     width: unset;
-    padding-left: 10px;
 }
 
 .overlay-nav {
@@ -244,7 +243,7 @@ function openDiscord() {
 
 .nav .version-container {
     display: flex;
-    height: 33px;
+    height: 25px;
     margin-bottom: 0;
     margin-left: 10px;
 }

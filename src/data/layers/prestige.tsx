@@ -1,11 +1,15 @@
+/**
+ * @module
+ * @hidden
+ */
 import { main } from "data/projEntry";
-import { createCumulativeConversion, createExponentialScaling } from "features/conversion";
+import { createCumulativeConversion, createPolynomialScaling } from "features/conversion";
 import { jsx } from "features/feature";
 import { createReset } from "features/reset";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
 import { createLayer } from "game/layers";
-import { DecimalSource } from "lib/break_eternity";
+import { DecimalSource } from "util/bignum";
 import { render } from "util/vue";
 import { createLayerTreeNode, createResetButton } from "../common";
 
@@ -16,7 +20,7 @@ const layer = createLayer(() => {
     const points = createResource<DecimalSource>(0, "prestige points");
 
     const conversion = createCumulativeConversion(() => ({
-        scaling: createExponentialScaling(10, 5, 0.5),
+        scaling: createPolynomialScaling(10, 0.5),
         baseResource: main.points,
         gainResource: points,
         roundUpCost: true
