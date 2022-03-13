@@ -1,11 +1,9 @@
-import Toggle from "components/fields/Toggle.vue";
 import Spacer from "components/layout/Spacer.vue";
-import { jsx, setDefault } from "features/feature";
+import { jsx } from "features/feature";
 import { globalBus } from "game/events";
 import { createLayer, GenericLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
-import settings, { registerSettingField } from "game/settings";
 import { format, formatTime } from "util/bignum";
 import { renderCol } from "util/vue";
 import { computed } from "vue";
@@ -59,26 +57,6 @@ export const main = createLayer(() => {
 globalBus.on("update", diff => {
     main.resetTimes.value[main.chapter.value - 1] += diff;
 });
-
-declare module "game/settings" {
-    interface Settings {
-        showAdvancedEXPBars: boolean;
-    }
-}
-
-globalBus.on("loadSettings", settings => {
-    setDefault(settings, "showAdvancedEXPBars", false);
-});
-
-registerSettingField(
-    jsx(() => (
-        <Toggle
-            title="Show Advanced XP Bars"
-            onUpdate:modelValue={value => (settings.showAdvancedEXPBars = value)}
-            modelValue={settings.showAdvancedEXPBars}
-        />
-    ))
-);
 
 export const getInitialLayers = (
     /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
