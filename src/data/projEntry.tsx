@@ -1,48 +1,35 @@
+import Toggle from "components/fields/Toggle.vue";
 import Spacer from "components/layout/Spacer.vue";
-import { jsx } from "features/feature";
-import { createResource, trackBest, trackOOMPS, trackTotal } from "features/resources/resource";
-import { branchedResetPropagation, createTree, GenericTree } from "features/trees/tree";
+import { jsx, setDefault } from "features/feature";
 import { globalBus } from "game/events";
 import { createLayer, GenericLayer } from "game/layers";
+import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
-import Decimal, { DecimalSource, format, formatTime } from "util/bignum";
-import { render } from "util/vue";
-import { computed, toRaw } from "vue";
-import prestige from "./layers/prestige";
+import settings, { registerSettingField } from "game/settings";
+import { format, formatTime } from "util/bignum";
+import { renderCol } from "util/vue";
+import { computed } from "vue";
+import flowers from "./layers/flowers";
 
 /**
  * @hidden
  */
 export const main = createLayer(() => {
-    const points = createResource<DecimalSource>(10);
-    const best = trackBest(points);
-    const total = trackTotal(points);
+    const chapter = persistent<number>(1);
 
-    const pointGain = computed(() => {
-        // eslint-disable-next-line prefer-const
-        let gain = new Decimal(1);
-        return gain;
-    });
-    globalBus.on("update", diff => {
-        points.value = Decimal.add(points.value, Decimal.times(pointGain.value, diff));
-    });
-    const oomps = trackOOMPS(points, pointGain);
+    const timeSlots = computed(() => 0);
+    const usedTimeSlots = computed(() => 0);
+    const hasTimeSlotAvailable = computed(() => timeSlots.value > usedTimeSlots.value);
 
-    const tree = createTree(() => ({
-        nodes: [[prestige.treeNode]],
-        branches: [],
-        onReset() {
-            points.value = toRaw(this.resettingNode.value) === toRaw(prestige.treeNode) ? 0 : 10;
-            best.value = points.value;
-            total.value = points.value;
-        },
-        resetPropagation: branchedResetPropagation
-    })) as GenericTree;
+    const resetTimes = persistent<number[]>([0, 0, 0, 0, 0]);
 
     return {
         id: "main",
-        name: "Tree",
-        links: tree.links,
+        name: "Jobs",
+        chapter,
+        timeSlots,
+        hasTimeSlotAvailable,
+        resetTimes,
         display: jsx(() => (
             <>
                 <div v-show={player.devSpeed === 0}>Game Paused</div>
@@ -52,28 +39,56 @@ export const main = createLayer(() => {
                 <div v-show={player.offlineTime != undefined}>
                     Offline Time: {formatTime(player.offlineTime || 0)}
                 </div>
-                <div>
-                    <span v-show={Decimal.lt(points.value, "1e1000")}>You have </span>
-                    <h2>{format(points.value)}</h2>
-                    <span v-show={Decimal.lt(points.value, "1e1e6")}> points</span>
+                <div v-show={hasTimeSlotAvailable.value}>
+                    {timeSlots.value - usedTimeSlots.value} Time Slots Available
                 </div>
-                <div v-show={Decimal.gt(pointGain.value, 0)}>({oomps.value})</div>
-                <Spacer />
-                {render(tree)}
+                <Spacer
+                    v-show={
+                        player.devSpeed != null ||
+                        player.offlineTime != null ||
+                        hasTimeSlotAvailable.value
+                    }
+                />
+                {renderCol(flowers.job)}
             </>
-        )),
-        points,
-        best,
-        total,
-        oomps,
-        tree
+        ))
     };
 });
+
+globalBus.on("update", diff => {
+    main.resetTimes.value[main.chapter.value - 1] += diff;
+});
+
+declare module "game/settings" {
+    interface Settings {
+        showAdvancedEXPBars: boolean;
+    }
+}
+
+globalBus.on("loadSettings", settings => {
+    setDefault(settings, "showAdvancedEXPBars", false);
+});
+
+registerSettingField(
+    jsx(() => (
+        <Toggle
+            title="Show Advanced XP Bars"
+            onUpdate:modelValue={value => (settings.showAdvancedEXPBars = value)}
+            modelValue={settings.showAdvancedEXPBars}
+        />
+    ))
+);
 
 export const getInitialLayers = (
     /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     player: Partial<PlayerData>
-): Array<GenericLayer> => [main, prestige];
+): Array<GenericLayer> => {
+    const chapter = player.layers?.main?.chapter ?? 1;
+    if (chapter === 1) {
+        return [main, flowers];
+    }
+    throw `Chapter ${chapter} not supported`;
+};
 
 export const hasWon = computed(() => {
     return false;
