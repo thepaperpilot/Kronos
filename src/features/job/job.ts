@@ -185,7 +185,7 @@ export function createJob<T extends JobOptions>(optionsFunc: () => T & ThisType<
                 resource,
                 layerID,
                 classes,
-                style,
+                style: unref(style),
                 currentQuip,
                 randomQuips
             };
