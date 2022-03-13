@@ -9,7 +9,7 @@ import settings, { registerSettingField } from "game/settings";
 import { format, formatTime } from "util/bignum";
 import { renderCol } from "util/vue";
 import { computed } from "vue";
-import flowers from "./layers/flowers";
+import flowers from "./flowers/layer";
 
 /**
  * @hidden

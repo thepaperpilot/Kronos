@@ -28,6 +28,7 @@
                 <span>Lv. {{ formatWhole(level.value) }}</span>
             </div>
         </div>
+        <div v-if="selected && unref(currentQuip)" class="job-quip">"{{ unref(currentQuip) }}"</div>
         <div class="job-progress-container">
             <div class="job-progress"></div>
         </div>
@@ -54,8 +55,17 @@ import { displayResource, Resource } from "features/resources/resource";
 import { PersistentRef } from "game/persistence";
 import player from "game/player";
 import { formatWhole } from "util/bignum";
-import { processedPropType } from "util/vue";
-import { computed, defineComponent, PropType, Ref, toRefs, unref } from "vue";
+import { processedPropType, unwrapRef } from "util/vue";
+import {
+    computed,
+    defineComponent,
+    onUnmounted,
+    PropType,
+    Ref,
+    toRefs,
+    unref,
+    watchEffect
+} from "vue";
 
 export default defineComponent({
     props: {
@@ -102,6 +112,14 @@ export default defineComponent({
             type: String,
             required: true
         },
+        currentQuip: {
+            type: Object as PropType<Ref<string | null>>,
+            required: true
+        },
+        randomQuips: {
+            type: processedPropType<string[]>(Array),
+            required: true
+        },
         id: {
             type: String,
             required: true
@@ -111,7 +129,7 @@ export default defineComponent({
         LinkNode
     },
     setup(props) {
-        const { timeLoopActive, layerID } = toRefs(props);
+        const { timeLoopActive, layerID, currentQuip, randomQuips } = toRefs(props);
 
         const selected = computed(() => player.tabs.includes(layerID.value));
         const finishedFirstChapter = computed(() => player.layers.main.chapter !== 1);
@@ -123,6 +141,22 @@ export default defineComponent({
         function toggleLoop() {
             timeLoopActive.value = !timeLoopActive.value;
         }
+
+        let quipTimer: number | undefined = undefined;
+        watchEffect(() => {
+            clearInterval(quipTimer);
+            const quips = unwrapRef(randomQuips);
+            if (currentQuip.value) {
+                quipTimer = setTimeout(() => {
+                    currentQuip.value = null;
+                }, 15000);
+            } else {
+                quipTimer = setTimeout(() => {
+                    currentQuip.value = quips[Math.floor(Math.random() * quips.length)];
+                }, Math.random() * 15000 + 15000);
+            }
+        });
+        onUnmounted(() => clearInterval(quipTimer));
 
         return {
             selected,
@@ -267,5 +301,36 @@ export default defineComponent({
 
 .job.selected .job-progress {
     clip-path: inset(0% calc(-1 * var(--progress)) 0% 0%);
+}
+
+.job-quip {
+    position: absolute;
+    z-index: 2;
+    background: var(--locked);
+    border: 2px solid rgba(0, 0, 0, 0.125);
+    padding: 5px;
+    top: 20px;
+    left: 50%;
+    transform: translate(-50%);
+    color: var(--feature-foreground);
+    max-width: 400px;
+    font-style: italic;
+    pointer-events: none;
+    animation: quipAnimation 15s;
+}
+
+@keyframes quipAnimation {
+    0% {
+        opacity: 0;
+    }
+    5% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
 }
 </style>

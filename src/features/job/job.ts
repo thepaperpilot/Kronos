@@ -19,7 +19,7 @@ import {
     ProcessedComputable
 } from "util/computed";
 import { createLazyProxy } from "util/proxies";
-import { computed, Ref } from "vue";
+import { computed, nextTick, ref, Ref, unref } from "vue";
 
 export const JobType = Symbol("Job");
 const levelSoftcapPower = 0.7643; // chosen so that e308 = level 100
@@ -41,6 +41,7 @@ export interface JobOptions {
     image: Computable<string>;
     imageFocus: Computable<{ x: string; y: string }>;
     resource?: Resource;
+    randomQuips?: Computable<string[]>;
     layerID: string;
 }
 
@@ -51,6 +52,8 @@ export interface BaseJob {
     level: Resource;
     levelProgress: Ref<number>;
     timeLoopActive: PersistentRef<boolean>;
+    currentQuip: Ref<string | null>;
+    setQuip: (quip?: string) => void;
     type: typeof JobType;
     [Component]: typeof JobComponent;
     [GatherProps]: () => Record<string, unknown>;
@@ -65,6 +68,7 @@ export type Job<T extends JobOptions> = Replace<
         color: GetComputableType<T["color"]>;
         image: GetComputableType<T["image"]>;
         imageFocus: GetComputableType<T["imageFocus"]>;
+        randomQuips: GetComputableType<T["randomQuips"]>;
     }
 >;
 
@@ -121,6 +125,23 @@ export function createJob<T extends JobOptions>(optionsFunc: () => T & ThisType<
             return progress;
         });
         job.timeLoopActive = persistent<boolean>(false);
+        job.currentQuip = ref(null);
+
+        job.setQuip = function (quip?: string) {
+            const genericJob = job as GenericJob;
+            if (genericJob.currentQuip.value) {
+                genericJob.currentQuip.value = null;
+                nextTick(genericJob.setQuip);
+                return;
+            }
+
+            if (quip) {
+                genericJob.currentQuip.value = quip;
+            } else if (unref(genericJob.randomQuips)) {
+                const quips = unref(genericJob.randomQuips) as string[];
+                genericJob.currentQuip.value = quips[Math.floor(Math.random() * quips.length)];
+            }
+        };
 
         processComputable(job as T, "visibility");
         setDefault(job, "visibility", Visibility.Visible);
@@ -129,6 +150,7 @@ export function createJob<T extends JobOptions>(optionsFunc: () => T & ThisType<
         processComputable(job as T, "color");
         processComputable(job as T, "image");
         processComputable(job as T, "imageFocus");
+        processComputable(job as T, "randomQuips");
 
         job[GatherProps] = function (this: GenericJob) {
             const {
@@ -145,7 +167,9 @@ export function createJob<T extends JobOptions>(optionsFunc: () => T & ThisType<
                 resource,
                 layerID,
                 classes,
-                style
+                style,
+                currentQuip,
+                randomQuips
             } = this;
             return {
                 id,
@@ -161,7 +185,9 @@ export function createJob<T extends JobOptions>(optionsFunc: () => T & ThisType<
                 resource,
                 layerID,
                 classes,
-                style
+                style,
+                currentQuip,
+                randomQuips
             };
         };
 
