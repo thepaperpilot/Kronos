@@ -40,7 +40,8 @@ export const main = createLayer(() => {
                     Offline Time: {formatTime(player.offlineTime || 0)}
                 </div>
                 <div v-show={hasTimeSlotAvailable.value}>
-                    {timeSlots.value - usedTimeSlots.value} Time Slots Available
+                    {timeSlots.value - usedTimeSlots.value} Time Slot
+                    {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
                 </div>
                 <Spacer
                     v-show={

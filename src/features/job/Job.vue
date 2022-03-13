@@ -235,6 +235,7 @@ export default defineComponent({
     position: absolute;
     top: 0;
     right: 0;
+    z-index: 10;
 }
 
 .job-loop-toggle.active {
@@ -305,7 +306,7 @@ export default defineComponent({
 
 .job-quip {
     position: absolute;
-    z-index: 2;
+    z-index: 5;
     background: var(--locked);
     border: 2px solid rgba(0, 0, 0, 0.125);
     padding: 5px;
@@ -317,6 +318,7 @@ export default defineComponent({
     font-style: italic;
     pointer-events: none;
     animation: quipAnimation 15s;
+    animation-fill-mode: forwards;
 }
 
 @keyframes quipAnimation {
