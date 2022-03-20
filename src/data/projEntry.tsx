@@ -1,13 +1,16 @@
 import Spacer from "components/layout/Spacer.vue";
 import { jsx } from "features/feature";
+import { addEmitter } from "features/particles/particles";
 import { globalBus } from "game/events";
 import { createLayer, GenericLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
-import { format, formatTime } from "util/bignum";
+import Decimal, { format, formatTime } from "util/bignum";
 import { renderCol } from "util/vue";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import flowers from "./flowers/layer";
+import { IParticlesOptions } from "tsparticles-engine";
+import confetti from "./confetti.json";
 
 /**
  * @hidden
@@ -20,6 +23,45 @@ export const main = createLayer(() => {
     const hasTimeSlotAvailable = computed(() => timeSlots.value > usedTimeSlots.value);
 
     const resetTimes = persistent<number[]>([0, 0, 0, 0, 0]);
+
+    const jobs = [flowers.job];
+
+    jobs.forEach(job => {
+        let lastProc = 0;
+        watch(job.rawLevel, (currLevel, prevLevel) => {
+            if (Decimal.neq(currLevel, prevLevel) && Date.now() - lastProc > 500) {
+                lastProc = Date.now();
+                addEmitter(
+                    {
+                        // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
+                        particles: confetti as unknown as IParticlesOptions,
+                        autoPlay: true,
+                        fill: false,
+                        shape: "square",
+                        startCount: 0,
+                        life: {
+                            count: 1,
+                            duration: 0.1,
+                            wait: false
+                        },
+                        rate: {
+                            delay: 0,
+                            quantity: 15
+                        },
+                        size: {
+                            width: 0,
+                            height: 0,
+                            mode: "percent"
+                        }
+                    },
+                    {
+                        x: 50,
+                        y: 50
+                    }
+                );
+            }
+        });
+    });
 
     return {
         id: "main",
@@ -48,7 +90,7 @@ export const main = createLayer(() => {
                         hasTimeSlotAvailable.value
                     }
                 />
-                {renderCol(flowers.job)}
+                {renderCol(...jobs)}
             </>
         ))
     };

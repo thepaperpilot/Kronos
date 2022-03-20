@@ -12,12 +12,17 @@ import { createResource } from "features/resources/resource";
 import { BaseLayer, createLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import Decimal, { DecimalSource } from "util/bignum";
+import { EmitterInstance } from "tsparticles-plugin-emitters/EmitterInstance";
 import { formatWhole } from "util/break_eternity";
 import { renderCol, renderRow } from "util/vue";
-import { computed, Ref } from "vue";
+import { computed, ref, Ref, watch } from "vue";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
+import { addEmitter, removeEmitter } from "features/particles/particles";
+import { IParticlesOptions } from "tsparticles-engine";
+import confetti from "../confetti.json";
 import "./flowers.css";
+import { Emitter } from "nanoevents";
 
 const layer = createLayer(function (this: BaseLayer) {
     const id = "flowers";
@@ -51,7 +56,7 @@ const layer = createLayer(function (this: BaseLayer) {
         description: string,
         effect: string
     ): GenericClickable & { active: Ref<boolean> } {
-        return createClickable(() => ({
+        const clickable = createClickable(() => ({
             canClick(): boolean {
                 return this.active.value || activeSpells.value < maxActiveSpells.value;
             },
@@ -71,6 +76,48 @@ const layer = createLayer(function (this: BaseLayer) {
             },
             active: persistent<boolean>(false)
         }));
+
+        const particleRef = ref<null | Promise<EmitterInstance>>(null);
+        watch(clickable.active, async active => {
+            if (particleRef.value) {
+                // TODO why is this cast necessary?
+                removeEmitter((await particleRef.value) as EmitterInstance);
+            }
+            if (active) {
+                // TODO there are so many values marked as required that are actually optional
+                particleRef.value = addEmitter(
+                    {
+                        // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
+                        particles: confetti as unknown as IParticlesOptions,
+                        autoPlay: true,
+                        fill: false,
+                        shape: "square",
+                        startCount: 0,
+                        life: {
+                            count: 1,
+                            wait: false
+                        },
+                        rate: {
+                            delay: 0,
+                            quantity: 15
+                        },
+                        size: {
+                            width: 0,
+                            height: 0,
+                            mode: "percent"
+                        }
+                    },
+                    {
+                        x: 0,
+                        y: 0
+                    }
+                );
+            } else {
+                particleRef.value = null;
+            }
+        });
+
+        return clickable;
     }
 
     const expSpellSelector = createSpellSelector(
