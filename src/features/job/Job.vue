@@ -43,13 +43,13 @@
         >
             loop
         </button>
-        <LinkNode :id="id" />
+        <Node :id="id" />
     </span>
 </template>
 
 <script lang="tsx">
 import "components/common/features.css";
-import LinkNode from "components/links/LinkNode.vue";
+import Node from "components/Node.vue";
 import { StyleValue, Visibility } from "features/feature";
 import { displayResource, Resource } from "features/resources/resource";
 import { PersistentRef } from "game/persistence";
@@ -126,7 +126,7 @@ export default defineComponent({
         }
     },
     components: {
-        LinkNode
+        Node
     },
     setup(props) {
         const { timeLoopActive, layerID, currentQuip, randomQuips } = toRefs(props);
