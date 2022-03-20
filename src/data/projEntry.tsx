@@ -30,9 +30,10 @@ export const main = createLayer(() => {
         let lastProc = 0;
         watch(job.rawLevel, (currLevel, prevLevel) => {
             if (Decimal.neq(currLevel, prevLevel) && Date.now() - lastProc > 500) {
-                lastProc = Date.now();
-                addEmitter(
-                    {
+                const rect = main.nodes.value[job.id]?.rect;
+                if (rect) {
+                    lastProc = Date.now();
+                    addEmitter({
                         // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
                         particles: confetti as unknown as IParticlesOptions,
                         autoPlay: true,
@@ -46,19 +47,19 @@ export const main = createLayer(() => {
                         },
                         rate: {
                             delay: 0,
-                            quantity: 15
+                            quantity: 100
+                        },
+                        position: {
+                            x: (100 * (rect.x + rect.width / 2)) / window.innerWidth,
+                            y: (100 * (rect.y + rect.height / 2)) / window.innerHeight
                         },
                         size: {
-                            width: 0,
-                            height: 0,
-                            mode: "percent"
+                            width: rect.width,
+                            height: rect.height,
+                            mode: "precise"
                         }
-                    },
-                    {
-                        x: 50,
-                        y: 50
-                    }
-                );
+                    });
+                }
             }
         });
     });

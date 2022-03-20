@@ -1,6 +1,7 @@
 .spellSelector {
     background: none;
     border-color: transparent;
+    transform: unset !important;
 }
 
 .spellSelector::before {

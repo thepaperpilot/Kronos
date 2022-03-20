@@ -15,14 +15,13 @@ import Decimal, { DecimalSource } from "util/bignum";
 import { EmitterInstance } from "tsparticles-plugin-emitters/EmitterInstance";
 import { formatWhole } from "util/break_eternity";
 import { renderCol, renderRow } from "util/vue";
-import { computed, ref, Ref, watch } from "vue";
+import { computed, nextTick, ref, Ref, watch, WatchStopHandle } from "vue";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import { addEmitter, removeEmitter } from "features/particles/particles";
 import { IParticlesOptions } from "tsparticles-engine";
 import confetti from "../confetti.json";
 import "./flowers.css";
-import { Emitter } from "nanoevents";
 
 const layer = createLayer(function (this: BaseLayer) {
     const id = "flowers";
@@ -78,40 +77,60 @@ const layer = createLayer(function (this: BaseLayer) {
         }));
 
         const particleRef = ref<null | Promise<EmitterInstance>>(null);
+        let watcher: WatchStopHandle | null = null;
         watch(clickable.active, async active => {
             if (particleRef.value) {
                 // TODO why is this cast necessary?
                 removeEmitter((await particleRef.value) as EmitterInstance);
+                watcher?.();
             }
             if (active) {
                 // TODO there are so many values marked as required that are actually optional
-                particleRef.value = addEmitter(
-                    {
-                        // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
-                        particles: confetti as unknown as IParticlesOptions,
-                        autoPlay: true,
-                        fill: false,
-                        shape: "square",
-                        startCount: 0,
-                        life: {
-                            count: 1,
-                            wait: false
-                        },
-                        rate: {
-                            delay: 0,
-                            quantity: 15
-                        },
-                        size: {
-                            width: 0,
-                            height: 0,
-                            mode: "percent"
-                        }
+                const rect = layer.nodes.value[clickable.id]?.rect;
+                particleRef.value = addEmitter({
+                    // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
+                    particles: confetti as unknown as IParticlesOptions,
+                    autoPlay: !!rect,
+                    fill: false,
+                    shape: "square",
+                    startCount: 0,
+                    life: {
+                        count: 1,
+                        delay: rect ? 0 : 1,
+                        wait: true
                     },
-                    {
-                        x: 0,
-                        y: 0
+                    rate: {
+                        delay: 0,
+                        quantity: rect ? 10 : 0
+                    },
+                    size: {
+                        width: rect ? rect.width : 0,
+                        height: rect ? rect.height : 0,
+                        mode: "precise"
+                    },
+                    position: {
+                        x: rect ? (100 * (rect.x + rect.width / 2)) / window.innerWidth : 0,
+                        y: rect ? (100 * (rect.y + rect.height / 2)) / window.innerHeight : 0
                     }
-                );
+                });
+                particleRef.value.then(emitter => {
+                    watcher = watch(
+                        () => layer.nodes.value[clickable.id]?.rect,
+                        rect => {
+                            if (rect && emitter.position && emitter.options.position) {
+                                emitter.options.position.x =
+                                    (100 * (rect.x + rect.width / 2)) / window.innerWidth;
+                                emitter.options.position.y =
+                                    (100 * (rect.y + rect.height / 2)) / window.innerHeight;
+                                emitter.size.width = rect.width;
+                                emitter.size.height = rect.height;
+                                emitter.options.rate.quantity = 10;
+                                emitter.externalPlay();
+                            }
+                        },
+                        { immediate: true }
+                    );
+                });
             } else {
                 particleRef.value = null;
             }
@@ -160,6 +179,7 @@ const layer = createLayer(function (this: BaseLayer) {
         flowers,
         job,
         spellSelectors,
+        milestones,
         display: jsx(() => (
             <>
                 <MainDisplay resource={flowers} color={color} />
