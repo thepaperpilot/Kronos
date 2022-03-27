@@ -4,9 +4,9 @@
  */
 import Spacer from "components/layout/Spacer.vue";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { jsx } from "features/feature";
+import { jsx, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone } from "features/milestones/milestone";
+import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
 import { BaseLayer, createLayer } from "game/layers";
@@ -14,14 +14,15 @@ import { persistent } from "game/persistence";
 import Decimal, { DecimalSource } from "util/bignum";
 import { EmitterInstance } from "tsparticles-plugin-emitters/EmitterInstance";
 import { formatWhole } from "util/break_eternity";
-import { render, renderCol, renderRow } from "util/vue";
-import { computed, ref, Ref, watch, WatchStopHandle } from "vue";
+import { getFirstFeature, render, renderCol, renderRow } from "util/vue";
+import { computed, ref, Ref, unref, watch, WatchStopHandle } from "vue";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import { IParticlesOptions } from "tsparticles-engine";
 import confetti from "../confetti.json";
 import "./flowers.css";
 import { createParticles } from "features/particles/particles";
+import Collapsible from "components/layout/Collapsible.vue";
 
 const layer = createLayer(function (this: BaseLayer) {
     const id = "flowers";
@@ -166,12 +167,65 @@ const layer = createLayer(function (this: BaseLayer) {
         },
         display: {
             requirement: "Achieve Harvesting Flowers Level 2",
-            effectDisplay: "Unlock a new spell"
+            effectDisplay: "Unlock a new spell - Therizó"
         }
     }));
-    const spellTreesMilestone = createMilestone(() => ({}));
-
-    const milestones = { flowerSpellMilestone };
+    const spellExpMilestone = createMilestone(() => ({
+        shouldEarn() {
+            return Decimal.gte(job.rawLevel.value, 4);
+        },
+        display: {
+            requirement: "Achieve Harvesting Flowers Level 4",
+            effectDisplay: "Unlock experience for spells"
+        },
+        visibility() {
+            return showIf(flowerSpellMilestone.earned.value);
+        }
+    }));
+    const burstSpellMilestone = createMilestone(() => ({
+        shouldEarn() {
+            return Decimal.gte(job.rawLevel.value, 6);
+        },
+        display: {
+            requirement: "Achieve Harvesting Flowers Level 6",
+            effectDisplay: "Unlock a new spell - Prōficiō"
+        },
+        visibility() {
+            return showIf(spellExpMilestone.earned.value);
+        }
+    }));
+    const expSpellMilestone = createMilestone(() => ({
+        shouldEarn() {
+            return Decimal.gte(job.rawLevel.value, 8);
+        },
+        display: {
+            requirement: "Achieve Harvesting Flowers Level 8",
+            effectDisplay: "Unlock a new spell - Scholē"
+        },
+        visibility() {
+            return showIf(burstSpellMilestone.earned.value);
+        }
+    }));
+    const milestones = {
+        flowerSpellMilestone,
+        spellExpMilestone,
+        burstSpellMilestone,
+        expSpellMilestone
+    };
+    const orderedMilestones = [
+        expSpellMilestone,
+        burstSpellMilestone,
+        spellExpMilestone,
+        flowerSpellMilestone
+    ];
+    const collapseMilestones = persistent<boolean>(false);
+    const lockedMilestones = computed(() =>
+        orderedMilestones.filter(m => m.earned.value === false)
+    );
+    const { firstFeature: firstMilestone, hiddenFeatures: otherMilestones } = getFirstFeature(
+        orderedMilestones,
+        m => m.earned.value
+    );
 
     this.on("preUpdate", diff => {
         if (expSpellSelector.active.value) {
@@ -188,19 +242,44 @@ const layer = createLayer(function (this: BaseLayer) {
         job,
         spellSelectors,
         milestones,
-        display: jsx(() => (
-            <>
-                <MainDisplay resource={flowers} color={color} />
-                <div>
-                    You can cast {formatWhole(maxActiveSpells.value)} spell
-                    {maxActiveSpells.value === 1 ? "" : "s"} at a time
-                </div>
-                {renderRow(...Object.values(spellSelectors))}
-                <Spacer />
-                {renderCol(...Object.values(milestones))}
-                {render(particles)}
-            </>
-        ))
+        collapseMilestones,
+        display: jsx(() => {
+            const milestonesToDisplay = [...lockedMilestones.value];
+            if (firstMilestone.value) {
+                milestonesToDisplay.push(firstMilestone.value);
+            }
+            return (
+                <>
+                    <MainDisplay
+                        resource={flowers}
+                        color={color}
+                        v-show={flowerSpellMilestone.earned.value}
+                    />
+                    {renderCol(
+                        ...milestonesToDisplay,
+                        jsx(() => (
+                            <Collapsible
+                                collapsed={collapseMilestones}
+                                content={jsx(() => renderCol(...otherMilestones.value))}
+                                display={
+                                    collapseMilestones.value
+                                        ? "Show other completed milestones"
+                                        : "Hide other completed milestones"
+                                }
+                                v-show={otherMilestones.value.length > 0}
+                            />
+                        ))
+                    )}
+                    <Spacer />
+                    <div>
+                        You can cast {formatWhole(maxActiveSpells.value)} spell
+                        {maxActiveSpells.value === 1 ? "" : "s"} at a time
+                    </div>
+                    {renderRow(...Object.values(spellSelectors))}
+                    {render(particles)}
+                </>
+            );
+        })
     };
 });
 
