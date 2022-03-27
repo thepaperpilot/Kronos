@@ -1,12 +1,12 @@
 import Spacer from "components/layout/Spacer.vue";
 import { jsx } from "features/feature";
-import { addEmitter } from "features/particles/particles";
+import { createParticles } from "features/particles/particles";
 import { globalBus } from "game/events";
 import { createLayer, GenericLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
 import Decimal, { format, formatTime } from "util/bignum";
-import { renderCol } from "util/vue";
+import { render, renderCol } from "util/vue";
 import { computed, watch } from "vue";
 import flowers from "./flowers/layer";
 import { IParticlesOptions } from "tsparticles-engine";
@@ -33,7 +33,7 @@ export const main = createLayer(() => {
                 const rect = main.nodes.value[job.id]?.rect;
                 if (rect) {
                     lastProc = Date.now();
-                    addEmitter({
+                    particles.addEmitter({
                         // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
                         particles: confetti as unknown as IParticlesOptions,
                         autoPlay: true,
@@ -64,6 +64,8 @@ export const main = createLayer(() => {
         });
     });
 
+    const particles = createParticles(() => ({}));
+
     return {
         id: "main",
         name: "Jobs",
@@ -92,6 +94,7 @@ export const main = createLayer(() => {
                     }
                 />
                 {renderCol(...jobs)}
+                {render(particles)}
             </>
         ))
     };
