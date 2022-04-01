@@ -7,9 +7,8 @@ import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
 import Decimal, { format, formatTime } from "util/bignum";
 import { render, renderCol } from "util/vue";
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import flowers from "./flowers/layer";
-import { IParticlesOptions } from "tsparticles-engine";
 import confetti from "./confetti.json";
 
 /**
@@ -31,40 +30,40 @@ export const main = createLayer(() => {
         watch(job.rawLevel, (currLevel, prevLevel) => {
             if (Decimal.neq(currLevel, prevLevel) && Date.now() - lastProc > 500) {
                 const rect = main.nodes.value[job.id]?.rect;
-                if (rect) {
+                const boundingRect = particles.boundingRect.value;
+                if (rect && boundingRect) {
                     lastProc = Date.now();
-                    particles.addEmitter({
-                        // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
-                        particles: confetti as unknown as IParticlesOptions,
-                        autoPlay: true,
-                        fill: false,
-                        shape: "square",
-                        startCount: 0,
-                        life: {
-                            count: 1,
-                            duration: 0.1,
-                            wait: false
-                        },
-                        rate: {
-                            delay: 0,
-                            quantity: 100
-                        },
-                        position: {
-                            x: (100 * (rect.x + rect.width / 2)) / window.innerWidth,
-                            y: (100 * (rect.y + rect.height / 2)) / window.innerHeight
-                        },
-                        size: {
-                            width: rect.width,
-                            height: rect.height,
-                            mode: "precise"
-                        }
+                    console.log(rect, boundingRect);
+                    const config = Object.assign({}, confetti, {
+                        behaviors: [
+                            ...confetti.behaviors.slice(0, -1),
+                            {
+                                type: "spawnShape",
+                                config: {
+                                    type: "rect",
+                                    data: {
+                                        x: rect.x - boundingRect.x,
+                                        y: rect.y - boundingRect.y,
+                                        w: rect.width,
+                                        h: rect.height
+                                    }
+                                }
+                            }
+                        ]
                     });
+                    particles.addEmitter(config).then(e => e.playOnceAndDestroy());
                 }
             }
         });
     });
 
-    const particles = createParticles(() => ({}));
+    const particles = createParticles(() => ({
+        boundingRect: ref<null | DOMRect>(null),
+        onContainerResized(boundingRect) {
+            this.boundingRect.value = boundingRect;
+        },
+        style: "z-index: -1"
+    }));
 
     return {
         id: "main",

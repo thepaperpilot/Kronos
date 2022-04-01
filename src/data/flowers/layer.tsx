@@ -4,25 +4,32 @@
  */
 import Spacer from "components/layout/Spacer.vue";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { jsx, showIf, Visibility } from "features/feature";
+import { jsx, showIf } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
 import { BaseLayer, createLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import Decimal, { DecimalSource } from "util/bignum";
-import { EmitterInstance } from "tsparticles-plugin-emitters/EmitterInstance";
 import { formatWhole } from "util/break_eternity";
 import { getFirstFeature, render, renderCol, renderRow } from "util/vue";
-import { computed, ref, Ref, unref, watch, WatchStopHandle } from "vue";
-import globalQuips from "../quips.json";
-import alwaysQuips from "./quips.json";
-import { IParticlesOptions } from "tsparticles-engine";
-import confetti from "../confetti.json";
-import "./flowers.css";
+import { computed, ref, Ref, watch, WatchStopHandle } from "vue";
 import { createParticles } from "features/particles/particles";
 import Collapsible from "components/layout/Collapsible.vue";
+import { Emitter, EmitterConfigV3, upgradeConfig } from "@pixi/particle-emitter";
+import globalQuips from "../quips.json";
+import alwaysQuips from "./quips.json";
+import spellParticles from "./spellParticles.json";
+import "./flowers.css";
+
+export type GenericSpellSelector = GenericClickable & {
+    active: Ref<boolean>;
+    particleEffectWatcher: Ref<null | WatchStopHandle>;
+    particleEffectConfig: EmitterConfigV3;
+    particleEffect: Ref<Promise<Emitter>>;
+    updateParticleEffect: (active: boolean) => void;
+};
 
 const layer = createLayer(function (this: BaseLayer) {
     const id = "flowers";
@@ -53,17 +60,28 @@ const layer = createLayer(function (this: BaseLayer) {
 
     const particles = createParticles(() => ({
         fullscreen: false,
+        zIndex: -1,
         boundingRect: ref<null | DOMRect>(null),
         onContainerResized(boundingRect) {
             this.boundingRect.value = boundingRect;
+        },
+        onHotReload() {
+            Object.values(spellSelectors).forEach(spell => {
+                spell.particleEffect.value.then(e => e.destroy());
+                spell.particleEffect.value = particles.addEmitter(spell.particleEffectConfig);
+                spell.updateParticleEffect(spell.active.value);
+            });
         }
     }));
 
     function createSpellSelector(
         title: string,
         description: string,
-        effect: string
-    ): GenericClickable & { active: Ref<boolean> } {
+        effect: string,
+        config: EmitterConfigV3
+    ): GenericSpellSelector {
+        config.emit = false;
+        config.autoUpdate = true;
         const clickable = createClickable(() => ({
             canClick(): boolean {
                 return this.active.value || activeSpells.value < maxActiveSpells.value;
@@ -82,68 +100,37 @@ const layer = createLayer(function (this: BaseLayer) {
             onClick() {
                 this.active.value = !this.active.value;
             },
-            active: persistent<boolean>(false)
-        }));
-
-        const particleRef = ref<null | Promise<EmitterInstance>>(null);
-        let watcher: WatchStopHandle | null = null;
-        watch(clickable.active, async active => {
-            if (particleRef.value) {
-                // TODO why is this cast necessary?
-                particles.removeEmitter((await particleRef.value) as EmitterInstance);
-                watcher?.();
-            }
-            if (active) {
-                watcher = watch(
-                    [() => layer.nodes.value[clickable.id]?.rect, particles.boundingRect],
-                    async ([rect, boundingRect]) => {
-                        if (rect && boundingRect) {
-                            if (particleRef.value) {
-                                // TODO why is this cast necessary?
-                                particles.removeEmitter(
-                                    (await particleRef.value) as EmitterInstance
+            particleEffectConfig: config,
+            active: persistent<boolean>(false),
+            particleEffectWatcher: ref<null | WatchStopHandle>(null),
+            particleEffect: ref(particles.addEmitter(config)),
+            async updateParticleEffect(active: boolean) {
+                const particle = await clickable.particleEffect.value;
+                if (active) {
+                    particle.emit = true;
+                    clickable.particleEffectWatcher.value?.();
+                    clickable.particleEffectWatcher.value = watch(
+                        [() => layer.nodes.value[clickable.id]?.rect, particles.boundingRect],
+                        async ([rect, boundingRect]) => {
+                            if (rect && boundingRect) {
+                                particle.cleanup();
+                                particle.updateOwnerPos(
+                                    rect.x + rect.width / 2 - boundingRect.x,
+                                    rect.y + rect.height / 2 - boundingRect.y
                                 );
-                                particles.containerRef.value?.refresh();
+                                particle.resetPositionTracking();
                             }
-                            // TODO there are so many values marked as required that are actually optional
-                            particleRef.value = particles.addEmitter({
-                                // TODO this case is annoying but required because move.direction is a string rather than keyof MoveDirection
-                                particles: confetti as unknown as IParticlesOptions,
-                                autoPlay: true,
-                                fill: false,
-                                shape: "square",
-                                startCount: 0,
-                                life: {
-                                    count: 1,
-                                    delay: 0,
-                                    wait: true
-                                },
-                                rate: {
-                                    delay: 0,
-                                    quantity: 10
-                                },
-                                size: {
-                                    width: rect.width,
-                                    height: rect.height,
-                                    mode: "precise"
-                                },
-                                position: {
-                                    x:
-                                        (100 * (rect.x + rect.width / 2 - boundingRect.x)) /
-                                        boundingRect.width,
-                                    y:
-                                        (100 * (rect.y + rect.height / 2 - boundingRect.y)) /
-                                        boundingRect.height
-                                }
-                            });
-                        }
-                    },
-                    { immediate: true }
-                );
-            } else {
-                particleRef.value = null;
+                        },
+                        { immediate: true }
+                    );
+                } else {
+                    particle.emit = false;
+                    clickable.particleEffectWatcher.value?.();
+                    clickable.particleEffectWatcher.value = null;
+                }
             }
-        });
+        }));
+        watch(clickable.active, clickable.updateParticleEffect);
 
         return clickable;
     }
@@ -151,13 +138,16 @@ const layer = createLayer(function (this: BaseLayer) {
     const expSpellSelector = createSpellSelector(
         "Téchnasma",
         "Practice using the flowers to perform minor magical tricks.",
-        "Gain job exp."
+        "Gain job exp.",
+        upgradeConfig(spellParticles, ["/Fire.png"])
     );
     const flowerSpellSelector = createSpellSelector(
         "Therizó",
         "Use the magic of the flowers to harvest themselves.",
-        "Gain flowers."
+        "Gain flowers.",
+        upgradeConfig(spellParticles, ["/Fire.png"])
     );
+    console.log(upgradeConfig(spellParticles, ["/Fire.png"]));
 
     const spellSelectors = { expSpellSelector, flowerSpellSelector };
 
