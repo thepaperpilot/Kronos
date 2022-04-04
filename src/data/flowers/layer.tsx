@@ -147,7 +147,6 @@ const layer = createLayer(function (this: BaseLayer) {
         "Gain flowers.",
         upgradeConfig(spellParticles, ["/Fire.png"])
     );
-    console.log(upgradeConfig(spellParticles, ["/Fire.png"]));
 
     const spellSelectors = { expSpellSelector, flowerSpellSelector };
 

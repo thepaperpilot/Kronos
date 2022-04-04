@@ -1,21 +1,33 @@
 import Spacer from "components/layout/Spacer.vue";
-import { jsx } from "features/feature";
+import Cutscene from "./Cutscene.vue";
+import { CoercableComponent, jsx } from "features/feature";
 import { createParticles } from "features/particles/particles";
 import { globalBus } from "game/events";
-import { createLayer, GenericLayer } from "game/layers";
+import { addLayer, createLayer, GenericLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
 import Decimal, { format, formatTime } from "util/bignum";
 import { render, renderCol } from "util/vue";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, watchEffect } from "vue";
 import flowers from "./flowers/layer";
 import confetti from "./confetti.json";
+
+interface Cutscene {
+    pages: CutscenePage[];
+    page: number;
+    onFinished?: VoidFunction;
+}
+
+interface CutscenePage {
+    stage: CoercableComponent;
+    caption?: CoercableComponent;
+}
 
 /**
  * @hidden
  */
 export const main = createLayer(() => {
-    const chapter = persistent<number>(1);
+    const chapter = persistent<number>(0);
 
     const timeSlots = computed(() => 0);
     const usedTimeSlots = computed(() => 0);
@@ -33,7 +45,6 @@ export const main = createLayer(() => {
                 const boundingRect = particles.boundingRect.value;
                 if (rect && boundingRect) {
                     lastProc = Date.now();
-                    console.log(rect, boundingRect);
                     const config = Object.assign({}, confetti, {
                         behaviors: [
                             ...confetti.behaviors.slice(0, -1),
@@ -65,6 +76,61 @@ export const main = createLayer(() => {
         style: "z-index: -1"
     }));
 
+    // Preload images
+    [
+        "https://upload.wikimedia.org/wikipedia/commons/7/71/Serpiente_alquimica.jpg",
+        "https://dummyimage.com/720x320/000/fff.png"
+    ].forEach(image => (new Image().src = image));
+
+    const activeCutscene = ref<null | Cutscene>(null);
+    watchEffect(() => {
+        if (chapter.value === 0) {
+            activeCutscene.value = {
+                pages: [
+                    {
+                        stage: jsx(() => (
+                            <img
+                                style="max-width: 100%; flex-grow: 1"
+                                src="https://upload.wikimedia.org/wikipedia/commons/7/71/Serpiente_alquimica.jpg"
+                            />
+                        ))
+                    },
+                    {
+                        stage: jsx(() => (
+                            <img
+                                style="max-width: 100%; flex-grow: 1"
+                                src="https://dummyimage.com/720x320/000/fff.png"
+                            />
+                        )),
+                        caption: "Test"
+                    },
+                    {
+                        stage: jsx(() => (
+                            <div style="display: flex">
+                                <img
+                                    style="max-width: 100%; flex-grow: 1; margin-right: -20%"
+                                    src="https://dummyimage.com/386x320/000/fff.png"
+                                />
+                                <img
+                                    style="max-width: 100%; flex-grow: 1; margin-left: -20%"
+                                    src="https://dummyimage.com/386x320/000/fff.png"
+                                />
+                            </div>
+                        )),
+                        caption: "Other test"
+                    }
+                ],
+                page: 0,
+                onFinished() {
+                    chapter.value = 1;
+                    addLayer(flowers, player);
+                }
+            };
+            return;
+        }
+        activeCutscene.value = null;
+    });
+
     return {
         id: "main",
         name: "Jobs",
@@ -72,30 +138,49 @@ export const main = createLayer(() => {
         timeSlots,
         hasTimeSlotAvailable,
         resetTimes,
-        display: jsx(() => (
-            <>
-                <div v-show={player.devSpeed === 0}>Game Paused</div>
-                <div v-show={player.devSpeed && player.devSpeed !== 1}>
-                    Dev Speed: {format(player.devSpeed || 0)}x
-                </div>
-                <div v-show={player.offlineTime != undefined}>
-                    Offline Time: {formatTime(player.offlineTime || 0)}
-                </div>
-                <div v-show={hasTimeSlotAvailable.value}>
-                    {timeSlots.value - usedTimeSlots.value} Time Slot
-                    {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
-                </div>
-                <Spacer
-                    v-show={
-                        player.devSpeed != null ||
-                        player.offlineTime != null ||
-                        hasTimeSlotAvailable.value
-                    }
+        display: jsx(() =>
+            activeCutscene.value ? (
+                <Cutscene
+                    stage={activeCutscene.value.pages[activeCutscene.value.page].stage}
+                    caption={activeCutscene.value.pages[activeCutscene.value.page].caption}
+                    onNext={() => {
+                        if (activeCutscene.value) {
+                            if (
+                                activeCutscene.value.page ==
+                                activeCutscene.value.pages.length - 1
+                            ) {
+                                activeCutscene.value.onFinished?.();
+                            } else {
+                                activeCutscene.value.page++;
+                            }
+                        }
+                    }}
                 />
-                {renderCol(...jobs)}
-                {render(particles)}
-            </>
-        ))
+            ) : (
+                <>
+                    <div v-show={player.devSpeed === 0}>Game Paused</div>
+                    <div v-show={player.devSpeed && player.devSpeed !== 1}>
+                        Dev Speed: {format(player.devSpeed || 0)}x
+                    </div>
+                    <div v-show={player.offlineTime != undefined}>
+                        Offline Time: {formatTime(player.offlineTime || 0)}
+                    </div>
+                    <div v-show={hasTimeSlotAvailable.value}>
+                        {timeSlots.value - usedTimeSlots.value} Time Slot
+                        {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
+                    </div>
+                    <Spacer
+                        v-show={
+                            player.devSpeed != null ||
+                            player.offlineTime != null ||
+                            hasTimeSlotAvailable.value
+                        }
+                    />
+                    {renderCol(...jobs)}
+                    {render(particles)}
+                </>
+            )
+        )
     };
 });
 
@@ -107,8 +192,10 @@ export const getInitialLayers = (
     /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     player: Partial<PlayerData>
 ): Array<GenericLayer> => {
-    const chapter = player.layers?.main?.chapter ?? 1;
-    if (chapter === 1) {
+    const chapter = player.layers?.main?.chapter ?? 0;
+    if (chapter === 0) {
+        return [main];
+    } else if (chapter === 1) {
         return [main, flowers];
     }
     throw `Chapter ${chapter} not supported`;
