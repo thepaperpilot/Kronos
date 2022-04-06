@@ -23,10 +23,11 @@ interface CutscenePage {
     caption?: CoercableComponent;
 }
 
+const id = "main";
 /**
  * @hidden
  */
-export const main = createLayer(() => {
+export const main = createLayer(id, () => {
     const chapter = persistent<number>(0);
 
     const timeSlots = computed(() => 0);
@@ -132,7 +133,6 @@ export const main = createLayer(() => {
     });
 
     return {
-        id: "main",
         name: "Jobs",
         chapter,
         timeSlots,

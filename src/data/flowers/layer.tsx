@@ -31,15 +31,14 @@ export type GenericSpellSelector = GenericClickable & {
     updateParticleEffect: (active: boolean) => void;
 };
 
-const layer = createLayer(function (this: BaseLayer) {
-    const id = "flowers";
+const id = "flowers";
+const layer = createLayer(id, function (this: BaseLayer) {
     const name = "Harvesting Flowers";
     const color = "#F1EBD9";
 
     const flowers = createResource<DecimalSource>(0, "flowers");
 
-    const job = createJob(() => ({
-        name,
+    const job = createJob(name, () => ({
         color,
         image: "https://dummyimage.com/512x288/000/fff.png",
         imageFocus: {
@@ -207,7 +206,7 @@ const layer = createLayer(function (this: BaseLayer) {
         spellExpMilestone,
         flowerSpellMilestone
     ];
-    const collapseMilestones = persistent<boolean>(false);
+    const collapseMilestones = persistent<boolean>(true);
     const lockedMilestones = computed(() =>
         orderedMilestones.filter(m => m.earned.value === false)
     );
@@ -224,7 +223,6 @@ const layer = createLayer(function (this: BaseLayer) {
     });
 
     return {
-        id,
         name,
         color,
         flowers,

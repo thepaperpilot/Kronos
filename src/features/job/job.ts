@@ -36,7 +36,6 @@ export interface JobOptions {
     visibility?: Computable<Visibility>;
     classes?: Computable<Record<string, boolean>>;
     style?: Computable<StyleValue>;
-    name: string;
     color: Computable<string>;
     image: Computable<string>;
     imageFocus: Computable<{ x: string; y: string }>;
@@ -47,6 +46,7 @@ export interface JobOptions {
 
 export interface BaseJob {
     id: string;
+    name: string;
     xp: Resource;
     rawLevel: Ref<DecimalSource>;
     level: Resource;
@@ -79,14 +79,21 @@ export type GenericJob = Replace<
     }
 >;
 
-export function createJob<T extends JobOptions>(optionsFunc: () => T & ThisType<Job<T>>): Job<T> {
+export function createJob<T extends JobOptions>(
+    name: string,
+    optionsFunc: () => T & ThisType<Job<T>>
+): Job<T> {
+    const xp = createResource<DecimalSource>(0, name + " XP");
+    const timeLoopActive = persistent<boolean>(false);
     return createLazyProxy(() => {
         const job: T & Partial<BaseJob> = optionsFunc();
         job.id = getUniqueID("job-");
         job.type = JobType;
         job[Component] = JobComponent;
 
-        job.xp = createResource<DecimalSource>(0, job.name + " XP");
+        job.name = name;
+        job.xp = xp;
+        job.timeLoopActive = timeLoopActive;
         job.rawLevel = computed(() => {
             const genericJob = job as GenericJob;
             if (Decimal.eq(genericJob.xp.value, 0)) {
@@ -124,7 +131,6 @@ export function createJob<T extends JobOptions>(optionsFunc: () => T & ThisType<
             }
             return progress;
         });
-        job.timeLoopActive = persistent<boolean>(false);
         job.currentQuip = ref(null);
 
         job.setQuip = function (quip?: string) {
