@@ -1,5 +1,6 @@
 import {
     Component,
+    OptionsFunc,
     GatherProps,
     getUniqueID,
     Replace,
@@ -81,12 +82,12 @@ export type GenericJob = Replace<
 
 export function createJob<T extends JobOptions>(
     name: string,
-    optionsFunc: () => T & ThisType<Job<T>>
+    optionsFunc: OptionsFunc<T, Job<T>, BaseJob>
 ): Job<T> {
     const xp = createResource<DecimalSource>(0, name + " XP");
     const timeLoopActive = persistent<boolean>(false);
     return createLazyProxy(() => {
-        const job: T & Partial<BaseJob> = optionsFunc();
+        const job = optionsFunc();
         job.id = getUniqueID("job-");
         job.type = JobType;
         job[Component] = JobComponent;
