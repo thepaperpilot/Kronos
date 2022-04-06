@@ -9,7 +9,7 @@ import {
 } from "features/feature";
 import JobComponent from "features/job/Job.vue";
 import { createResource, Resource } from "features/resources/resource";
-import { persistent, PersistentRef } from "game/persistence";
+import { Persistent, persistent } from "game/persistence";
 import Decimal, { DecimalSource } from "util/bignum";
 import {
     Computable,
@@ -51,7 +51,7 @@ export interface BaseJob {
     rawLevel: Ref<DecimalSource>;
     level: Resource;
     levelProgress: Ref<number>;
-    timeLoopActive: PersistentRef<boolean>;
+    timeLoopActive: Persistent<boolean>;
     currentQuip: Ref<string | null>;
     setQuip: (quip?: string) => void;
     type: typeof JobType;

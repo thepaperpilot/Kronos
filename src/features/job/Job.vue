@@ -52,7 +52,7 @@ import "components/common/features.css";
 import Node from "components/Node.vue";
 import { StyleValue, Visibility } from "features/feature";
 import { displayResource, Resource } from "features/resources/resource";
-import { PersistentRef } from "game/persistence";
+import { Persistent } from "game/persistence";
 import player from "game/player";
 import { formatWhole } from "util/bignum";
 import { processedPropType, unwrapRef } from "util/vue";
@@ -88,7 +88,7 @@ export default defineComponent({
             required: true
         },
         timeLoopActive: {
-            type: Object as PropType<PersistentRef<boolean>>,
+            type: Object as PropType<Persistent<boolean>>,
             required: true
         },
         name: {
