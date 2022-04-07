@@ -14,14 +14,15 @@ import { persistent } from "game/persistence";
 import Decimal, { DecimalSource } from "util/bignum";
 import { formatWhole } from "util/break_eternity";
 import { getFirstFeature, render, renderCol, renderRow } from "util/vue";
-import { computed, ref, Ref, watch, WatchStopHandle } from "vue";
+import { computed, ref, Ref, unref, watch, WatchStopHandle } from "vue";
 import { createParticles } from "features/particles/particles";
 import Collapsible from "components/layout/Collapsible.vue";
-import { Emitter, EmitterConfigV3, upgradeConfig } from "@pixi/particle-emitter";
+import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import spellParticles from "./spellParticles.json";
 import "./flowers.css";
+import { ProcessedComputable } from "util/computed";
 
 export type GenericSpellSelector = GenericClickable & {
     active: Ref<boolean>;
@@ -73,14 +74,78 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
 
+    const flowerSpellMilestone = createMilestone(() => ({
+        shouldEarn() {
+            return Decimal.gte(job.rawLevel.value, 2);
+        },
+        display: {
+            requirement: "Achieve Harvesting Flowers Level 2",
+            effectDisplay: "Unlock a new spell - Therizó"
+        }
+    }));
+    const spellExpMilestone = createMilestone(() => ({
+        shouldEarn() {
+            return Decimal.gte(job.rawLevel.value, 4);
+        },
+        display: {
+            requirement: "Achieve Harvesting Flowers Level 4",
+            effectDisplay: "Unlock experience for spells"
+        },
+        visibility() {
+            return showIf(flowerSpellMilestone.earned.value);
+        }
+    }));
+    const chargeSpellMilestone = createMilestone(() => ({
+        shouldEarn() {
+            return Decimal.gte(job.rawLevel.value, 6);
+        },
+        display: {
+            requirement: "Achieve Harvesting Flowers Level 6",
+            effectDisplay: "Unlock a new spell - Prōficiō"
+        },
+        visibility() {
+            return showIf(spellExpMilestone.earned.value);
+        }
+    }));
+    const expSpellMilestone = createMilestone(() => ({
+        shouldEarn() {
+            return Decimal.gte(job.rawLevel.value, 8);
+        },
+        display: {
+            requirement: "Achieve Harvesting Flowers Level 8",
+            effectDisplay: "Unlock a new spell - Scholē"
+        },
+        visibility() {
+            return showIf(chargeSpellMilestone.earned.value);
+        }
+    }));
+    const milestones = {
+        flowerSpellMilestone,
+        spellExpMilestone,
+        chargeSpellMilestone,
+        expSpellMilestone
+    };
+    const orderedMilestones = [
+        expSpellMilestone,
+        spellExpMilestone,
+        chargeSpellMilestone,
+        flowerSpellMilestone
+    ];
+    const collapseMilestones = persistent<boolean>(true);
+    const lockedMilestones = computed(() =>
+        orderedMilestones.filter(m => m.earned.value === false)
+    );
+    const { firstFeature: firstMilestone, hiddenFeatures: otherMilestones } = getFirstFeature(
+        orderedMilestones,
+        m => m.earned.value
+    );
+
     function createSpellSelector(
         title: string,
         description: string,
         effect: string,
-        config: EmitterConfigV3
+        visibleCondition: ProcessedComputable<boolean>
     ): GenericSpellSelector {
-        config.emit = false;
-        config.autoUpdate = true;
         const clickable = createClickable(() => ({
             canClick(): boolean {
                 return this.active.value || activeSpells.value < maxActiveSpells.value;
@@ -99,10 +164,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
             onClick() {
                 this.active.value = !this.active.value;
             },
-            particleEffectConfig: config,
+            visibility: () => showIf(unref(visibleCondition)),
+            particleEffectConfig: spellParticles,
             active: persistent<boolean>(false),
             particleEffectWatcher: ref<null | WatchStopHandle>(null),
-            particleEffect: ref(particles.addEmitter(config)),
+            particleEffect: ref(particles.addEmitter(spellParticles)),
             async updateParticleEffect(active: boolean) {
                 const particle = await clickable.particleEffect.value;
                 if (active) {
@@ -138,93 +204,53 @@ const layer = createLayer(id, function (this: BaseLayer) {
         "Téchnasma",
         "Practice using the flowers to perform minor magical tricks.",
         "Gain job exp.",
-        upgradeConfig(spellParticles, ["/Fire.png"])
+        true
     );
     const flowerSpellSelector = createSpellSelector(
         "Therizó",
         "Use the magic of the flowers to harvest themselves.",
         "Gain flowers.",
-        upgradeConfig(spellParticles, ["/Fire.png"])
-    );
-
-    const spellSelectors = { expSpellSelector, flowerSpellSelector };
-
-    const flowerSpellMilestone = createMilestone(() => ({
-        shouldEarn() {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
-        display: {
-            requirement: "Achieve Harvesting Flowers Level 2",
-            effectDisplay: "Unlock a new spell - Therizó"
-        }
-    }));
-    const spellExpMilestone = createMilestone(() => ({
-        shouldEarn() {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
-        display: {
-            requirement: "Achieve Harvesting Flowers Level 4",
-            effectDisplay: "Unlock experience for spells"
-        },
-        visibility() {
-            return showIf(flowerSpellMilestone.earned.value);
-        }
-    }));
-    const burstSpellMilestone = createMilestone(() => ({
-        shouldEarn() {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
-        display: {
-            requirement: "Achieve Harvesting Flowers Level 6",
-            effectDisplay: "Unlock a new spell - Prōficiō"
-        },
-        visibility() {
-            return showIf(spellExpMilestone.earned.value);
-        }
-    }));
-    const expSpellMilestone = createMilestone(() => ({
-        shouldEarn() {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
-        display: {
-            requirement: "Achieve Harvesting Flowers Level 8",
-            effectDisplay: "Unlock a new spell - Scholē"
-        },
-        visibility() {
-            return showIf(burstSpellMilestone.earned.value);
-        }
-    }));
-    const milestones = {
-        flowerSpellMilestone,
-        spellExpMilestone,
-        burstSpellMilestone,
-        expSpellMilestone
-    };
-    const orderedMilestones = [
-        expSpellMilestone,
-        burstSpellMilestone,
-        spellExpMilestone,
         flowerSpellMilestone
-    ];
-    const collapseMilestones = persistent<boolean>(true);
-    const lockedMilestones = computed(() =>
-        orderedMilestones.filter(m => m.earned.value === false)
     );
-    const { firstFeature: firstMilestone, hiddenFeatures: otherMilestones } = getFirstFeature(
-        orderedMilestones,
-        m => m.earned.value
+    const chargeSpellSelector = createSpellSelector(
+        "Prōficiō",
+        "Charge up magic to cast another spell with greater efficiency.",
+        "Charge spell efficiency.",
+        chargeSpellMilestone
     );
+    const massExpSpellSelector = createSpellSelector(
+        "Scholē",
+        "Practice a difficult routine that improves your ability at casting all spells.",
+        "Gain spell exp.",
+        expSpellMilestone
+    );
+
+    const spellSelectors = {
+        expSpellSelector,
+        flowerSpellSelector,
+        chargeSpellSelector,
+        massExpSpellSelector
+    };
 
     this.on("preUpdate", diff => {
         if (expSpellSelector.active.value) {
             const xpGain = new Decimal(1);
             job.xp.value = Decimal.add(job.xp.value, Decimal.times(xpGain, diff));
         }
+        if (flowerSpellSelector.active.value) {
+            const flowerGain = new Decimal(1);
+            flowers.value = Decimal.add(flowers.value, Decimal.times(flowerGain, diff));
+        }
+        if (chargeSpellSelector.active.value) {
+        }
+        if (massExpSpellSelector.active.value) {
+        }
     });
 
     return {
         name,
         color,
+        minWidth: 640,
         flowers,
         job,
         spellSelectors,

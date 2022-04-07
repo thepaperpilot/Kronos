@@ -1,4 +1,6 @@
 {
+    "emit": false,
+    "autoUpdate": true,
     "lifetime": {
         "min": 0.5,
         "max": 2
