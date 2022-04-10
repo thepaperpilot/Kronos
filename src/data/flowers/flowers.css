@@ -2,6 +2,7 @@
     background: none;
     border-color: transparent;
     transform: unset !important;
+    position: relative;
 }
 
 .spellSelector::before {
@@ -37,11 +38,80 @@
     opacity: 1;
 }
 
-.spellSelector > span {
+.spellSelector > span > * {
     z-index: 2;
+    position: relative;
+}
+
+.spell-level {
+    position: absolute !important;
+    top: calc(100% + var(--feature-margin));
+    left: 0;
+    right: 0;
+    background: var(--tooltip-background);
+    border-radius: var(--border-radius);
+    color: var(--foreground);
+}
+
+.spell-exp {
     position: absolute;
-    width: calc(100% - 10px);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: calc(var(--exp));
+    background-color: #b949de;
+    border-radius: var(--border-radius);
+    z-index: -1;
+    transition-duration: 0;
+}
+
+.spell-node {
+    border-radius: var(--border-radius) !important;
+    background: var(--locked);
+    width: 75px !important;
+    height: 75px !important;
+    box-shadow: inset black 0 0 20px;
+    border: 2px solid rgba(0, 0, 0, 0.125);
+    padding: 10px !important;
+    z-index: 1;
+}
+
+.spell-node.can {
+    box-shadow: inset black 0 0 20px, 0 0 10px #b949de;
+}
+
+.spell-node.can:hover {
+    transform: none;
+    box-shadow: inset black 0 0 0px, 0 0 20px #b949de;
+}
+
+.spell-node.bought {
+    box-shadow: inset black 0 0 0px;
+}
+
+.spell-node:not(.can) {
+    cursor: not-allowed;
+}
+
+.treeNode.spell-node > *:first-child {
+    font-size: 10px !important;
+    box-shadow: unset !important;
+    border: none !important;
+    color: var(--feature-foreground) !important;
+    text-transform: none !important;
+}
+
+.reset-tree {
+    position: absolute !important;
+    top: 10px;
+    right: 10px;
+    width: 50px !important;
+    min-height: 20px !important;
+    box-shadow: inset black 0 0 20px;
+    --layer-color: var(--danger);
+}
+
+.reset-tree:hover {
+    transform: none;
+    box-shadow: inset black 0 0 0px, 0 0 20px #b949de;
 }
