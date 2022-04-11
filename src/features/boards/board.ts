@@ -1,7 +1,7 @@
 import BoardComponent from "features/boards/Board.vue";
 import {
     Component,
-    FeatureOptionsFunc,
+    OptionsFunc,
     findFeatures,
     GatherProps,
     getUniqueID,
@@ -198,7 +198,7 @@ export type GenericBoard = Replace<
 >;
 
 export function createBoard<T extends BoardOptions>(
-    optionsFunc: FeatureOptionsFunc<T, Board<T>, BaseBoard>
+    optionsFunc: OptionsFunc<T, Board<T>, BaseBoard>
 ): Board<T> {
     return createLazyProxy(
         persistent => {
