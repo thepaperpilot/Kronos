@@ -100,18 +100,3 @@
     color: var(--feature-foreground) !important;
     text-transform: none !important;
 }
-
-.reset-tree {
-    position: absolute !important;
-    top: 10px;
-    right: 10px;
-    width: 50px !important;
-    min-height: 20px !important;
-    box-shadow: inset black 0 0 20px;
-    --layer-color: var(--danger);
-}
-
-.reset-tree:hover {
-    transform: none;
-    box-shadow: inset black 0 0 0px, 0 0 20px #b949de;
-}

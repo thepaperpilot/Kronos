@@ -1,7 +1,8 @@
 <template>
     <div class="spell-tree-container">
         <div class="spell-tree" />
-        <slot />
+        <component :is="treeComponent" />
+        <component :is="clickableComponent" />
         <svg style="display: none">
             <filter id="skilltreeturbulence">
                 <feTurbulence
@@ -28,6 +29,32 @@
 
 <script setup lang="tsx">
 import "components/common/features.css";
+import { GenericSpellTreeNode, Spell } from "data/flowers/layer";
+import { createClickable } from "features/clickables/clickable";
+import { render } from "util/vue";
+import { Component, shallowRef, watchEffect } from "vue";
+
+const props = defineProps<{
+    spell: Spell<string>;
+}>();
+
+const treeComponent = shallowRef<Component | string>("");
+
+watchEffect(() => {
+    treeComponent.value = render(props.spell.tree);
+});
+
+const clickable = createClickable(() => ({
+    display: "reset",
+    classes: { "reset-tree": true },
+    onClick() {
+        Object.values(props.spell.treeNodes).forEach(
+            n => ((n as GenericSpellTreeNode).bought.value = false)
+        );
+        props.spell.castingTime.value = 0;
+    }
+}));
+const clickableComponent = render(clickable);
 </script>
 
 <style scoped>
@@ -68,5 +95,20 @@ import "components/common/features.css";
     box-shadow: inset #b949de 0 0 80px 20px;
     filter: url(#skilltreeturbulence);
     transform: translate(-50px, -50px);
+}
+
+:deep(.reset-tree) {
+    position: absolute !important;
+    top: 10px;
+    right: 10px;
+    width: 50px !important;
+    min-height: 20px !important;
+    box-shadow: inset black 0 0 20px;
+    --layer-color: var(--danger);
+}
+
+:deep(.reset-tree):hover {
+    transform: none;
+    box-shadow: inset black 0 0 0px, 0 0 20px #b949de;
 }
 </style>

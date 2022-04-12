@@ -340,20 +340,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
         return spell;
     }
 
-    const resetTree = createClickable(() => ({
-        display: "reset",
-        classes: { "reset-tree": true },
-        onClick() {
-            Object.values(spells)
-                .filter(s => s.active.value)
-                .forEach(s => {
-                    Object.values(s.treeNodes).forEach(
-                        n => ((n as GenericSpellTreeNode).bought.value = false)
-                    );
-                    s.castingTime.value = 0;
-                });
-        }
-    }));
     const xpSpell = createSpell(
         "Téchnasma",
         "Practice using the flowers to perform minor magical tricks.",
@@ -852,13 +838,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         {maxActiveSpells.value === 1 ? "" : "s"} at a time
                     </div>
                     {renderRow(...Object.values(spells).map(s => s.selector))}
-                    {activeSpells.value === 1 && spellExpMilestone.earned.value ? (
-                        <SpellTree>
-                            {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                            {render(Object.values(spells).find(s => s.active.value)!.tree)}
-                            {render(resetTree)}
-                        </SpellTree>
-                    ) : null}
+                    {spellExpMilestone.earned.value
+                        ? Object.values(spells)
+                              .filter(s => s.active.value)
+                              .map(s => <SpellTree spell={s} />)
+                        : null}
                     {render(particles)}
                 </>
             );
