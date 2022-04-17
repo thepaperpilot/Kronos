@@ -5,7 +5,7 @@
 import Spacer from "components/layout/Spacer.vue";
 import SpellTree from "features/spellTree/SpellTree.vue";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
+import { CoercableComponent, jsx, JSXFunction, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
@@ -180,7 +180,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
             T,
             {
                 display: CoercableComponent;
-                effect?: Computable<CoercableComponent>;
                 requirements?: T[];
             }
         >,
@@ -342,6 +341,24 @@ const layer = createLayer(id, function (this: BaseLayer) {
         return spell;
     }
 
+    const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
+        Decimal.pow(1.1, job.level.value)
+    );
+
+    const moreJobXpPerSpellEffect: ComputedRef<DecimalSource> = computed(() =>
+        Decimal.pow(
+            1.25,
+            Object.values(spells).filter(
+                s => (s as Spell<string>).visibility.value === Visibility.Visible
+            ).length
+        )
+    );
+    const morePotencyPerJobLevelEffect = jobLevelEffect;
+    const moreJobXpPerJobLevelEffect = jobLevelEffect;
+    const moreJobXpPerSpellLevelEffect: ComputedRef<DecimalSource> = computed(() =>
+        Decimal.pow(1.1, xpSpell.level.value)
+    );
+    const moreSpellXpPerJobLevelEffect = jobLevelEffect;
     const xpSpell = createSpell(
         "Téchnasma",
         "Practice using the flowers to perform minor magical tricks.",
@@ -353,19 +370,43 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 display: "x2 job exp"
             },
             moreJobXpPerSpell: {
-                display: "x1.25 job exp per known spell",
+                display: jsx(() => (
+                    <div>
+                        x1.25 job exp per known spell
+                        <br />
+                        (x{format(moreJobXpPerSpellEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreJobXpFlat"]
             },
             morePotencyPerJobLevel: {
-                display: "Additional x1.1 all spell potency per job level",
+                display: jsx(() => (
+                    <div>
+                        Additional x1.1 all spell potency per job level
+                        <br />
+                        (x{format(morePotencyPerJobLevelEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreJobXpFlat"]
             },
             moreJobXpPerJobLevel: {
-                display: "x1.1 job xp per job level",
+                display: jsx(() => (
+                    <div>
+                        Additional x1.1 job exp per job level
+                        <br />
+                        (x{format(moreJobXpPerJobLevelEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreJobXpPerSpell"]
             },
             moreJobXpPerSpellLevel: {
-                display: "Additional x1.1 job xp per Téchnasma level",
+                display: jsx(() => (
+                    <div>
+                        Additional x1.1 job exp per Téchnasma level
+                        <br />
+                        (x{format(moreJobXpPerSpellLevelEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreJobXpPerSpell"]
             },
             morePotencyOverTime: {
@@ -373,7 +414,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 requirements: ["morePotencyPerJobLevel"]
             },
             moreSpellXpPerJobLevel: {
-                display: "x1.1 spell exp per job level",
+                display: jsx(() => (
+                    <div>
+                        x1.1 all spell exp per job level
+                        <br />
+                        (x{format(moreSpellXpPerJobLevelEffect.value)})
+                    </div>
+                )),
                 requirements: ["morePotencyPerJobLevel"]
             }
         },
@@ -388,6 +435,24 @@ const layer = createLayer(id, function (this: BaseLayer) {
             ]
         ]
     );
+
+    const moreFlowersPerSpellEffect: ComputedRef<DecimalSource> = computed(
+        () =>
+            Object.values(spells).filter(
+                s => (s as Spell<string>).visibility.value === Visibility.Visible
+            ).length * 0.25
+    );
+    const moreFlowersPerLevelEffect: ComputedRef<DecimalSource> = computed(() =>
+        Decimal.pow(1.1, flowerSpell.level.value)
+    );
+    const flowersEffect: ComputedRef<DecimalSource> = computed(() =>
+        Decimal.log10(Decimal.add(flowers.value, 1)).add(1)
+    );
+    const flowersEffectDescription = (
+        <>
+            log<sub>10</sub>(flowers + 1) + 1
+        </>
+    );
     const flowerSpell = createSpell(
         "Therizó",
         "Use the magic of the flowers to harvest themselves. They should make my spells more potent.",
@@ -398,23 +463,53 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 display: "x2 flowers gain"
             },
             moreFlowersPerSpell: {
-                display: "+.25x Therizó potency per known spell",
+                display: jsx(() => (
+                    <div>
+                        +.25x Therizó potency per known spell
+                        <br />
+                        (+{format(moreFlowersPerSpellEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreFlowersFlat"]
             },
             moreFlowersPerLevel: {
-                display: "Additional x1.1 flower gain per Therizó level",
+                display: jsx(() => (
+                    <div>
+                        Additional x1.1 flower gain per Therizó level
+                        <br />
+                        (x{format(moreFlowersPerLevelEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreFlowersPerSpell"]
             },
             moreJobXpPerFlower: {
-                display: "Flowers affect job exp",
+                display: jsx(() => (
+                    <div>
+                        Flowers affect job exp
+                        <br />
+                        (x{format(flowersEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreFlowersFlat"]
             },
             moreSpellXpPerFlower: {
-                display: "Flowers affect spell exp",
+                display: jsx(() => (
+                    <div>
+                        Flowers affect all spell exp
+                        <br />
+                        (x{format(flowersEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreJobXpPerFlower"]
             },
             morePotencyPerFlower: {
-                display: "Apply flower's effect on spell potency twice",
+                display: jsx(() => (
+                    <div>
+                        Flower's affect all spell potency twice
+                        <br />
+                        (x{format(flowersEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreSpellXpPerFlower"]
             },
             passiveFlowerGain: {
@@ -430,6 +525,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             [blank, blank, "morePotencyPerFlower"]
         ]
     );
+
     const chargeSpell = createSpell(
         "Prōficiō",
         "Charge up magic to cast another spell with greater potency.",
@@ -472,6 +568,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             ["betterChargeMulti", "slowerDischargeByLevel"]
         ]
     );
+
+    const moreXpPerLevelEffect: ComputedRef<DecimalSource> = computed(() =>
+        Decimal.div(massXpSpell.level.value, 10)
+    );
     const massXpSpell = createSpell(
         "Scholē",
         "Practice a difficult routine that improves your ability at casting all spells.",
@@ -499,7 +599,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 requirements: ["moreSpellXp"]
             },
             moreXpPerLevel: {
-                display: "+.1x other spell exp per level of this spell",
+                display: jsx(() => (
+                    <div>
+                        +.1x other spell exp per level of this spell
+                        <br />
+                        (+{format(moreXpPerLevelEffect.value)})
+                    </div>
+                )),
                 requirements: ["moreSpellXp"]
             },
             morePotency: {
@@ -522,20 +628,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
     };
 
     const allSpellPotency = createSequentialModifier(
+        createMultiplicativeModifier(jobLevelEffect, "Harvesting Flowers level (x1.1 each)"),
         createMultiplicativeModifier(
-            () => Decimal.pow(1.1, job.level.value),
-            "Harvesting Flowers level (x1.1 each)"
+            morePotencyPerJobLevelEffect,
+            "Téchnasma skill (x1.1 per Harvesting Flowers level)"
         ),
         createMultiplicativeModifier(
-            () => Decimal.log10(Decimal.add(flowers.value, 1)).add(1).sqrt(),
-            jsx(() => (
-                <>
-                    Flowers effect (sqrt(log<sub>10</sub>(flowers + 1) + 1))
-                </>
-            ))
+            flowersEffect,
+            jsx(() => <>Flowers Effect ({flowersEffectDescription})</>)
         ),
         createMultiplicativeModifier(
-            () => Decimal.log10(Decimal.add(flowers.value, 1)).add(1).sqrt(),
+            flowersEffect,
             "Therizó skill (Re-apply flowers effect)",
             flowerSpell.treeNodes.morePotencyPerFlower.bought
         )
@@ -544,17 +647,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const allSpellXpGain = createSequentialModifier(
         createMultiplicativeModifier(
-            () => Decimal.pow(1.1, job.level.value),
+            moreSpellXpPerJobLevelEffect,
             "Téchnasma skill (x1.1 per Harvesting Flowers level)",
             xpSpell.treeNodes.moreSpellXpPerJobLevel.bought
         ),
         createMultiplicativeModifier(
-            () => Decimal.log10(Decimal.add(flowers.value, 1)).add(1),
-            jsx(() => (
-                <>
-                    Therizó skill (log<sub>10</sub>(flowers + 1) + 1)
-                </>
-            )),
+            flowersEffect,
+            jsx(() => <>Therizó skill ({flowersEffectDescription})</>),
             flowerSpell.treeNodes.moreSpellXpPerFlower.bought
         ),
         createMultiplicativeModifier(
@@ -606,34 +705,30 @@ const layer = createLayer(id, function (this: BaseLayer) {
             xpSpell.treeNodes.moreJobXpFlat.bought
         ),
         createMultiplicativeModifier(
-            () =>
-                Decimal.pow(
-                    1.25,
-                    Object.values(spells).filter(
-                        s => (s as Spell<string>).visibility.value === Visibility.Visible
-                    ).length
-                ),
+            moreJobXpPerSpellEffect,
             "Téchnasma skill (x1.25 per known spell)",
             xpSpell.treeNodes.moreJobXpPerSpell.bought
         ),
         createMultiplicativeModifier(
-            () => Decimal.pow(1.1, job.level.value),
+            moreJobXpPerJobLevelEffect,
             "Téchnasma skill (x1.1 per Harvesting Flowers level)",
             xpSpell.treeNodes.moreJobXpPerJobLevel.bought
         ),
         createMultiplicativeModifier(
-            () => Decimal.pow(1.1, xpSpell.level.value),
+            moreJobXpPerSpellLevelEffect,
             "Téchnasma skill (x1.1 per Téchnasma level)",
             xpSpell.treeNodes.moreJobXpPerSpellLevel.bought
+        ),
+        createMultiplicativeModifier(
+            flowersEffect,
+            jsx(() => <>Flowers Effect ({flowersEffectDescription})</>),
+            flowerSpell.treeNodes.moreJobXpPerFlower.bought
         )
     );
 
     const flowerSpellPotency = createSequentialModifier(
         createAdditiveModifier(
-            () =>
-                Object.values(spells).filter(
-                    s => (s as Spell<string>).visibility.value === Visibility.Visible
-                ).length * 0.25,
+            moreFlowersPerSpellEffect,
             "Therizó skill (+.25 per known spell)",
             flowerSpell.treeNodes.moreFlowersPerSpell.bought
         ),
@@ -656,7 +751,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const flowerSpellXp = createSequentialModifier(
         createAdditiveModifier(
-            () => Decimal.div(massXpSpell.level.value, 10),
+            moreXpPerLevelEffect,
             "Scholē skill (+.1 per Scholē level)",
             massXpSpell.treeNodes.moreXpPerLevel.bought
         ),
@@ -677,7 +772,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             flowerSpell.treeNodes.moreFlowersFlat.bought
         ),
         createMultiplicativeModifier(
-            () => Decimal.pow(1.1, flowerSpell.level.value),
+            moreFlowersPerLevelEffect,
             "Therizó skill (x1.1 per Therizó level)",
             flowerSpell.treeNodes.moreFlowersPerLevel.bought
         )

@@ -69,7 +69,7 @@
     border-radius: var(--border-radius) !important;
     background: var(--locked);
     width: 75px !important;
-    height: 75px !important;
+    height: 80px !important;
     box-shadow: inset black 0 0 20px;
     border: 2px solid rgba(0, 0, 0, 0.125);
     padding: 10px !important;
