@@ -14,8 +14,9 @@ import {
     TreeNode,
     TreeNodeOptions
 } from "features/trees/tree";
+import { Modifier } from "game/modifiers";
 import player from "game/player";
-import Decimal, { DecimalSource } from "util/bignum";
+import Decimal, { DecimalSource, format } from "util/bignum";
 import {
     Computable,
     GetComputableType,
@@ -23,6 +24,7 @@ import {
     processComputable,
     ProcessedComputable
 } from "util/computed";
+import { renderJSX } from "util/vue";
 import { computed, Ref, unref } from "vue";
 
 export interface ResetButtonOptions extends ClickableOptions {
@@ -176,4 +178,33 @@ export function createLayerTreeNode<T extends LayerTreeNodeOptions>(
                   }
         };
     }) as unknown as LayerTreeNode<T>;
+}
+
+export function createModifierSection(
+    title: string,
+    subtitle: string,
+    modifier: Required<Modifier>,
+    base = 1,
+    unit = ""
+) {
+    return (
+        <div>
+            <h3>
+                {title}
+                {subtitle ? <span class="subtitle"> ({subtitle})</span> : null}
+            </h3>
+            <br />
+            <div class="modifier-container">
+                <span class="modifier-amount">
+                    {base}
+                    {unit}
+                </span>
+                <span class="modifier-description">Base</span>
+            </div>
+            {renderJSX(unref(modifier.description))}
+            <hr />
+            Total: {format(modifier.apply(base))}
+            {unit}
+        </div>
+    );
 }

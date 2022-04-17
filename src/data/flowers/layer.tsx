@@ -5,7 +5,7 @@
 import Spacer from "components/layout/Spacer.vue";
 import SpellTree from "features/spellTree/SpellTree.vue";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { CoercableComponent, jsx, JSXFunction, showIf, Visibility } from "features/feature";
+import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
@@ -38,6 +38,7 @@ import {
     createSequentialModifier
 } from "game/modifiers";
 import { createTabFamily } from "features/tabs/tabFamily";
+import { createModifierSection } from "data/common";
 
 export interface Spell<T extends string> {
     active: Ref<boolean>;
@@ -759,9 +760,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const massXpGain = createSequentialModifier(
-        createAdditiveModifier(computedMassXpSpellPotency, "Scholē potency"),
-        createExponentialModifier(0.5, "(softcapped)"),
-        createMultiplicativeModifier(0.1, "Base")
+        createAdditiveModifier(
+            () => Decimal.times(computedMassXpSpellPotency.value, 1),
+            "Scholē potency"
+        ),
+        createExponentialModifier(0.9, "(softcapped)")
     );
 
     const modifiers = {
@@ -790,85 +793,46 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 },
                 tab: jsx(() => (
                     <>
-                        <div>
-                            <h3>
-                                Harvesting Flowers EXP Gain{" "}
-                                <span class="subtitle">(When Téchnasma is active)</span>
-                            </h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">0/sec</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(jobXpGain.description))}
-                            <hr />
-                            Total: {format(jobXpGain.apply(1))}/sec
-                        </div>
+                        {createModifierSection(
+                            "Harvesting Flowers EXP Gain",
+                            "When Téchnasma is active",
+                            jobXpGain,
+                            0,
+                            "/sec"
+                        )}
                         <br />
-                        <div>
-                            <h3>All Spell Potency</h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(allSpellPotency.description))}
-                            <hr />
-                            Total: {format(allSpellPotency.apply(1))}
-                        </div>
+                        {createModifierSection("All Spell Potency", "", allSpellPotency)}
                         <br />
-                        <div>
-                            <h3>
-                                All Spell EXP Gain{" "}
-                                <span class="subtitle">(When the spell is active)</span>
-                            </h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1/sec</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(allSpellXpGain.description))}
-                            <hr />
-                            Total: {format(allSpellXpGain.apply(1))}/sec
-                        </div>
+                        {createModifierSection(
+                            "All Spell EXP Gain",
+                            "When the spell is active",
+                            allSpellXpGain,
+                            1,
+                            "/sec"
+                        )}
                         {flowerSpellMilestone.earned.value ? (
                             <>
                                 <br />
-                                <div>
-                                    <h3>
-                                        Flowers Gain{" "}
-                                        <span class="subtitle">(When Therizó is active)</span>
-                                    </h3>
-                                    <br />
-                                    <div class="modifier-container">
-                                        <span class="modifier-amount">0/sec</span>
-                                        <span class="modifier-description">Base</span>
-                                    </div>
-                                    {renderJSX(unref(flowerGain.description))}
-                                    <hr />
-                                    Total: {format(flowerGain.apply(0))}/sec
-                                </div>
+                                {createModifierSection(
+                                    "Flowers Gain",
+                                    "When Therizó is active",
+                                    flowerGain,
+                                    0,
+                                    "/sec"
+                                )}
                             </>
                         ) : null}
                         {flowerSpellMilestone.earned.value &&
                         Decimal.neq(flowerPassiveGain.apply(0), 0) ? (
                             <>
                                 <br />
-                                <div>
-                                    <h3>
-                                        Flowers Gain{" "}
-                                        <span class="subtitle">(When Therizó is NOT active)</span>
-                                    </h3>
-                                    <br />
-                                    <div class="modifier-container">
-                                        <span class="modifier-amount">0/sec</span>
-                                        <span class="modifier-description">Base</span>
-                                    </div>
-                                    {renderJSX(unref(flowerPassiveGain.description))}
-                                    <hr />
-                                    Total: {format(flowerPassiveGain.apply(0))}
-                                    /sec
-                                </div>
+                                {createModifierSection(
+                                    "Flowers Gain",
+                                    "When Therizó is NOT active",
+                                    flowerPassiveGain,
+                                    0,
+                                    "/sec"
+                                )}
                             </>
                         ) : null}
                     </>
@@ -881,32 +845,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 },
                 tab: jsx(() => (
                     <>
-                        <div>
-                            <h3>Téchnasma Potency</h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(xpSpellPotency.description))}
-                            <hr />
-                            Total: {format(xpSpellPotency.apply(1))}
-                        </div>
+                        {createModifierSection("Téchnasma Potency", "", xpSpellPotency)}
                         <br />
-                        <div>
-                            <h3>
-                                Téchnasma EXP Gain{" "}
-                                <span class="subtitle">(When Téchnasma is active)</span>
-                            </h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1/sec</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(xpSpellXp.description))}
-                            <hr />
-                            Total: {format(xpSpellXp.apply(1))}/sec
-                        </div>
+                        {createModifierSection(
+                            "Téchnasma EXP Gain",
+                            "When Téchnasma is active",
+                            xpSpellXp,
+                            1,
+                            "/sec"
+                        )}
                     </>
                 ))
             }),
@@ -918,32 +865,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 },
                 tab: jsx(() => (
                     <>
-                        <div>
-                            <h3>Therizó Potency</h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(flowerSpellPotency.description))}
-                            <hr />
-                            Total: {format(flowerSpellPotency.apply(1))}
-                        </div>
+                        {createModifierSection("Therizó Potency", "", flowerSpellPotency)}
                         <br />
-                        <div>
-                            <h3>
-                                Therizó EXP Gain{" "}
-                                <span class="subtitle">(When Therizó is active)</span>
-                            </h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1/sec</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(flowerSpellXp.description))}
-                            <hr />
-                            Total: {format(flowerSpellXp.apply(1))}/sec
-                        </div>
+                        {createModifierSection(
+                            "Therizó EXP Gain",
+                            "When Therizó is active",
+                            flowerSpellXp,
+                            1,
+                            "/sec"
+                        )}
                     </>
                 ))
             }),
@@ -955,32 +885,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 },
                 tab: jsx(() => (
                     <>
-                        <div>
-                            <h3>Prōficiō Potency</h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(chargeSpellPotency.description))}
-                            <hr />
-                            Total: {format(chargeSpellPotency.apply(1))}
-                        </div>
+                        {createModifierSection("Prōficiō Potency", "", chargeSpellPotency)}
                         <br />
-                        <div>
-                            <h3>
-                                Prōficiō EXP Gain{" "}
-                                <span class="subtitle">(When Prōficiō is active)</span>
-                            </h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1/sec</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(chargeSpellXp.description))}
-                            <hr />
-                            Total: {format(chargeSpellXp.apply(1))}/sec
-                        </div>
+                        {createModifierSection(
+                            "Prōficiō EXP Gain",
+                            "When Prōficiō is active",
+                            chargeSpellXp,
+                            1,
+                            "/sec"
+                        )}
                     </>
                 ))
             }),
@@ -992,47 +905,23 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 },
                 tab: jsx(() => (
                     <>
-                        <div>
-                            <h3>Scholē Potency</h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(massXpSpellPotency.description))}
-                            <hr />
-                            Total: {format(massXpSpellPotency.apply(1))}
-                        </div>
+                        {createModifierSection("Scholē Potency", "", massXpSpellPotency)}
                         <br />
-                        <div>
-                            <h3>
-                                Scholē EXP Gain{" "}
-                                <span class="subtitle">(When Scholē is active)</span>
-                            </h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">1/sec</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(massXpSpellXp.description))}
-                            <hr />
-                            Total: {format(massXpSpellXp.apply(1))}/sec
-                        </div>
+                        {createModifierSection(
+                            "Scholē EXP Gain",
+                            "When Scholē is active",
+                            massXpSpellXp,
+                            1,
+                            "/sec"
+                        )}
                         <br />
-                        <div>
-                            <h3>
-                                Other Spell EXP Gain Efficiency{" "}
-                                <span class="subtitle">(When Scholē is active)</span>
-                            </h3>
-                            <br />
-                            <div class="modifier-container">
-                                <span class="modifier-amount">0</span>
-                                <span class="modifier-description">Base</span>
-                            </div>
-                            {renderJSX(unref(massXpGain.description))}
-                            <hr />
-                            Total: {format(Decimal.times(massXpGain.apply(1), 100))}%
-                        </div>
+                        {createModifierSection(
+                            "Other Spell EXP Gain Efficiency",
+                            "When Scholē is active",
+                            massXpGain,
+                            0,
+                            "%"
+                        )}
                     </>
                 ))
             })
@@ -1044,7 +933,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     this.on("preUpdate", diff => {
         if (xpSpell.active.value) {
-            job.xp.value = Decimal.add(job.xp.value, Decimal.times(jobXpGain.apply(1), diff));
+            job.xp.value = Decimal.add(job.xp.value, Decimal.times(jobXpGain.apply(0), diff));
             xpSpell.xp.value = Decimal.add(
                 xpSpell.xp.value,
                 Decimal.times(xpSpellXp.apply(1), diff)
@@ -1072,7 +961,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             chargeSpell.castingTime.value += diff;
         }
         if (massXpSpell.active.value) {
-            const xpEfficiency = massXpGain.apply(1);
+            const xpEfficiency = Decimal.div(massXpGain.apply(0), 100);
             xpSpell.xp.value = Decimal.add(
                 xpSpell.xp.value,
                 Decimal.times(xpSpellXp.apply(xpEfficiency), diff)
