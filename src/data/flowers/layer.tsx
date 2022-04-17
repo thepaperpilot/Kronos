@@ -5,7 +5,7 @@
 import Spacer from "components/layout/Spacer.vue";
 import SpellTree from "features/spellTree/SpellTree.vue";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
+import { CoercableComponent, jsx, JSXFunction, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
@@ -14,7 +14,7 @@ import { BaseLayer, createLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import Decimal, { DecimalSource, format } from "util/bignum";
 import { formatWhole } from "util/break_eternity";
-import { getFirstFeature, render, renderCol, renderRow } from "util/vue";
+import { getFirstFeature, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
 import { computed, ComputedRef, ref, Ref, unref, watch, WatchStopHandle } from "vue";
 import { createParticles } from "features/particles/particles";
 import Collapsible from "components/layout/Collapsible.vue";
@@ -23,7 +23,7 @@ import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import spellParticles from "./spellParticles.json";
 import "./flowers.css";
-import { ProcessedComputable } from "util/computed";
+import { Computable, ProcessedComputable } from "util/computed";
 import {
     createTree,
     createTreeNode,
@@ -37,6 +37,7 @@ import {
     createMultiplicativeModifier,
     createSequentialModifier
 } from "game/modifiers";
+import { createTabFamily } from "features/tabs/tabFamily";
 
 export interface Spell<T extends string> {
     active: Ref<boolean>;
@@ -80,7 +81,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return [...alwaysQuips, ...globalQuips];
         },
         resource: flowers,
-        layerID: id
+        layerID: id,
+        modifierInfo: jsx(() => renderJSX(modifierTabs))
     }));
 
     const activeSpells = computed(() => Object.values(spells).filter(s => s.active.value).length);
@@ -103,7 +105,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }));
 
     const flowerSpellMilestone = createMilestone(() => ({
-        shouldEarn() {
+        shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
@@ -112,7 +114,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
     const spellExpMilestone = createMilestone(() => ({
-        shouldEarn() {
+        shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
@@ -124,7 +126,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
     const chargeSpellMilestone = createMilestone(() => ({
-        shouldEarn() {
+        shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
@@ -136,7 +138,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
     const expSpellMilestone = createMilestone(() => ({
-        shouldEarn() {
+        shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
@@ -177,6 +179,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             T,
             {
                 display: CoercableComponent;
+                effect?: Computable<CoercableComponent>;
                 requirements?: T[];
             }
         >,
@@ -263,14 +266,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 return {
                     spellSelector: true,
                     activeSpell: spell.active.value,
-                    can: selector.canClick.value
+                    can: unref(selector.canClick)
                 };
             },
             onClick() {
                 spell.active.value = !spell.active.value;
             },
             visibility
-        }));
+        })) as Spell<T>["selector"];
 
         const spell = {
             treeNodes,
@@ -396,7 +399,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 display: "x2 flowers gain"
             },
             moreFlowersPerSpell: {
-                display: "+.25x flowers gain per known spell",
+                display: "+.25x Therizó potency per known spell",
                 requirements: ["moreFlowersFlat"]
             },
             moreFlowersPerLevel: {
@@ -526,17 +529,16 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ),
         createMultiplicativeModifier(
             () => Decimal.log10(Decimal.add(flowers.value, 1)).add(1).sqrt(),
-            "Flowers effect (sqrt(log<sub>10</sub>(flowers + 1) + 1))"
+            jsx(() => (
+                <>
+                    Flowers effect (sqrt(log<sub>10</sub>(flowers + 1) + 1))
+                </>
+            ))
         ),
         createMultiplicativeModifier(
             () => Decimal.log10(Decimal.add(flowers.value, 1)).add(1).sqrt(),
             "Therizó skill (Re-apply flowers effect)",
             flowerSpell.treeNodes.morePotencyPerFlower.bought
-        ),
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.1, job.level.value),
-            "Scholē skill (flat)",
-            massXpSpell.treeNodes.moreSpellXp.bought
         )
     );
     const computedAllSpellPotency = computed(() => allSpellPotency.apply(1));
@@ -549,13 +551,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ),
         createMultiplicativeModifier(
             () => Decimal.log10(Decimal.add(flowers.value, 1)).add(1),
-            "Therizó skill (log<sub>10</sub>(flowers + 1) + 1)",
+            jsx(() => (
+                <>
+                    Therizó skill (log<sub>10</sub>(flowers + 1) + 1)
+                </>
+            )),
             flowerSpell.treeNodes.moreSpellXpPerFlower.bought
         ),
         createMultiplicativeModifier(
             2,
-            "Therizó skill (log<sub>10</sub>(flowers + 1) + 1)",
-            flowerSpell.treeNodes.moreSpellXpPerFlower.bought
+            "Scholē skill (flat)",
+            massXpSpell.treeNodes.moreSpellXp.bought
         )
     );
     const computedAllSpellXpGain = computed(() => allSpellXpGain.apply(1));
@@ -568,7 +574,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ),
         createMultiplicativeModifier(
             () => Decimal.log2(Decimal.add(xpSpell.castingTime.value, 1)).div(10).add(1),
-            "Téchnasma skill (log<sub>2</sub>(casting time)/10)",
+            jsx(() => (
+                <>
+                    Téchnasma skill (log<sub>2</sub>(casting time)/10)
+                </>
+            )),
             xpSpell.treeNodes.morePotencyOverTime.bought
         )
     );
@@ -578,9 +588,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createAdditiveModifier(
             () => Decimal.div(massXpSpell.level.value, 10),
             "Scholē skill (+.1 per Scholē level)",
-            massXpSpell.treeNodes.moreSpellXp.bought
+            massXpSpell.treeNodes.moreXpPerLevel.bought
         ),
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell Xp Gain"),
+        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
         createMultiplicativeModifier(computedXpSpellPotency, "Téchnasma potency"),
         createMultiplicativeModifier(
             2,
@@ -590,7 +600,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const jobXpGain = createSequentialModifier(
-        createMultiplicativeModifier(computedXpSpellPotency, "Téchnasma potency"),
+        createAdditiveModifier(computedXpSpellPotency, "Téchnasma potency"),
         createMultiplicativeModifier(
             2,
             "Téchnasma skill (flat)",
@@ -620,6 +630,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const flowerSpellPotency = createSequentialModifier(
+        createAdditiveModifier(
+            () =>
+                Object.values(spells).filter(
+                    s => (s as Spell<string>).visibility.value === Visibility.Visible
+                ).length * 0.25,
+            "Therizó skill (+.25 per known spell)",
+            flowerSpell.treeNodes.moreFlowersPerSpell.bought
+        ),
         createMultiplicativeModifier(computedAllSpellPotency, "All Spell Potency"),
         createMultiplicativeModifier(
             () => Decimal.pow(1.1, flowerSpell.level.value),
@@ -627,7 +645,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ),
         createMultiplicativeModifier(
             () => Decimal.log2(Decimal.add(flowerSpell.castingTime.value, 1)).div(10).add(1),
-            "Téchnasma skill (log<sub>2</sub>(casting time)/10)",
+            jsx(() => (
+                <>
+                    Téchnasma skill (log<sub>2</sub>(casting time)/10)
+                </>
+            )),
             xpSpell.treeNodes.morePotencyOverTime.bought
         )
     );
@@ -637,9 +659,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createAdditiveModifier(
             () => Decimal.div(massXpSpell.level.value, 10),
             "Scholē skill (+.1 per Scholē level)",
-            massXpSpell.treeNodes.moreSpellXp.bought
+            massXpSpell.treeNodes.moreXpPerLevel.bought
         ),
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell Xp Gain"),
+        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
         createMultiplicativeModifier(computedFlowerSpellPotency, "Therizó potency"),
         createMultiplicativeModifier(
             2,
@@ -649,15 +671,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const flowerGain = createSequentialModifier(
-        createAdditiveModifier(
-            () =>
-                Object.values(spells).filter(
-                    s => (s as Spell<string>).visibility.value === Visibility.Visible
-                ).length * 0.25,
-            "Therizó skill (+.25 per known spell)",
-            flowerSpell.treeNodes.moreFlowersPerSpell.bought
-        ),
-        createMultiplicativeModifier(computedFlowerSpellPotency, "Therizó potency"),
+        createAdditiveModifier(computedFlowerSpellPotency, "Therizó potency"),
         createMultiplicativeModifier(
             2,
             "Therizó skill (flat)",
@@ -669,13 +683,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
             flowerSpell.treeNodes.moreFlowersPerLevel.bought
         )
     );
+    const computedFlowerGain = computed(() => flowerGain.apply(0));
 
     const flowerPassiveGain = createSequentialModifier(
         createAdditiveModifier(
             0.01,
             "Therizó skill (flat)",
             flowerSpell.treeNodes.passiveFlowerGain.bought
-        )
+        ),
+        createMultiplicativeModifier(computedFlowerGain, "Flower gain")
     );
 
     const chargeSpellPotency = createSequentialModifier(
@@ -686,7 +702,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ),
         createMultiplicativeModifier(
             () => Decimal.log2(Decimal.add(chargeSpell.castingTime.value, 1)).div(10).add(1),
-            "Téchnasma skill (log<sub>2</sub>(casting time)/10)",
+            jsx(() => (
+                <>
+                    Téchnasma skill (log<sub>2</sub>(casting time)/10)
+                </>
+            )),
             xpSpell.treeNodes.morePotencyOverTime.bought
         )
     );
@@ -696,9 +716,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createAdditiveModifier(
             () => Decimal.div(massXpSpell.level.value, 10),
             "Scholē skill (+.1 per Scholē level)",
-            massXpSpell.treeNodes.moreSpellXp.bought
+            massXpSpell.treeNodes.moreXpPerLevel.bought
         ),
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell Xp Gain"),
+        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
         createMultiplicativeModifier(computedChargeSpellPotency, "Prōficiō potency"),
         createMultiplicativeModifier(
             2,
@@ -715,7 +735,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ),
         createMultiplicativeModifier(
             () => Decimal.log2(Decimal.add(massXpSpell.castingTime.value, 1)).div(10).add(1),
-            "Téchnasma skill (log<sub>2</sub>(casting time)/10)",
+            jsx(() => (
+                <>
+                    Téchnasma skill (log<sub>2</sub>(casting time)/10)
+                </>
+            )),
             xpSpell.treeNodes.morePotencyOverTime.bought
         ),
         createMultiplicativeModifier(
@@ -727,7 +751,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const computedMassXpSpellPotency = computed(() => massXpSpellPotency.apply(1));
 
     const massXpSpellXp = createSequentialModifier(
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell Xp Gain"),
+        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
         createMultiplicativeModifier(computedMassXpSpellPotency, "Scholē potency"),
         createMultiplicativeModifier(
             2,
@@ -737,9 +761,287 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const massXpGain = createSequentialModifier(
-        createMultiplicativeModifier(computedMassXpSpellPotency, "Scholē potency"),
+        createAdditiveModifier(computedMassXpSpellPotency, "Scholē potency"),
         createExponentialModifier(0.5, "(softcapped)"),
         createMultiplicativeModifier(0.1, "Base")
+    );
+
+    const modifiers = {
+        allSpellPotency,
+        allSpellXpGain,
+        xpSpellPotency,
+        xpSpellXp,
+        jobXpGain,
+        flowerSpellPotency,
+        flowerSpellXp,
+        flowerGain,
+        flowerPassiveGain,
+        chargeSpellPotency,
+        chargeSpellXp,
+        massXpSpellPotency,
+        massXpSpellXp,
+        massXpGain
+    };
+
+    const modifierTabs = createTabFamily(
+        {
+            general: () => ({
+                display: "General",
+                glowColor(): string {
+                    return modifierTabs.activeTab.value === this.tab ? color : "";
+                },
+                tab: jsx(() => (
+                    <>
+                        <div>
+                            <h3>
+                                Harvesting Flowers EXP Gain{" "}
+                                <span class="subtitle">(When Téchnasma is active)</span>
+                            </h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">0/sec</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(jobXpGain.description))}
+                            <hr />
+                            Total: {format(jobXpGain.apply(1))}/sec
+                        </div>
+                        <br />
+                        <div>
+                            <h3>All Spell Potency</h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(allSpellPotency.description))}
+                            <hr />
+                            Total: {format(allSpellPotency.apply(1))}
+                        </div>
+                        <br />
+                        <div>
+                            <h3>
+                                All Spell EXP Gain{" "}
+                                <span class="subtitle">(When the spell is active)</span>
+                            </h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1/sec</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(allSpellXpGain.description))}
+                            <hr />
+                            Total: {format(allSpellXpGain.apply(1))}/sec
+                        </div>
+                        {flowerSpellMilestone.earned.value ? (
+                            <>
+                                <br />
+                                <div>
+                                    <h3>
+                                        Flowers Gain{" "}
+                                        <span class="subtitle">(When Therizó is active)</span>
+                                    </h3>
+                                    <br />
+                                    <div class="modifier-container">
+                                        <span class="modifier-amount">0/sec</span>
+                                        <span class="modifier-description">Base</span>
+                                    </div>
+                                    {renderJSX(unref(flowerGain.description))}
+                                    <hr />
+                                    Total: {format(flowerGain.apply(0))}/sec
+                                </div>
+                            </>
+                        ) : null}
+                        {flowerSpellMilestone.earned.value &&
+                        Decimal.neq(flowerPassiveGain.apply(0), 0) ? (
+                            <>
+                                <br />
+                                <div>
+                                    <h3>
+                                        Flowers Gain{" "}
+                                        <span class="subtitle">(When Therizó is NOT active)</span>
+                                    </h3>
+                                    <br />
+                                    <div class="modifier-container">
+                                        <span class="modifier-amount">0/sec</span>
+                                        <span class="modifier-description">Base</span>
+                                    </div>
+                                    {renderJSX(unref(flowerPassiveGain.description))}
+                                    <hr />
+                                    Total: {format(flowerPassiveGain.apply(0))}
+                                    /sec
+                                </div>
+                            </>
+                        ) : null}
+                    </>
+                ))
+            }),
+            xpSpell: () => ({
+                display: "Téchnasma",
+                glowColor(): string {
+                    return modifierTabs.activeTab.value === this.tab ? color : "";
+                },
+                tab: jsx(() => (
+                    <>
+                        <div>
+                            <h3>Téchnasma Potency</h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(xpSpellPotency.description))}
+                            <hr />
+                            Total: {format(xpSpellPotency.apply(1))}
+                        </div>
+                        <br />
+                        <div>
+                            <h3>
+                                Téchnasma EXP Gain{" "}
+                                <span class="subtitle">(When Téchnasma is active)</span>
+                            </h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1/sec</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(xpSpellXp.description))}
+                            <hr />
+                            Total: {format(xpSpellXp.apply(1))}/sec
+                        </div>
+                    </>
+                ))
+            }),
+            flowerSpell: () => ({
+                display: "Therizó",
+                visibility: () => showIf(flowerSpellMilestone.earned.value),
+                glowColor(): string {
+                    return modifierTabs.activeTab.value === this.tab ? color : "";
+                },
+                tab: jsx(() => (
+                    <>
+                        <div>
+                            <h3>Therizó Potency</h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(flowerSpellPotency.description))}
+                            <hr />
+                            Total: {format(flowerSpellPotency.apply(1))}
+                        </div>
+                        <br />
+                        <div>
+                            <h3>
+                                Therizó EXP Gain{" "}
+                                <span class="subtitle">(When Therizó is active)</span>
+                            </h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1/sec</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(flowerSpellXp.description))}
+                            <hr />
+                            Total: {format(flowerSpellXp.apply(1))}/sec
+                        </div>
+                    </>
+                ))
+            }),
+            chargeSpell: () => ({
+                display: "Prōficiō",
+                visibility: () => showIf(chargeSpellMilestone.earned.value),
+                glowColor(): string {
+                    return modifierTabs.activeTab.value === this.tab ? color : "";
+                },
+                tab: jsx(() => (
+                    <>
+                        <div>
+                            <h3>Prōficiō Potency</h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(chargeSpellPotency.description))}
+                            <hr />
+                            Total: {format(chargeSpellPotency.apply(1))}
+                        </div>
+                        <br />
+                        <div>
+                            <h3>
+                                Prōficiō EXP Gain{" "}
+                                <span class="subtitle">(When Prōficiō is active)</span>
+                            </h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1/sec</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(chargeSpellXp.description))}
+                            <hr />
+                            Total: {format(chargeSpellXp.apply(1))}/sec
+                        </div>
+                    </>
+                ))
+            }),
+            massXpSpell: () => ({
+                display: "Scholē",
+                visibility: () => showIf(expSpellMilestone.earned.value),
+                glowColor(): string {
+                    return modifierTabs.activeTab.value === this.tab ? color : "";
+                },
+                tab: jsx(() => (
+                    <>
+                        <div>
+                            <h3>Scholē Potency</h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(massXpSpellPotency.description))}
+                            <hr />
+                            Total: {format(massXpSpellPotency.apply(1))}
+                        </div>
+                        <br />
+                        <div>
+                            <h3>
+                                Scholē EXP Gain{" "}
+                                <span class="subtitle">(When Scholē is active)</span>
+                            </h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">1/sec</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(massXpSpellXp.description))}
+                            <hr />
+                            Total: {format(massXpSpellXp.apply(1))}/sec
+                        </div>
+                        <br />
+                        <div>
+                            <h3>
+                                Other Spell EXP Gain Efficiency{" "}
+                                <span class="subtitle">(When Scholē is active)</span>
+                            </h3>
+                            <br />
+                            <div class="modifier-container">
+                                <span class="modifier-amount">0</span>
+                                <span class="modifier-description">Base</span>
+                            </div>
+                            {renderJSX(unref(massXpGain.description))}
+                            <hr />
+                            Total: {format(Decimal.times(massXpGain.apply(1), 100))}%
+                        </div>
+                    </>
+                ))
+            })
+        },
+        () => ({
+            style: `--layer-color: ${color}`
+        })
     );
 
     this.on("preUpdate", diff => {
@@ -752,7 +1054,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             xpSpell.castingTime.value += diff;
         }
         if (flowerSpell.active.value) {
-            flowers.value = Decimal.add(flowers.value, Decimal.times(flowerGain.apply(1), diff));
+            flowers.value = Decimal.add(flowers.value, Decimal.times(flowerGain.apply(0), diff));
             flowerSpell.xp.value = Decimal.add(
                 flowerSpell.xp.value,
                 Decimal.times(flowerSpellXp.apply(1), diff)
@@ -761,10 +1063,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         } else {
             const passiveGain = flowerPassiveGain.apply(0);
             if (Decimal.neq(passiveGain, 0)) {
-                flowers.value = Decimal.add(
-                    flowers.value,
-                    Decimal.times(flowerGain.apply(1), diff)
-                );
+                flowers.value = Decimal.add(flowers.value, Decimal.times(passiveGain, diff));
             }
         }
         if (chargeSpell.active.value) {
@@ -803,6 +1102,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         flowers,
         job,
         spells,
+        modifiers,
         milestones,
         collapseMilestones,
         display: jsx(() => {
@@ -817,12 +1117,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         color={color}
                         v-show={flowerSpellMilestone.earned.value}
                     />
-                    {renderCol(
+                    {renderColJSX(
                         ...milestonesToDisplay,
                         jsx(() => (
                             <Collapsible
                                 collapsed={collapseMilestones}
-                                content={jsx(() => renderCol(...otherMilestones.value))}
+                                content={jsx(() => renderColJSX(...otherMilestones.value))}
                                 display={
                                     collapseMilestones.value
                                         ? "Show other completed milestones"
@@ -837,13 +1137,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         You can cast {formatWhole(maxActiveSpells.value)} spell
                         {maxActiveSpells.value === 1 ? "" : "s"} at a time
                     </div>
-                    {renderRow(...Object.values(spells).map(s => s.selector))}
+                    {renderRowJSX(...Object.values(spells).map(s => s.selector))}
                     {spellExpMilestone.earned.value
                         ? Object.values(spells)
                               .filter(s => s.active.value)
                               .map(s => <SpellTree spell={s} />)
                         : null}
-                    {render(particles)}
+                    {renderJSX(particles)}
                 </>
             );
         })

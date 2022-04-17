@@ -6,7 +6,8 @@ import {
     Replace,
     setDefault,
     StyleValue,
-    Visibility
+    Visibility,
+    CoercableComponent
 } from "features/feature";
 import JobComponent from "features/job/Job.vue";
 import { createResource, Resource } from "features/resources/resource";
@@ -43,6 +44,7 @@ export interface JobOptions {
     resource?: Resource;
     randomQuips?: Computable<string[]>;
     layerID: string;
+    modifierInfo: Computable<CoercableComponent>;
 }
 
 export interface BaseJob {
@@ -158,6 +160,7 @@ export function createJob<T extends JobOptions>(
         processComputable(job as T, "image");
         processComputable(job as T, "imageFocus");
         processComputable(job as T, "randomQuips");
+        processComputable(job as T, "modifierInfo");
 
         job[GatherProps] = function (this: GenericJob) {
             const {
@@ -176,7 +179,8 @@ export function createJob<T extends JobOptions>(
                 classes,
                 style,
                 currentQuip,
-                randomQuips
+                randomQuips,
+                modifierInfo
             } = this;
             return {
                 id,
@@ -194,7 +198,8 @@ export function createJob<T extends JobOptions>(
                 classes,
                 style: unref(style),
                 currentQuip,
-                randomQuips
+                randomQuips,
+                modifierInfo
             };
         };
 

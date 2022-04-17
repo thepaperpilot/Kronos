@@ -25,7 +25,9 @@
             </div>
             <div class="job-title">
                 <h2>{{ name }}</h2>
-                <span>Lv. {{ formatWhole(level.value) }}</span>
+                <span style="margin-bottom: 2px">Lv. {{ formatWhole(level.value) }}</span>
+                <span style="flex-grow: 1" />
+                <ModifierInfo :display="modifierInfo" :name="name" />
             </div>
         </div>
         <div v-if="selected && unref(currentQuip)" class="job-quip">"{{ unref(currentQuip) }}"</div>
@@ -50,7 +52,8 @@
 <script lang="tsx">
 import "components/common/features.css";
 import Node from "components/Node.vue";
-import { StyleValue, Visibility } from "features/feature";
+import ModifierInfo from "features/ModifierInfo.vue";
+import { CoercableComponent, StyleValue, Visibility } from "features/feature";
 import { displayResource, Resource } from "features/resources/resource";
 import { Persistent } from "game/persistence";
 import player from "game/player";
@@ -120,13 +123,18 @@ export default defineComponent({
             type: processedPropType<string[]>(Array),
             required: true
         },
+        modifierInfo: {
+            type: processedPropType<CoercableComponent>(String, Object, Function),
+            required: true
+        },
         id: {
             type: String,
             required: true
         }
     },
     components: {
-        Node
+        Node,
+        ModifierInfo
     },
     setup(props) {
         const { timeLoopActive, layerID, currentQuip, randomQuips } = toRefs(props);
@@ -265,6 +273,7 @@ export default defineComponent({
     color: var(--foreground);
     width: 100%;
     text-align: left;
+    display: flex;
 }
 
 .job-title h2 {

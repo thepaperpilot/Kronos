@@ -100,3 +100,7 @@
     color: var(--feature-foreground) !important;
     text-transform: none !important;
 }
+
+.subtitle {
+    font-size: small;
+}
