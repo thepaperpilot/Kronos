@@ -271,6 +271,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             },
             onClick() {
                 spell.active.value = !spell.active.value;
+                spell.updateParticleEffect(spell.active.value);
+                spell.castingTime.value = 0;
             },
             visibility
         })) as Spell<T>["selector"];
@@ -336,10 +338,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 }
             }
         };
-        watch(spell.active, active => {
-            spell.updateParticleEffect(active);
-            spell.castingTime.value = 0;
-        });
         return spell;
     }
 
