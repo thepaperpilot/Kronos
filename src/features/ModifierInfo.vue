@@ -22,7 +22,7 @@ import {
     WatchStopHandle
 } from "vue";
 import { coerceComponent, unwrapRef } from "util/vue";
-import { CoercableComponent, JSXFunction } from "./feature";
+import { CoercableComponent } from "./feature";
 
 const props = defineProps<{
     display: ProcessedComputable<CoercableComponent>;
@@ -32,7 +32,7 @@ const display = toRef(props, "display");
 
 const openModal = ref<boolean>(false);
 
-const comp = shallowRef<Component | JSXFunction | "">();
+const comp = shallowRef<Component | "">();
 let watcher: WatchStopHandle | null = null;
 
 watch(openModal, isOpen => {
