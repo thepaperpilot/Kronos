@@ -8,7 +8,7 @@ import {
     ProcessedComputable
 } from "util/computed";
 import { createLazyProxy } from "util/proxies";
-import { computed, isReadonly, isRef, Ref, unref } from "vue";
+import { computed, isRef, Ref, unref } from "vue";
 import { OptionsFunc, Replace, setDefault } from "./feature";
 import { Resource } from "./resources/resource";
 
@@ -18,7 +18,7 @@ export interface ConversionOptions {
     actualGain?: Computable<DecimalSource>;
     currentAt?: Computable<DecimalSource>;
     nextAt?: Computable<DecimalSource>;
-    baseResource: Ref<DecimalSource>;
+    baseResource: Resource;
     gainResource: Resource;
     buyMax?: Computable<boolean>;
     roundUpCost?: Computable<boolean>;
@@ -99,10 +99,8 @@ export function createConversion<T extends ConversionOptions>(
                     conversion.gainResource.value,
                     unref((conversion as GenericConversion).currentGain)
                 );
-                if (!isReadonly(conversion.baseResource)) {
-                    // TODO just subtract cost?
-                    conversion.baseResource.value = 0;
-                }
+                // TODO just subtract cost?
+                conversion.baseResource.value = 0;
             };
         }
 
@@ -245,12 +243,10 @@ export function createIndependentConversion<S extends ConversionOptions>(
                       unref((conversion as GenericConversion).currentGain)
                   )
                 : unref((conversion as GenericConversion).currentGain);
-            if (!isReadonly(conversion.baseResource)) {
-                // TODO just subtract cost?
-                // Maybe by adding a cost function to scaling and nextAt just calls the cost function
-                // with 1 + currentGain
-                conversion.baseResource.value = 0;
-            }
+            // TODO just subtract cost?
+            // Maybe by adding a cost function to scaling and nextAt just calls the cost function
+            // with 1 + currentGain
+            conversion.baseResource.value = 0;
         });
 
         return conversion;
