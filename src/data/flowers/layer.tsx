@@ -5,7 +5,7 @@
 import Spacer from "components/layout/Spacer.vue";
 import SpellTree from "features/spellTree/SpellTree.vue";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { CoercableComponent, jsx, JSXFunction, showIf, Visibility } from "features/feature";
+import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
@@ -23,7 +23,7 @@ import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import spellParticles from "./spellParticles.json";
 import "./flowers.css";
-import { Computable, ProcessedComputable } from "util/computed";
+import { ProcessedComputable } from "util/computed";
 import {
     createTree,
     createTreeNode,
@@ -38,7 +38,7 @@ import {
     createSequentialModifier
 } from "game/modifiers";
 import { createTabFamily } from "features/tabs/tabFamily";
-import { createModifierSection } from "data/common";
+import { createModifierSection } from "game/modifiers";
 
 export interface Spell<T extends string> {
     active: Ref<boolean>;
@@ -60,9 +60,6 @@ export interface Spell<T extends string> {
 export type GenericSpellTreeNode = GenericTreeNode & {
     bought: Ref<boolean>;
 };
-
-// Empty tree node, for use in spell trees
-const blank = createTreeNode(() => ({ visibility: Visibility.Hidden }));
 
 const id = "flowers";
 const layer = createLayer(id, function (this: BaseLayer) {
@@ -170,6 +167,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
         orderedMilestones,
         m => m.earned.value
     );
+
+    // Empty tree node, for use in spell trees
+    const blank = createTreeNode(() => ({ visibility: Visibility.Hidden }));
 
     function createSpell<T extends string>(
         title: string,
