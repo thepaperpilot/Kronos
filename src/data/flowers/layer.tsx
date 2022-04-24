@@ -457,7 +457,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         "Therizó",
         "Use the magic of the flowers to harvest themselves. They should make my spells more potent.",
         "Gain flowers.",
-        flowerSpellMilestone,
+        flowerSpellMilestone.earned,
         {
             moreFlowersFlat: {
                 display: "x2 flowers gain"
@@ -530,7 +530,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         "Prōficiō",
         "Charge up magic to cast another spell with greater potency.",
         "Charge spell potency.",
-        chargeSpellMilestone,
+        chargeSpellMilestone.earned,
         // Single fork into two bars
         {
             spellEff: {
@@ -576,7 +576,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         "Scholē",
         "Practice a difficult routine that improves your ability at casting all spells.",
         "Gain spell exp.",
-        expSpellMilestone,
+        expSpellMilestone.earned,
         // Star burst
         {
             moreSpellXp: {
