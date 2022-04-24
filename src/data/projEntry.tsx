@@ -158,24 +158,24 @@ export const main = createLayer(id, () => {
                 />
             ) : (
                 <>
-                    <div v-show={player.devSpeed === 0}>Game Paused</div>
-                    <div v-show={player.devSpeed && player.devSpeed !== 1}>
-                        Dev Speed: {format(player.devSpeed || 0)}x
-                    </div>
-                    <div v-show={player.offlineTime != undefined}>
-                        Offline Time: {formatTime(player.offlineTime || 0)}
-                    </div>
-                    <div v-show={hasTimeSlotAvailable.value}>
-                        {timeSlots.value - usedTimeSlots.value} Time Slot
-                        {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
-                    </div>
-                    <Spacer
-                        v-show={
-                            player.devSpeed != null ||
-                            player.offlineTime != null ||
-                            hasTimeSlotAvailable.value
-                        }
-                    />
+                    {player.devSpeed === 0 ? <div>Game Paused</div> : null}
+                    {player.devSpeed && player.devSpeed !== 1 ? (
+                        <div>Dev Speed: {format(player.devSpeed || 0)}x</div>
+                    ) : null}
+                    {player.offlineTime != undefined ? (
+                        <div>Offline Time: {formatTime(player.offlineTime || 0)}</div>
+                    ) : null}
+                    {hasTimeSlotAvailable.value ? (
+                        <div>
+                            {timeSlots.value - usedTimeSlots.value} Time Slot
+                            {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
+                        </div>
+                    ) : null}
+                    {player.devSpeed != null ||
+                    player.offlineTime != null ||
+                    hasTimeSlotAvailable.value ? (
+                        <Spacer />
+                    ) : null}
                     {renderCol(...jobs)}
                     {render(particles)}
                 </>
