@@ -247,16 +247,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             <br />
                             <br />
                             <h3>{effect}</h3>
-                            <div class="spell-level">
-                                <div
-                                    class="spell-exp"
-                                    style={`--exp: ${format(levelProgress.value)}%`}
-                                ></div>
-                                <span>
-                                    ({formatWhole(Decimal.sub(level.value, spentPoints.value))}/
-                                    {formatWhole(level.value)})
-                                </span>
-                            </div>
+                            {spellExpMilestone.earned.value ? (
+                                <div class="spell-level">
+                                    <div
+                                        class="spell-exp"
+                                        style={`--exp: ${format(levelProgress.value)}%`}
+                                    ></div>
+                                    <span>
+                                        ({formatWhole(Decimal.sub(level.value, spentPoints.value))}/
+                                        {formatWhole(level.value)})
+                                    </span>
+                                </div>
+                            ) : null}
                         </>
                     ))
                 };
