@@ -2,6 +2,7 @@
  * @module
  * @hidden
  */
+import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
 import SpellTree from "features/spellTree/SpellTree.vue";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
@@ -39,6 +40,8 @@ import {
 } from "game/modifiers";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { createModifierSection } from "game/modifiers";
+import { createBar, Direction } from "features/bars/bar";
+import player from "game/player";
 
 export interface Spell<T extends string> {
     active: Ref<boolean>;
@@ -343,6 +346,24 @@ const layer = createLayer(id, function (this: BaseLayer) {
         return spell;
     }
 
+    const chargeAmount = persistent<DecimalSource>(0);
+    const chargeBar = createBar(() => ({
+        direction: Direction.Right,
+        height: 20,
+        width: 200,
+        style: () =>
+            `--time: ${((player.time % 100000000) / 10).toLocaleString("fullwide", {
+                useGrouping: false
+            })}px; --time-deg: ${((player.time % 100000000) / 100).toLocaleString("fullwide", {
+                useGrouping: false
+            })}deg`,
+        classes: { chargeBar: true },
+        progress() {
+            return Decimal.div(chargeAmount.value, computedChargeCap.value);
+        },
+        visibility: () => showIf(chargeSpellMilestone.earned.value)
+    }));
+
     const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(1.1, job.level.value)
     );
@@ -448,11 +469,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
         Decimal.pow(1.1, flowerSpell.level.value)
     );
     const flowersEffect: ComputedRef<DecimalSource> = computed(() =>
-        Decimal.log10(Decimal.add(flowers.value, 1)).add(1)
+        Decimal.log2(Decimal.add(flowers.value, 1)).pow(0.777).add(1)
     );
     const flowersEffectDescription = (
         <>
-            log<sub>10</sub>(flowers + 1) + 1
+            log<sub>2</sub>(flowers + 1)<sup>0.777</sup> + 1
         </>
     );
     const flowerSpell = createSpell(
@@ -629,6 +650,22 @@ const layer = createLayer(id, function (this: BaseLayer) {
         massXpSpell
     };
 
+    const chargeMult = createSequentialModifier(
+        createMultiplicativeModifier(
+            1.25,
+            "Prōficiō skill (flat)",
+            chargeSpell.treeNodes.spellEff.bought
+        ),
+        createExponentialModifier(
+            1.1,
+            "Prōficiō skill (flat)",
+            chargeSpell.treeNodes.betterChargeMulti.bought
+        )
+    );
+    const computedChargeMult = computed(() =>
+        chargeMult.apply(Decimal.log2(Decimal.add(chargeAmount.value, 1)).add(1))
+    );
+
     const allSpellPotency = createSequentialModifier(
         createMultiplicativeModifier(jobLevelEffect, "Harvesting Flowers level (x1.1 each)"),
         createMultiplicativeModifier(
@@ -680,6 +717,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 </>
             )),
             xpSpell.treeNodes.morePotencyOverTime.bought
+        ),
+        createMultiplicativeModifier(
+            computedChargeMult,
+            "Charge Multiplier",
+            chargeSpellMilestone.earned
         )
     );
     const computedXpSpellPotency = computed(() => xpSpellPotency.apply(1));
@@ -728,6 +770,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
         )
     );
 
+    const jobXpDischargeRate = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => Decimal.pow(1 / 1.05, xpSpell.level.value ?? 0),
+            "Therizó skill (/1.05 per Téchnasma level)",
+            chargeSpell.treeNodes.slowerDischargeByLevel.bought
+        )
+    );
+    const computedJobXpDischargeRate = computed(() =>
+        jobXpDischargeRate.apply(computedBaseDischargeRate.value)
+    );
+
     const flowerSpellPotency = createSequentialModifier(
         createAdditiveModifier(
             moreFlowersPerSpellEffect,
@@ -747,6 +800,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 </>
             )),
             xpSpell.treeNodes.morePotencyOverTime.bought
+        ),
+        createMultiplicativeModifier(
+            computedChargeMult,
+            "Charge Multiplier",
+            chargeSpellMilestone.earned
         )
     );
     const computedFlowerSpellPotency = computed(() => flowerSpellPotency.apply(1));
@@ -790,6 +848,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createMultiplicativeModifier(computedFlowerGain, "Flower gain")
     );
 
+    const flowerDischargeRate = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => Decimal.pow(1 / 1.05, flowerSpell.level.value ?? 0),
+            "Therizó skill (/1.05 per Therizó level)",
+            chargeSpell.treeNodes.slowerDischargeByLevel.bought
+        )
+    );
+    const computedFlowerDischargeRate = computed(() =>
+        flowerDischargeRate.apply(computedBaseDischargeRate.value)
+    );
+
     const chargeSpellPotency = createSequentialModifier(
         createMultiplicativeModifier(computedAllSpellPotency, "All Spell Potency"),
         createMultiplicativeModifier(
@@ -823,6 +892,41 @@ const layer = createLayer(id, function (this: BaseLayer) {
         )
     );
 
+    const chargeCap = createSequentialModifier(
+        createAdditiveModifier(computedChargeSpellPotency, "Prōficiō potency"),
+        createMultiplicativeModifier(
+            1.5,
+            "Prōficiō skill (flat)",
+            chargeSpell.treeNodes.largerChargeFlat.bought
+        ),
+        createMultiplicativeModifier(
+            () => Decimal.pow(1.2, chargeSpell.level.value),
+            "Prōficiō skill (x1.2 per Prōficiō level)",
+            chargeSpell.treeNodes.largerChargeByLevel.bought
+        )
+    );
+    const computedChargeCap = computed(() => chargeCap.apply(0));
+
+    const chargeRate = createSequentialModifier(
+        createAdditiveModifier(computedChargeSpellPotency, "Prōficiō potency"),
+        createMultiplicativeModifier(
+            1.5,
+            "Prōficiō skill (flat)",
+            chargeSpell.treeNodes.fasterChargeFlat.bought
+        ),
+        createMultiplicativeModifier(
+            () => Decimal.pow(1.1, chargeSpell.level.value),
+            "Prōficiō skill (x1.1 per Prōficiō level)",
+            chargeSpell.treeNodes.fasterChargeFlat.bought
+        )
+    );
+    const computedChargeRate = computed(() => chargeRate.apply(0));
+
+    const baseDischargeRate = createSequentialModifier(
+        createAdditiveModifier(computedChargeSpellPotency, "Prōficiō potency")
+    );
+    const computedBaseDischargeRate = computed(() => baseDischargeRate.apply(0));
+
     const massXpSpellPotency = createSequentialModifier(
         createMultiplicativeModifier(computedAllSpellPotency, "All Spell Potency"),
         createMultiplicativeModifier(
@@ -837,6 +941,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 </>
             )),
             xpSpell.treeNodes.morePotencyOverTime.bought
+        ),
+        createMultiplicativeModifier(
+            computedChargeMult,
+            "Charge Multiplier",
+            chargeSpellMilestone.earned
         ),
         createMultiplicativeModifier(
             2,
@@ -862,6 +971,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
             "Scholē potency"
         ),
         createExponentialModifier(0.9, "(softcapped)")
+    );
+
+    const massXpDischargeRate = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => Decimal.pow(1 / 1.05, massXpSpell.level.value ?? 0),
+            "Prōficiō skill (/1.05 per Scholē level)",
+            chargeSpell.treeNodes.slowerDischargeByLevel.bought
+        )
+    );
+    const computedMassXpDischargeRate = computed(() =>
+        massXpDischargeRate.apply(computedBaseDischargeRate.value)
     );
 
     const modifiers = {
@@ -951,6 +1071,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             1,
                             "/sec"
                         )}
+                        {chargeSpellMilestone.earned.value ? (
+                            <>
+                                <br />
+                                {createModifierSection(
+                                    "Discharge Rate",
+                                    "When Téchnasma is active",
+                                    jobXpDischargeRate,
+                                    computedBaseDischargeRate.value,
+                                    "/sec"
+                                )}
+                            </>
+                        ) : null}
                     </>
                 ))
             }),
@@ -971,6 +1103,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             1,
                             "/sec"
                         )}
+                        {chargeSpellMilestone.earned.value ? (
+                            <>
+                                <br />
+                                {createModifierSection(
+                                    "Discharge Rate",
+                                    "When Therizó is active",
+                                    flowerDischargeRate,
+                                    computedBaseDischargeRate.value,
+                                    "/sec"
+                                )}
+                            </>
+                        ) : null}
                     </>
                 ))
             }),
@@ -991,6 +1135,37 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             1,
                             "/sec"
                         )}
+                        <br />
+                        {createModifierSection(
+                            "Charge Multiplier",
+                            "When a non-Prōficiō spell is active",
+                            chargeMult,
+                            Decimal.log2(Decimal.add(chargeAmount.value, 1)).add(1),
+                            "x",
+                            jsx(() => (
+                                <>
+                                    Base (log<sub>2</sub>(charge + 1) + 1)
+                                </>
+                            ))
+                        )}
+                        <br />
+                        {createModifierSection(
+                            "Charge Rate",
+                            "When Prōficiō is active",
+                            chargeRate,
+                            0,
+                            "/sec"
+                        )}
+                        <br />
+                        {createModifierSection(
+                            "Base Discharge Rate",
+                            "When a non-Prōficiō spell is active",
+                            baseDischargeRate,
+                            0,
+                            "/sec"
+                        )}
+                        <br />
+                        {createModifierSection("Maximum Charge", "", chargeCap, 0)}
                     </>
                 ))
             }),
@@ -1019,6 +1194,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             0,
                             "%"
                         )}
+                        {chargeSpellMilestone.earned.value ? (
+                            <>
+                                <br />
+                                {createModifierSection(
+                                    "Discharge Rate",
+                                    "When Scholē is active",
+                                    massXpDischargeRate,
+                                    computedBaseDischargeRate.value,
+                                    "/sec"
+                                )}
+                            </>
+                        ) : null}
                     </>
                 ))
             })
@@ -1036,6 +1223,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 Decimal.times(xpSpellXp.apply(1), diff)
             );
             xpSpell.castingTime.value += diff;
+            chargeAmount.value = Decimal.max(
+                Decimal.sub(
+                    chargeAmount.value,
+                    Decimal.times(computedJobXpDischargeRate.value, diff)
+                ),
+                0
+            );
         }
         if (flowerSpell.active.value) {
             flowers.value = Decimal.add(flowers.value, Decimal.times(flowerGain.apply(0), diff));
@@ -1044,6 +1238,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 Decimal.times(flowerSpellXp.apply(1), diff)
             );
             flowerSpell.castingTime.value += diff;
+            chargeAmount.value = Decimal.max(
+                Decimal.sub(
+                    chargeAmount.value,
+                    Decimal.times(computedFlowerDischargeRate.value, diff)
+                ),
+                0
+            );
         } else {
             const passiveGain = flowerPassiveGain.apply(0);
             if (Decimal.neq(passiveGain, 0)) {
@@ -1056,6 +1257,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 Decimal.times(chargeSpellXp.apply(1), diff)
             );
             chargeSpell.castingTime.value += diff;
+            chargeAmount.value = Decimal.min(
+                Decimal.add(chargeAmount.value, Decimal.times(computedChargeRate.value, diff)),
+                computedChargeCap.value
+            );
         }
         if (massXpSpell.active.value) {
             const xpEfficiency = Decimal.div(massXpGain.apply(0), 100);
@@ -1076,6 +1281,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 Decimal.times(massXpSpellXp.apply(1), diff)
             );
             massXpSpell.castingTime.value += diff;
+            chargeAmount.value = Decimal.max(
+                Decimal.sub(
+                    chargeAmount.value,
+                    Decimal.times(computedMassXpDischargeRate.value, diff)
+                ),
+                0
+            );
         }
     });
 
@@ -1089,6 +1301,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         modifiers,
         milestones,
         collapseMilestones,
+        chargeAmount,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
             if (firstMilestone.value) {
@@ -1122,6 +1335,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         {maxActiveSpells.value === 1 ? "" : "s"} at a time
                     </div>
                     {renderRowJSX(...Object.values(spells).map(s => s.selector))}
+                    <Row style="margin-top: 40px !important; margin-bottom: -20px;">
+                        {renderJSX(chargeBar)}
+                        <span style="margin-left: 10px">{format(computedChargeMult.value)}x</span>
+                    </Row>
                     {spellExpMilestone.earned.value
                         ? Object.values(spells)
                               .filter(s => s.active.value)

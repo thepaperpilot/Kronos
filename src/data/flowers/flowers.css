@@ -104,3 +104,31 @@
 .subtitle {
     font-size: small;
 }
+
+.chargeBar .border {
+    border-color: #B949DE !important;
+}
+
+/* Visual glitch that doesn't seem to appear on all bars??? */
+.chargeBar .fill {
+    margin-top: -1px;
+    height: 21.5px !important;
+}
+
+.chargeBar .fill::after {
+    content: "";
+    position: absolute;
+    top: -500px;
+    left: -500px;
+    right: -500px;
+    bottom: -500px;
+    background-color: #B949DE !important;
+    background-image:
+        radial-gradient(#F545ED, #F545ED33 30px, transparent 40px),
+        radial-gradient(#6442EB, #6442EB26 20px, transparent 30px),
+        radial-gradient(#9945F5, #9945F519 40px, transparent 40px),
+        radial-gradient(#EB428F, #EB428F19 10px, transparent 30px);
+    background-size: 220px 220px, 140px 140px, 100px 100px, 60px 60px;
+    background-position: calc(var(--time) / 10) calc(var(--time) / 20), calc(var(--time) / 7 + 4px) calc(var(--time) / -14 + 6px), calc(var(--time) / 1.1 + 13px) calc(var(--time) / -2.2 + 27px), calc(var(--time) / 4 + 7px) calc(var(--time) / 8 + 10px);
+    transform: rotate(var(--time-deg));
+}
