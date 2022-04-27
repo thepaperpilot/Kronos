@@ -1294,7 +1294,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     return {
         name,
         color,
-        minWidth: 660,
+        minWidth: 670,
         flowers,
         job,
         spells,
