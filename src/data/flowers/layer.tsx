@@ -1100,7 +1100,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             "Therizó EXP Gain",
                             "When Therizó is active",
                             flowerSpellXp,
-                            1,
+                            0.1,
                             "/sec"
                         )}
                         {chargeSpellMilestone.earned.value ? (
@@ -1132,7 +1132,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             "Prōficiō EXP Gain",
                             "When Prōficiō is active",
                             chargeSpellXp,
-                            1,
+                            0.01,
                             "/sec"
                         )}
                         <br />
@@ -1183,7 +1183,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             "Scholē EXP Gain",
                             "When Scholē is active",
                             massXpSpellXp,
-                            1,
+                            0.001,
                             "/sec"
                         )}
                         <br />
@@ -1235,7 +1235,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             flowers.value = Decimal.add(flowers.value, Decimal.times(flowerGain.apply(0), diff));
             flowerSpell.xp.value = Decimal.add(
                 flowerSpell.xp.value,
-                Decimal.times(flowerSpellXp.apply(1), diff)
+                Decimal.times(flowerSpellXp.apply(0.1), diff)
             );
             flowerSpell.castingTime.value += diff;
             chargeAmount.value = Decimal.max(
@@ -1254,7 +1254,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         if (chargeSpell.active.value) {
             chargeSpell.xp.value = Decimal.add(
                 chargeSpell.xp.value,
-                Decimal.times(chargeSpellXp.apply(1), diff)
+                Decimal.times(chargeSpellXp.apply(0.01), diff)
             );
             chargeSpell.castingTime.value += diff;
             chargeAmount.value = Decimal.min(
@@ -1278,7 +1278,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             );
             massXpSpell.xp.value = Decimal.add(
                 massXpSpell.xp.value,
-                Decimal.times(massXpSpellXp.apply(1), diff)
+                Decimal.times(massXpSpellXp.apply(0.001), diff)
             );
             massXpSpell.castingTime.value += diff;
             chargeAmount.value = Decimal.max(
