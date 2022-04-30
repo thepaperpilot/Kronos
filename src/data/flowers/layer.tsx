@@ -2,29 +2,20 @@
  * @module
  * @hidden
  */
+import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
+import Collapsible from "components/layout/Collapsible.vue";
 import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
-import SpellTree from "features/spellTree/SpellTree.vue";
+import { createBar, Direction } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
 import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
+import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
-import { BaseLayer, createLayer } from "game/layers";
-import { persistent } from "game/persistence";
-import Decimal, { DecimalSource, format } from "util/bignum";
-import { formatWhole } from "util/break_eternity";
-import { getFirstFeature, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
-import { computed, ComputedRef, ref, Ref, unref, watch, WatchStopHandle } from "vue";
-import { createParticles } from "features/particles/particles";
-import Collapsible from "components/layout/Collapsible.vue";
-import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
-import globalQuips from "../quips.json";
-import alwaysQuips from "./quips.json";
-import spellParticles from "./spellParticles.json";
-import "./flowers.css";
-import { ProcessedComputable } from "util/computed";
+import SpellTree from "features/spellTree/SpellTree.vue";
+import { createTabFamily } from "features/tabs/tabFamily";
 import {
     createTree,
     createTreeNode,
@@ -32,16 +23,25 @@ import {
     GenericTreeNode,
     TreeBranch
 } from "features/trees/tree";
+import { BaseLayer, createLayer } from "game/layers";
 import {
     createAdditiveModifier,
     createExponentialModifier,
     createMultiplicativeModifier,
     createSequentialModifier
 } from "game/modifiers";
-import { createTabFamily } from "features/tabs/tabFamily";
-import { createModifierSection } from "game/modifiers";
-import { createBar, Direction } from "features/bars/bar";
+import { persistent } from "game/persistence";
 import player from "game/player";
+import Decimal, { DecimalSource, format } from "util/bignum";
+import { formatWhole } from "util/break_eternity";
+import { ProcessedComputable } from "util/computed";
+import { getFirstFeature, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
+import { computed, ComputedRef, ref, Ref, unref, watch, WatchStopHandle } from "vue";
+import { createCollapsibleModifierSections } from "../common";
+import globalQuips from "../quips.json";
+import "./flowers.css";
+import alwaysQuips from "./quips.json";
+import spellParticles from "./spellParticles.json";
 
 export interface Spell<T extends string> {
     active: Ref<boolean>;
@@ -1004,6 +1004,162 @@ const layer = createLayer(id, function (this: BaseLayer) {
         massXpGain
     };
 
+    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Harvesting Flowers EXP Gain",
+            subtitle: "When Téchnasma is active",
+            modifier: jobXpGain,
+            base: 0,
+            unit: "/sec"
+        },
+        {
+            title: "All Spell Potency",
+            modifier: allSpellPotency
+        },
+        {
+            title: "All Spell EXP Gain",
+            subtitle: "When the spell is active",
+            modifier: allSpellXpGain,
+            unit: "/sec"
+        },
+        {
+            title: "Harvesting Flowers EXP Gain",
+            subtitle: "When Téchnasma is active",
+            modifier: jobXpGain,
+            base: 0,
+            unit: "/sec"
+        },
+        {
+            title: "Flowers Gain",
+            subtitle: "When Therizó is active",
+            modifier: flowerGain,
+            base: 0,
+            unit: "/sec",
+            visible: flowerSpellMilestone.earned
+        },
+        {
+            title: "Flowers Gain",
+            subtitle: "When Therizó is NOT active",
+            modifier: flowerPassiveGain,
+            base: 0,
+            unit: "/sec",
+            visible: () =>
+                flowerSpellMilestone.earned.value && Decimal.neq(flowerPassiveGain.apply(0), 0)
+        }
+    ]);
+    const [xpSpellTab, xpSpellTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Téchnasma Potency",
+            modifier: xpSpellPotency
+        },
+        {
+            title: "Téchnasma EXP Gain",
+            subtitle: "When Téchnasma is active",
+            modifier: xpSpellXp,
+            unit: "/sec"
+        },
+        {
+            title: "Discharge Rate",
+            subtitle: "When Téchnasma is active",
+            modifier: jobXpDischargeRate,
+            base: computedBaseDischargeRate,
+            unit: "/sec",
+            visible: chargeSpellMilestone.earned
+        }
+    ]);
+    const [flowerSpellTab, flowerSpellTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Therizó Potency",
+            modifier: flowerSpellPotency
+        },
+        {
+            title: "Therizó EXP Gain",
+            subtitle: "When Therizó is active",
+            modifier: flowerSpellXp,
+            base: 0.1,
+            unit: "/sec"
+        },
+        {
+            title: "Discharge Rate",
+            subtitle: "When Therizó is active",
+            modifier: flowerDischargeRate,
+            base: computedBaseDischargeRate,
+            unit: "/sec",
+            visible: chargeSpellMilestone.earned
+        }
+    ]);
+    const [chargeSpellTab, chargeSpellTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Prōficiō Potency",
+            modifier: chargeSpellPotency
+        },
+        {
+            title: "Prōficiō EXP Gain",
+            subtitle: "When Prōficiō is active",
+            modifier: chargeSpellXp,
+            base: 0.01,
+            unit: "/sec"
+        },
+        {
+            title: "Charge Multiplier",
+            subtitle: "When a non-Prōficiō spell is active",
+            modifier: chargeMult,
+            base: () => Decimal.log2(Decimal.add(chargeAmount.value, 1)).add(1),
+            unit: "x",
+            baseText: jsx(() => (
+                <>
+                    Base (log<sub>2</sub>(charge + 1) + 1)
+                </>
+            ))
+        },
+        {
+            title: "Charge Rate",
+            subtitle: "When Prōficiō is active",
+            modifier: chargeRate,
+            base: 0,
+            unit: "/sec"
+        },
+        {
+            title: "Base Discharge Rate",
+            subtitle: "When a non-Prōficiō spell is active",
+            modifier: baseDischargeRate,
+            base: 0,
+            unit: "/sec"
+        },
+        {
+            title: "Maximum Charge",
+            modifier: chargeCap,
+            base: 0
+        }
+    ]);
+    const [massXpSpellTab, massXpSpellTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Scholē Potency",
+            modifier: massXpSpellPotency
+        },
+        {
+            title: "Scholē EXP Gain",
+            subtitle: "When Scholē is active",
+            modifier: massXpSpellXp,
+            base: 0.001,
+            unit: "/sec"
+        },
+        {
+            title: "Other Spell EXP Gain Efficiency",
+            subtitle: "When Scholē is active",
+            modifier: massXpGain,
+            base: 0,
+            unit: "%"
+        },
+        {
+            title: "Discharge Rate",
+            subtitle: "When Scholē is active",
+            modifier: massXpDischargeRate,
+            base: computedBaseDischargeRate,
+            unit: "/sec",
+            visible: chargeSpellMilestone.earned
+        }
+    ]);
     const modifierTabs = createTabFamily(
         {
             general: () => ({
@@ -1011,83 +1167,16 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },
-                tab: jsx(() => (
-                    <>
-                        {createModifierSection(
-                            "Harvesting Flowers EXP Gain",
-                            "When Téchnasma is active",
-                            jobXpGain,
-                            0,
-                            "/sec"
-                        )}
-                        <br />
-                        {createModifierSection("All Spell Potency", "", allSpellPotency)}
-                        <br />
-                        {createModifierSection(
-                            "All Spell EXP Gain",
-                            "When the spell is active",
-                            allSpellXpGain,
-                            1,
-                            "/sec"
-                        )}
-                        {flowerSpellMilestone.earned.value ? (
-                            <>
-                                <br />
-                                {createModifierSection(
-                                    "Flowers Gain",
-                                    "When Therizó is active",
-                                    flowerGain,
-                                    0,
-                                    "/sec"
-                                )}
-                            </>
-                        ) : null}
-                        {flowerSpellMilestone.earned.value &&
-                        Decimal.neq(flowerPassiveGain.apply(0), 0) ? (
-                            <>
-                                <br />
-                                {createModifierSection(
-                                    "Flowers Gain",
-                                    "When Therizó is NOT active",
-                                    flowerPassiveGain,
-                                    0,
-                                    "/sec"
-                                )}
-                            </>
-                        ) : null}
-                    </>
-                ))
+                tab: generalTab,
+                generalTabCollapsed
             }),
             xpSpell: () => ({
                 display: "Téchnasma",
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },
-                tab: jsx(() => (
-                    <>
-                        {createModifierSection("Téchnasma Potency", "", xpSpellPotency)}
-                        <br />
-                        {createModifierSection(
-                            "Téchnasma EXP Gain",
-                            "When Téchnasma is active",
-                            xpSpellXp,
-                            1,
-                            "/sec"
-                        )}
-                        {chargeSpellMilestone.earned.value ? (
-                            <>
-                                <br />
-                                {createModifierSection(
-                                    "Discharge Rate",
-                                    "When Téchnasma is active",
-                                    jobXpDischargeRate,
-                                    computedBaseDischargeRate.value,
-                                    "/sec"
-                                )}
-                            </>
-                        ) : null}
-                    </>
-                ))
+                tab: xpSpellTab,
+                xpSpellTabCollapsed
             }),
             flowerSpell: () => ({
                 display: "Therizó",
@@ -1095,31 +1184,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },
-                tab: jsx(() => (
-                    <>
-                        {createModifierSection("Therizó Potency", "", flowerSpellPotency)}
-                        <br />
-                        {createModifierSection(
-                            "Therizó EXP Gain",
-                            "When Therizó is active",
-                            flowerSpellXp,
-                            0.1,
-                            "/sec"
-                        )}
-                        {chargeSpellMilestone.earned.value ? (
-                            <>
-                                <br />
-                                {createModifierSection(
-                                    "Discharge Rate",
-                                    "When Therizó is active",
-                                    flowerDischargeRate,
-                                    computedBaseDischargeRate.value,
-                                    "/sec"
-                                )}
-                            </>
-                        ) : null}
-                    </>
-                ))
+                tab: flowerSpellTab,
+                flowerSpellTabCollapsed
             }),
             chargeSpell: () => ({
                 display: "Prōficiō",
@@ -1127,50 +1193,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },
-                tab: jsx(() => (
-                    <>
-                        {createModifierSection("Prōficiō Potency", "", chargeSpellPotency)}
-                        <br />
-                        {createModifierSection(
-                            "Prōficiō EXP Gain",
-                            "When Prōficiō is active",
-                            chargeSpellXp,
-                            0.01,
-                            "/sec"
-                        )}
-                        <br />
-                        {createModifierSection(
-                            "Charge Multiplier",
-                            "When a non-Prōficiō spell is active",
-                            chargeMult,
-                            Decimal.log2(Decimal.add(chargeAmount.value, 1)).add(1),
-                            "x",
-                            jsx(() => (
-                                <>
-                                    Base (log<sub>2</sub>(charge + 1) + 1)
-                                </>
-                            ))
-                        )}
-                        <br />
-                        {createModifierSection(
-                            "Charge Rate",
-                            "When Prōficiō is active",
-                            chargeRate,
-                            0,
-                            "/sec"
-                        )}
-                        <br />
-                        {createModifierSection(
-                            "Base Discharge Rate",
-                            "When a non-Prōficiō spell is active",
-                            baseDischargeRate,
-                            0,
-                            "/sec"
-                        )}
-                        <br />
-                        {createModifierSection("Maximum Charge", "", chargeCap, 0)}
-                    </>
-                ))
+                tab: chargeSpellTab,
+                chargeSpellTabCollapsed
             }),
             massXpSpell: () => ({
                 display: "Scholē",
@@ -1178,39 +1202,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },
-                tab: jsx(() => (
-                    <>
-                        {createModifierSection("Scholē Potency", "", massXpSpellPotency)}
-                        <br />
-                        {createModifierSection(
-                            "Scholē EXP Gain",
-                            "When Scholē is active",
-                            massXpSpellXp,
-                            0.001,
-                            "/sec"
-                        )}
-                        <br />
-                        {createModifierSection(
-                            "Other Spell EXP Gain Efficiency",
-                            "When Scholē is active",
-                            massXpGain,
-                            0,
-                            "%"
-                        )}
-                        {chargeSpellMilestone.earned.value ? (
-                            <>
-                                <br />
-                                {createModifierSection(
-                                    "Discharge Rate",
-                                    "When Scholē is active",
-                                    massXpDischargeRate,
-                                    computedBaseDischargeRate.value,
-                                    "/sec"
-                                )}
-                            </>
-                        ) : null}
-                    </>
-                ))
+                tab: massXpSpellTab,
+                massXpSpellTabCollapsed
             })
         },
         () => ({
@@ -1305,6 +1298,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         milestones,
         collapseMilestones,
         chargeAmount,
+        modifierTabs,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
             if (firstMilestone.value) {
