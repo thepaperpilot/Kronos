@@ -1332,10 +1332,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         {maxActiveSpells.value === 1 ? "" : "s"} at a time
                     </div>
                     {renderRowJSX(...Object.values(spells).map(s => s.selector))}
-                    <Row style="margin-top: 40px !important; margin-bottom: -20px;">
-                        {renderJSX(chargeBar)}
-                        <span style="margin-left: 10px">{format(computedChargeMult.value)}x</span>
-                    </Row>
+                    {chargeSpellMilestone.earned.value ? (
+                        <Row style="margin-top: 40px !important; margin-bottom: -20px;">
+                            {renderJSX(chargeBar)}
+                            <span style="margin-left: 10px">
+                                {format(computedChargeMult.value)}x
+                            </span>
+                        </Row>
+                    ) : null}
                     {spellExpMilestone.earned.value
                         ? Object.values(spells)
                               .filter(s => s.active.value)
