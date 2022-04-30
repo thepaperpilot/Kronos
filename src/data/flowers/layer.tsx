@@ -1310,6 +1310,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         resource={flowers}
                         color={color}
                         v-show={flowerSpellMilestone.earned.value}
+                        effectDisplay={`multiplying spell potency by x${format(
+                            flowersEffect.value
+                        )}`}
                     />
                     {renderColJSX(
                         ...milestonesToDisplay,
