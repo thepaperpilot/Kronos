@@ -132,3 +132,7 @@
     background-position: calc(var(--time) / 10) calc(var(--time) / 20), calc(var(--time) / 7 + 4px) calc(var(--time) / -14 + 6px), calc(var(--time) / 1.1 + 13px) calc(var(--time) / -2.2 + 27px), calc(var(--time) / 4 + 7px) calc(var(--time) / 8 + 10px);
     transform: rotate(var(--time-deg));
 }
+
+.flowers-modal .modal-container {
+    width: 730px;
+}

@@ -27,7 +27,7 @@
                 <h2>{{ name }}</h2>
                 <span style="margin-bottom: 2px">Lv. {{ formatWhole(level.value) }}</span>
                 <span style="flex-grow: 1" />
-                <ModifierInfo :display="modifierInfo" :name="name" />
+                <ModifierInfo :display="modifierInfo" :name="name" v-bind="modifierModalAttrs" />
             </div>
         </div>
         <div v-if="selected && unref(currentQuip)" class="job-quip">"{{ unref(currentQuip) }}"</div>
@@ -130,7 +130,8 @@ export default defineComponent({
         id: {
             type: String,
             required: true
-        }
+        },
+        modifierModalAttrs: Object as PropType<Record<string, unknown>>
     },
     components: {
         Node,

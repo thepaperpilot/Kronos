@@ -83,7 +83,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         resource: flowers,
         layerID: id,
-        modifierInfo: jsx(() => renderJSX(modifierTabs))
+        modifierInfo: jsx(() => renderJSX(modifierTabs)),
+        modifierModalAttrs: {
+            class: "flowers-modal"
+        }
     }));
 
     const activeSpells = computed(() => Object.values(spells).filter(s => s.active.value).length);

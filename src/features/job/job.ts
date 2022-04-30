@@ -45,6 +45,7 @@ export interface JobOptions {
     randomQuips?: Computable<string[]>;
     layerID: string;
     modifierInfo: Computable<CoercableComponent>;
+    modifierModalAttrs?: Record<string, unknown>;
 }
 
 export interface BaseJob {
@@ -180,7 +181,8 @@ export function createJob<T extends JobOptions>(
                 style,
                 currentQuip,
                 randomQuips,
-                modifierInfo
+                modifierInfo,
+                modifierModalAttrs
             } = this;
             return {
                 id,
@@ -199,7 +201,8 @@ export function createJob<T extends JobOptions>(
                 style: unref(style),
                 currentQuip,
                 randomQuips,
-                modifierInfo
+                modifierInfo,
+                modifierModalAttrs
             };
         };
 
