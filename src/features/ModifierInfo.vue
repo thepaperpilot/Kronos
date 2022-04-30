@@ -1,6 +1,6 @@
 <template>
     <span class="material-icons-outlined modifier-info-toggle" @click="openModal = true">help</span>
-    <Modal v-model="openModal" class="modifiers-modal">
+    <Modal v-model="openModal" class="modifiers-modal" v-bind="$attrs">
         <template v-slot:header
             ><h2>{{ name }} Modifiers</h2></template
         >
