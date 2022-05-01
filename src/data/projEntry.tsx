@@ -1,6 +1,6 @@
 import Spacer from "components/layout/Spacer.vue";
 import Cutscene from "./Cutscene.vue";
-import { CoercableComponent, jsx } from "features/feature";
+import { CoercableComponent, jsx, showIf } from "features/feature";
 import { createParticles } from "features/particles/particles";
 import { globalBus } from "game/events";
 import { addLayer, createLayer, GenericLayer } from "game/layers";
@@ -11,6 +11,7 @@ import { render, renderCol } from "util/vue";
 import { computed, ref, watch, watchEffect } from "vue";
 import flowers from "./flowers/layer";
 import confetti from "./confetti.json";
+import { createUpgrade } from "features/upgrades/upgrade";
 
 interface Cutscene {
     pages: CutscenePage[];
@@ -68,6 +69,17 @@ export const main = createLayer(id, () => {
             }
         });
     });
+
+    const closeTimeLoop = createUpgrade(() => ({
+        display: {
+            title: "<h1>Close the time loop</h1>",
+            description:
+                "<br/><i>The flowers are collected, and I have just enough. It's time to get started.</i>"
+        },
+        canAfford: true,
+        style: `width: 150px; height: 150px; --layer-color: ${flowers.color}`,
+        visibility: () => showIf(chapter.value == 1 && Decimal.gte(flowers.flowers.value, 10000000))
+    }));
 
     const particles = createParticles(() => ({
         boundingRect: ref<null | DOMRect>(null),
@@ -128,6 +140,27 @@ export const main = createLayer(id, () => {
                 }
             };
             return;
+        } else if (chapter.value === 1 && closeTimeLoop.bought.value) {
+            activeCutscene.value = {
+                pages: [
+                    {
+                        stage: jsx(() => (
+                            <img
+                                style="max-width: 100%; flex-grow: 1"
+                                src="https://dummyimage.com/720x320/000/fff.png"
+                            />
+                        )),
+                        caption:
+                            "I can wrap this field in a time loop and reset it whenever the field is empty. If I take the flowers out of the loop before hand I will have a perfectly sustainable source of moly."
+                    }
+                ],
+                page: 0,
+                onFinished() {
+                    chapter.value = 2;
+                    //addLayer(distill, player);
+                }
+            };
+            return;
         }
         activeCutscene.value = null;
     });
@@ -138,6 +171,7 @@ export const main = createLayer(id, () => {
         timeSlots,
         hasTimeSlotAvailable,
         resetTimes,
+        closeTimeLoop,
         display: jsx(() =>
             activeCutscene.value ? (
                 <Cutscene
@@ -183,6 +217,7 @@ export const main = createLayer(id, () => {
                         remaining)
                     </h2>
                     {renderCol(...jobs)}
+                    {render(closeTimeLoop)}
                     {render(particles)}
                 </>
             )
