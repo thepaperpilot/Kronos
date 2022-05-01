@@ -6,7 +6,7 @@ import { globalBus } from "game/events";
 import { addLayer, createLayer, GenericLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
-import Decimal, { format, formatTime } from "util/bignum";
+import Decimal, { format, formatTime, formatWhole } from "util/bignum";
 import { render, renderCol } from "util/vue";
 import { computed, ref, watch, watchEffect } from "vue";
 import flowers from "./flowers/layer";
@@ -176,6 +176,12 @@ export const main = createLayer(id, () => {
                     hasTimeSlotAvailable.value ? (
                         <Spacer />
                     ) : null}
+                    <h2>
+                        Current Goal: Harvest all the flowers
+                        <br />(
+                        {formatWhole(Decimal.sub(10000000, flowers.flowers.value).clampMin(0))}{" "}
+                        remaining)
+                    </h2>
                     {renderCol(...jobs)}
                     {render(particles)}
                 </>
