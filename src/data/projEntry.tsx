@@ -8,7 +8,7 @@ import { persistent } from "game/persistence";
 import player, { PlayerData } from "game/player";
 import Decimal, { format, formatTime, formatWhole } from "util/bignum";
 import { render, renderCol } from "util/vue";
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, ref, unref, watch, watchEffect } from "vue";
 import flowers from "./flowers/flowers";
 import confetti from "./confetti.json";
 import { createUpgrade } from "features/upgrades/upgrade";
@@ -172,6 +172,23 @@ export const main = createLayer(id, () => {
         activeCutscene.value = null;
     });
 
+    const goalDisplay = computed(() => {
+        if (chapter.value === 1) {
+            return (
+                <h2>
+                    Current Goal: Harvest all the flowers
+                    <br />({formatWhole(
+                        Decimal.sub(10000000, flowers.flowers.value).clampMin(0)
+                    )}{" "}
+                    remaining)
+                </h2>
+            );
+        } else if (chapter.value == 2) {
+            return <h2>Current Goal: Perform Ritual of Genesis</h2>;
+        }
+        return <></>;
+    });
+
     return {
         name: "Jobs",
         chapter,
@@ -212,12 +229,7 @@ export const main = createLayer(id, () => {
                     hasTimeSlotAvailable.value ? (
                         <Spacer />
                     ) : null}
-                    <h2>
-                        Current Goal: Harvest all the flowers
-                        <br />(
-                        {formatWhole(Decimal.sub(10000000, flowers.flowers.value).clampMin(0))}{" "}
-                        remaining)
-                    </h2>
+                    {unref(goalDisplay)}
                     <Spacer />
                     {Decimal.gt(timeSlots.value, 0) ? (
                         <div>
