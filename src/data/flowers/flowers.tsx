@@ -6,6 +6,7 @@ import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
 import Collapsible from "components/layout/Collapsible.vue";
 import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
+import { main } from "data/projEntry";
 import { createBar } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
 import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
@@ -1246,7 +1247,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
         if (flowerSpell.active.value) {
             flowers.value = Decimal.min(
-                10000000,
+                main.chapter.value > 1 ? Decimal.dInf : 10000000,
                 Decimal.add(flowers.value, Decimal.times(flowerGain.apply(0), diff))
             );
             if (spellExpMilestone.earned.value) {
@@ -1267,7 +1268,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             const passiveGain = flowerPassiveGain.apply(0);
             if (Decimal.neq(passiveGain, 0)) {
                 flowers.value = Decimal.min(
-                    10000000,
+                    main.chapter.value > 1 ? Decimal.dInf : 10000000,
                     Decimal.add(flowers.value, Decimal.times(passiveGain, diff))
                 );
             }
