@@ -36,12 +36,12 @@
         </div>
         <button
             class="job-loop-toggle material-icons"
-            @click.stop="toggleLoop"
+            @click.stop="timeLoopActive.value = !unref(timeLoopActive)"
             v-if="finishedFirstChapter"
             :class="{
                 active: unref(timeLoopActive)
             }"
-            :disabled="!hasTimeSlotAvailable"
+            :disabled="!hasTimeSlotAvailable && !unref(timeLoopActive)"
         >
             loop
         </button>
@@ -52,8 +52,9 @@
 <script lang="tsx">
 import "components/common/features.css";
 import Node from "components/Node.vue";
-import ModifierInfo from "features/ModifierInfo.vue";
+import { main } from "data/projEntry";
 import { CoercableComponent, StyleValue, Visibility } from "features/feature";
+import ModifierInfo from "features/ModifierInfo.vue";
 import { displayResource, Resource } from "features/resources/resource";
 import { Persistent } from "game/persistence";
 import player from "game/player";
@@ -61,6 +62,7 @@ import { formatWhole } from "util/bignum";
 import { processedPropType, unwrapRef } from "util/vue";
 import {
     computed,
+    ComputedRef,
     defineComponent,
     onUnmounted,
     PropType,
@@ -138,17 +140,14 @@ export default defineComponent({
         ModifierInfo
     },
     setup(props) {
-        const { timeLoopActive, layerID, currentQuip, randomQuips } = toRefs(props);
+        const { layerID, currentQuip, randomQuips } = toRefs(props);
 
-        const selected = computed(() => player.tabs.includes(layerID.value));
-        const finishedFirstChapter = computed(() => player.layers.main.chapter !== 1);
+        const selected = computed(() => player.tabs[1] == layerID.value);
+        const finishedFirstChapter: ComputedRef<boolean> = computed(() => main.chapter.value > 1);
+        const hasTimeSlotAvailable: ComputedRef<boolean> = main.hasTimeSlotAvailable;
 
         function openJob() {
             player.tabs.splice(1, 1, layerID.value);
-        }
-
-        function toggleLoop() {
-            timeLoopActive.value = !timeLoopActive.value;
         }
 
         let quipTimer: number | undefined = undefined;
@@ -170,10 +169,9 @@ export default defineComponent({
         return {
             selected,
             finishedFirstChapter,
-            hasTimeSlotAvailable: player.layers.main.hasTimeSlotAvailable as Ref<boolean>,
+            hasTimeSlotAvailable,
             formatWhole,
             openJob,
-            toggleLoop,
             unref,
             displayResource,
             Visibility

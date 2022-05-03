@@ -9,9 +9,10 @@ import player, { PlayerData } from "game/player";
 import Decimal, { format, formatTime, formatWhole } from "util/bignum";
 import { render, renderCol } from "util/vue";
 import { computed, ref, watch, watchEffect } from "vue";
-import flowers from "./flowers/layer";
+import flowers from "./flowers/flowers";
 import confetti from "./confetti.json";
 import { createUpgrade } from "features/upgrades/upgrade";
+import distill from "./distill/distill";
 
 interface Cutscene {
     pages: CutscenePage[];
@@ -31,13 +32,19 @@ const id = "main";
 export const main = createLayer(id, () => {
     const chapter = persistent<number>(0);
 
-    const timeSlots = computed(() => 0);
-    const usedTimeSlots = computed(() => 0);
+    const jobs = [flowers.job, distill.job];
+
+    const timeSlots = computed(() => {
+        let slots = 0;
+        if (chapter.value > 1) {
+            slots = 1;
+        }
+        return slots;
+    });
+    const usedTimeSlots = computed(() => jobs.filter(j => j.timeLoopActive.value).length);
     const hasTimeSlotAvailable = computed(() => timeSlots.value > usedTimeSlots.value);
 
     const resetTimes = persistent<number[]>([0, 0, 0, 0, 0]);
-
-    const jobs = [flowers.job];
 
     jobs.forEach(job => {
         let lastProc = 0;
@@ -157,7 +164,7 @@ export const main = createLayer(id, () => {
                 page: 0,
                 onFinished() {
                     chapter.value = 2;
-                    //addLayer(distill, player);
+                    addLayer(distill, player);
                 }
             };
             return;
@@ -172,6 +179,7 @@ export const main = createLayer(id, () => {
         hasTimeSlotAvailable,
         resetTimes,
         closeTimeLoop,
+        activeCutscene,
         display: jsx(() =>
             activeCutscene.value ? (
                 <Cutscene
@@ -199,12 +207,6 @@ export const main = createLayer(id, () => {
                     {player.offlineTime != undefined ? (
                         <div>Offline Time: {formatTime(player.offlineTime || 0)}</div>
                     ) : null}
-                    {hasTimeSlotAvailable.value ? (
-                        <div>
-                            {timeSlots.value - usedTimeSlots.value} Time Slot
-                            {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
-                        </div>
-                    ) : null}
                     {player.devSpeed != null ||
                     player.offlineTime != null ||
                     hasTimeSlotAvailable.value ? (
@@ -216,6 +218,13 @@ export const main = createLayer(id, () => {
                         {formatWhole(Decimal.sub(10000000, flowers.flowers.value).clampMin(0))}{" "}
                         remaining)
                     </h2>
+                    <Spacer />
+                    {Decimal.gt(timeSlots.value, 0) ? (
+                        <div>
+                            {timeSlots.value - usedTimeSlots.value} Time Slot
+                            {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
+                        </div>
+                    ) : null}
                     {renderCol(...jobs)}
                     {render(closeTimeLoop)}
                     {render(particles)}
@@ -226,7 +235,9 @@ export const main = createLayer(id, () => {
 });
 
 globalBus.on("update", diff => {
-    main.resetTimes.value[main.chapter.value - 1] += diff;
+    if (main.chapter.value > -1 && main.activeCutscene.value != null) {
+        main.resetTimes.value[main.chapter.value - 1] += diff;
+    }
 });
 
 export const getInitialLayers = (
@@ -238,6 +249,8 @@ export const getInitialLayers = (
         return [main];
     } else if (chapter === 1) {
         return [main, flowers];
+    } else if (chapter === 2) {
+        return [main, flowers, distill];
     }
     throw `Chapter ${chapter} not supported`;
 };
