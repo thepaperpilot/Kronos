@@ -306,11 +306,11 @@ export default defineComponent({
     height: 100%;
     background-color: var(--foreground);
     clip-path: inset(0% calc(-1 * var(--progress) - 50px) 0% 0%);
-    transition-duration: 0s;
 }
 
 .job.selected .job-progress {
     clip-path: inset(0% calc(-1 * var(--progress)) 0% 0%);
+    transition: all 0.5s 0s, box-shadow 0.5s 0s;
 }
 
 .job-quip {
