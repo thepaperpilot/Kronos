@@ -1228,6 +1228,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     this.on("preUpdate", diff => {
+        if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+
         if (xpSpell.active.value) {
             job.xp.value = Decimal.add(job.xp.value, Decimal.times(jobXpGain.apply(0), diff));
             if (spellExpMilestone.earned.value) {

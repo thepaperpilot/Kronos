@@ -16,6 +16,7 @@ import { createTabFamily } from "features/tabs/tabFamily";
 import { BaseLayer, createLayer } from "game/layers";
 import { createSequentialModifier, createMultiplicativeModifier } from "game/modifiers";
 import { persistent } from "game/persistence";
+import player from "game/player";
 import Decimal, { DecimalSource } from "util/bignum";
 import { getFirstFeature, renderColJSX, renderJSX } from "util/vue";
 import { computed, ComputedRef } from "vue";
@@ -150,6 +151,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     this.on("preUpdate", diff => {
+        if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+
         job.xp.value = Decimal.add(job.xp.value, Decimal.times(jobXpGain.apply(0), diff));
     });
 
