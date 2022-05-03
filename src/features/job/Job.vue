@@ -6,7 +6,7 @@
                 visibility: unref(visibility) === Visibility.Hidden ? 'hidden' : undefined,
                 '--posx': unref(imageFocus).x,
                 '--posy': unref(imageFocus).y,
-                '--progress': `-${(1 - unref(levelProgress)) * 100}%`,
+                '--progress': `${(1 - unref(levelProgress)) * 100}%`,
                 '--foreground': unref(color)
             },
             unref(style) ?? {}
@@ -14,7 +14,8 @@
         class="feature dontMerge job"
         :class="{
             selected,
-            active: selected || unref(timeLoopActive)
+            active: selected || unref(timeLoopActive),
+            animating
         }"
         @click="openJob"
     >
@@ -66,9 +67,11 @@ import {
     defineComponent,
     onUnmounted,
     PropType,
+    ref,
     Ref,
     toRefs,
     unref,
+    watch,
     watchEffect
 } from "vue";
 
@@ -166,8 +169,15 @@ export default defineComponent({
         });
         onUnmounted(() => clearInterval(quipTimer));
 
+        const animating = ref<boolean>(false);
+        watch(selected, () => {
+            animating.value = true;
+            setTimeout(() => (animating.value = false), 250);
+        });
+
         return {
             selected,
+            animating,
             finishedFirstChapter,
             hasTimeSlotAvailable,
             formatWhole,
@@ -209,8 +219,8 @@ export default defineComponent({
 }
 
 .job:not(.selected),
-.job:not(.selected) * {
-    transition: all 0.5s 0.25s, box-shadow 0.5s 0s;
+.job:not(.selected) > * {
+    transition: all 0.5s 0.25s, box-shadow 0.5s 0s, clip-path 0s 0s;
 }
 
 .job:not(.selected) > img {
@@ -305,12 +315,16 @@ export default defineComponent({
     width: 100%;
     height: 100%;
     background-color: var(--foreground);
-    clip-path: inset(0% calc(-1 * var(--progress) - 50px) 0% 0%);
+    clip-path: inset(0% calc(var(--progress) * (0.88) + 0px) 0% 0%);
+    transition: clip-path 0s 0s;
 }
 
 .job.selected .job-progress {
-    clip-path: inset(0% calc(-1 * var(--progress)) 0% 0%);
-    transition: all 0.5s 0s, box-shadow 0.5s 0s;
+    clip-path: inset(0% calc(var(--progress)) 0% 0%);
+}
+
+.animating .job-progress {
+    transition: clip-path 0.2s 0s;
 }
 
 .job-quip {
