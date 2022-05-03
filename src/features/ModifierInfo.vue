@@ -1,7 +1,9 @@
 <template>
-    <span class="material-icons-outlined modifier-info-toggle" @click.stop="openModal = true"
-        >help</span
-    >
+    <Tooltip :direction="Direction.Left" display="Open Modifiers" xoffset="10px">
+        <span class="material-icons-outlined modifier-info-toggle" @click.stop="openModal = true"
+            >help</span
+        >
+    </Tooltip>
     <Modal v-model="openModal" class="modifiers-modal" v-bind="$attrs">
         <template v-slot:header
             ><h2>{{ name }} Modifiers</h2></template
@@ -25,6 +27,8 @@ import {
 } from "vue";
 import { coerceComponent, unwrapRef } from "util/vue";
 import { CoercableComponent } from "./feature";
+import Tooltip from "./tooltips/Tooltip.vue";
+import { Direction } from "util/common";
 
 const props = defineProps<{
     display: ProcessedComputable<CoercableComponent>;

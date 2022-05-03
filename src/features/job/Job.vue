@@ -35,17 +35,19 @@
         <div class="job-progress-container">
             <div class="job-progress"></div>
         </div>
-        <button
-            class="job-loop-toggle material-icons"
-            @click.stop="timeLoopActive.value = !unref(timeLoopActive)"
-            v-if="finishedFirstChapter"
-            :class="{
-                active: unref(timeLoopActive)
-            }"
-            :disabled="!hasTimeSlotAvailable && !unref(timeLoopActive)"
-        >
-            loop
-        </button>
+        <Tooltip :direction="Direction.Left" display="Toggle Time Loop" class="job-loop-toggle">
+            <button
+                class="material-icons"
+                @click.stop="timeLoopActive.value = !unref(timeLoopActive)"
+                v-if="finishedFirstChapter"
+                :class="{
+                    active: unref(timeLoopActive)
+                }"
+                :disabled="!hasTimeSlotAvailable && !unref(timeLoopActive)"
+            >
+                loop
+            </button>
+        </Tooltip>
         <Node :id="id" />
     </span>
 </template>
@@ -57,9 +59,11 @@ import { main } from "data/projEntry";
 import { CoercableComponent, StyleValue, Visibility } from "features/feature";
 import ModifierInfo from "features/ModifierInfo.vue";
 import { displayResource, Resource } from "features/resources/resource";
+import Tooltip from "features/tooltips/Tooltip.vue";
 import { Persistent } from "game/persistence";
 import player from "game/player";
 import { formatWhole } from "util/bignum";
+import { Direction } from "util/common";
 import { processedPropType, unwrapRef } from "util/vue";
 import {
     computed,
@@ -140,7 +144,8 @@ export default defineComponent({
     },
     components: {
         Node,
-        ModifierInfo
+        ModifierInfo,
+        Tooltip
     },
     setup(props) {
         const { layerID, currentQuip, randomQuips } = toRefs(props);
@@ -184,7 +189,8 @@ export default defineComponent({
             openJob,
             unref,
             displayResource,
-            Visibility
+            Visibility,
+            Direction
         };
     }
 });
@@ -245,21 +251,24 @@ export default defineComponent({
 }
 
 .job-loop-toggle {
-    color: var(--background);
-    font-weight: bolder;
-    background: none;
-    border: none;
     position: absolute;
     top: 0;
     right: 0;
     z-index: 10;
 }
 
-.job-loop-toggle.active {
+.job-loop-toggle button {
+    color: var(--background);
+    font-weight: bolder;
+    background: none;
+    border: none;
+}
+
+.job-loop-toggle button.active {
     color: var(--link);
 }
 
-.job-loop-toggle:not([disabled]):hover {
+.job-loop-toggle button:not([disabled]):hover {
     text-shadow: 0 0 12px var(--points) !important;
     cursor: pointer;
 }
