@@ -1,7 +1,7 @@
 import Spacer from "components/layout/Spacer.vue";
-import Cutscene from "./Cutscene.vue";
 import { CoercableComponent, jsx, showIf } from "features/feature";
 import { createParticles } from "features/particles/particles";
+import { createUpgrade } from "features/upgrades/upgrade";
 import { globalBus } from "game/events";
 import { addLayer, createLayer, GenericLayer } from "game/layers";
 import { persistent } from "game/persistence";
@@ -9,10 +9,11 @@ import player, { PlayerData } from "game/player";
 import Decimal, { format, formatTime, formatWhole } from "util/bignum";
 import { render, renderCol } from "util/vue";
 import { computed, ref, unref, watch, watchEffect } from "vue";
-import flowers from "./flowers/flowers";
 import confetti from "./confetti.json";
-import { createUpgrade } from "features/upgrades/upgrade";
+import Cutscene from "./Cutscene.vue";
 import distill from "./distill/distill";
+import flowers from "./flowers/flowers";
+import study from "./study/study";
 
 interface Cutscene {
     pages: CutscenePage[];
@@ -32,7 +33,7 @@ const id = "main";
 export const main = createLayer(id, () => {
     const chapter = persistent<number>(0);
 
-    const jobs = [flowers.job, distill.job];
+    const jobs = [flowers.job, distill.job, study.job];
 
     const timeSlots = computed(() => {
         let slots = 0;
@@ -263,7 +264,12 @@ export const getInitialLayers = (
     } else if (chapter === 1) {
         return [main, flowers];
     } else if (chapter === 2) {
-        return [main, flowers, distill];
+        const layers: GenericLayer[] = [main, flowers, distill];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((player.layers?.distill as any).milestones.studyMilestone.earned.value) {
+            layers.push(study);
+        }
+        return layers;
     }
     throw `Chapter ${chapter} not supported`;
 };

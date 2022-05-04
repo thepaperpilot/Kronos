@@ -41,7 +41,7 @@ export interface JobOptions {
     color: Computable<string>;
     image: Computable<string>;
     imageFocus: Computable<{ x: string; y: string }>;
-    resource?: Resource;
+    resource?: Resource | Resource[];
     randomQuips?: Computable<string[]>;
     layerID: string;
     modifierInfo: Computable<CoercableComponent>;

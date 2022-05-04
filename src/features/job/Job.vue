@@ -21,7 +21,7 @@
     >
         <img :src="unref(image)" />
         <div class="job-contents">
-            <div class="job-resource" v-if="resource">
+            <div class="job-resource" v-for="(resource, index) in resourceArray" :key="index">
                 {{ displayResource(resource) }} {{ resource.displayName }}
             </div>
             <div class="job-title">
@@ -119,7 +119,7 @@ export default defineComponent({
             type: processedPropType<{ x: string; y: string }>(Object),
             required: true
         },
-        resource: Object as PropType<Resource>,
+        resource: [Object, Array] as PropType<Resource | Resource[]>,
         layerID: {
             type: String,
             required: true
@@ -148,7 +148,7 @@ export default defineComponent({
         Tooltip
     },
     setup(props) {
-        const { layerID, currentQuip, randomQuips } = toRefs(props);
+        const { layerID, currentQuip, randomQuips, resource } = toRefs(props);
 
         const selected = computed(() => player.tabs[1] == layerID.value);
         const finishedFirstChapter: ComputedRef<boolean> = computed(() => main.chapter.value > 1);
@@ -180,6 +180,17 @@ export default defineComponent({
             setTimeout(() => (animating.value = false), 250);
         });
 
+        const resourceArray = computed(() => {
+            if ("displayName" in resource) {
+                return [resource] as unknown as Resource[];
+            }
+            const currResource = unref(resource);
+            if (Array.isArray(currResource)) {
+                return currResource as unknown as Resource[];
+            }
+            return [];
+        });
+
         return {
             selected,
             animating,
@@ -189,6 +200,7 @@ export default defineComponent({
             openJob,
             unref,
             displayResource,
+            resourceArray,
             Visibility,
             Direction
         };
@@ -283,6 +295,7 @@ export default defineComponent({
     right: 10px;
     transform: translateY(-100%);
     z-index: 1;
+    text-align: left;
 }
 
 .job.selected > .job-contents {
@@ -302,10 +315,12 @@ export default defineComponent({
 }
 
 .job-resource {
-    margin: 0;
     color: var(--foreground);
-    width: 100%;
-    text-align: left;
+    display: inline-block;
+}
+
+.job-resource + .job-resource::before {
+    content: ", ";
 }
 
 .job-progress-container {

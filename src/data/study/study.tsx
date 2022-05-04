@@ -6,47 +6,45 @@
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
 import { createCollapsibleModifierSections } from "data/common";
-import { main } from "data/projEntry";
-import { jsx, showIf, Visibility } from "features/feature";
+import { jsx, showIf } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
-import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
+import Resource from "features/resources/Resource.vue";
 import { createTabFamily } from "features/tabs/tabFamily";
-import { addLayer, BaseLayer, createLayer } from "game/layers";
+import { BaseLayer, createLayer } from "game/layers";
 import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource } from "util/bignum";
 import { getFirstFeature, renderColJSX, renderJSX } from "util/vue";
 import { computed, ComputedRef } from "vue";
+import distill from "../distill/distill";
 import globalQuips from "../quips.json";
-import study from "../study/study";
 import alwaysQuips from "./quips.json";
 
-const isPastChapter1: ComputedRef<Visibility> = computed(() => showIf(main.chapter.value > 1));
-
-const id = "distill";
+const id = "study";
 const layer = createLayer(id, function (this: BaseLayer) {
-    const name = "Distill Flowers";
-    const color = "#8AFFC1";
+    const name = "Study Flowers";
+    const color = "#9b6734";
 
-    const essentia = createResource<DecimalSource>(0, "essentia");
+    const properties = createResource<DecimalSource>(0, "properties");
+    const insights = createResource<DecimalSource>(0, "insights");
 
     const job = createJob(name, () => ({
         color,
         image: "https://dummyimage.com/512x288/000/fff.png",
         imageFocus: {
             x: "25%",
-            y: "60%"
+            y: "20%"
         },
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: essentia,
+        resource: [properties, insights],
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
-        visibility: isPastChapter1
+        visibility: () => showIf(distill.milestones.studyMilestone.earned.value)
     }));
 
     const spellExpMilestone = createMilestone(() => ({
@@ -54,7 +52,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 2",
+            requirement: "Achieve Study Flowers Level 2",
             effectDisplay: "???"
         }
     }));
@@ -63,26 +61,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 4",
+            requirement: "Achieve Study Flowers Level 4",
             effectDisplay: "???"
         },
         visibility() {
             return showIf(spellExpMilestone.earned.value);
-        }
-    }));
-    const studyMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 5);
-        },
-        display: {
-            requirement: "Achieve Distilling Flowers Level 5",
-            effectDisplay: 'Unlock "Study Flowers" Job'
-        },
-        visibility() {
-            return showIf(flowerSpellMilestone.earned.value);
-        },
-        onComplete() {
-            addLayer(study, player);
         }
     }));
     const chargeSpellMilestone = createMilestone(() => ({
@@ -90,11 +73,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 6",
+            requirement: "Achieve Study Flowers Level 6",
             effectDisplay: "???"
         },
         visibility() {
-            return showIf(studyMilestone.earned.value);
+            return showIf(flowerSpellMilestone.earned.value);
         }
     }));
     const expSpellMilestone = createMilestone(() => ({
@@ -102,7 +85,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 8",
+            requirement: "Achieve Study Flowers Level 8",
             effectDisplay: "???"
         },
         visibility() {
@@ -112,14 +95,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const milestones = {
         spellExpMilestone,
         flowerSpellMilestone,
-        studyMilestone,
         chargeSpellMilestone,
         expSpellMilestone
     };
     const orderedMilestones = [
         expSpellMilestone,
         chargeSpellMilestone,
-        studyMilestone,
         flowerSpellMilestone,
         spellExpMilestone
     ];
@@ -137,7 +118,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const jobXpGain = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Distilling Flowers level (x1.1 each)")
+        createMultiplicativeModifier(jobLevelEffect, "Study Flowers level (x1.1 each)")
     );
 
     const modifiers = {
@@ -146,7 +127,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
         {
-            title: "Distilling Flowers EXP Gain",
+            title: "Study Flowers EXP Gain",
             modifier: jobXpGain,
             base: 0,
             unit: "/sec"
@@ -178,7 +159,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
         name,
         color,
         minWidth: 670,
-        essentia,
+        properties,
+        insights,
         job,
         modifiers,
         milestones,
@@ -191,7 +173,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
             return (
                 <>
-                    <MainDisplay resource={essentia} color={color} />
+                    <div>
+                        You have <Resource resource={properties} color={color} /> properties studied
+                        and <Resource resource={insights} color="darkcyan" /> key insights
+                    </div>
+                    <br />
                     {renderColJSX(
                         ...milestonesToDisplay,
                         jsx(() => (
