@@ -197,7 +197,7 @@ export const main = createLayer(id, () => {
         resetTimes,
         closeTimeLoop,
         activeCutscene,
-        classes: "nigredo",
+        classes: { nigredo: true },
         display: jsx(() =>
             activeCutscene.value ? (
                 <Cutscene
