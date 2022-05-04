@@ -14,6 +14,7 @@ import Cutscene from "./Cutscene.vue";
 import distill from "./distill/distill";
 import flowers from "./flowers/flowers";
 import study from "./study/study";
+import experiments from "./experiments/experiments";
 
 interface Cutscene {
     pages: CutscenePage[];
@@ -33,7 +34,7 @@ const id = "main";
 export const main = createLayer(id, () => {
     const chapter = persistent<number>(0);
 
-    const jobs = [flowers.job, distill.job, study.job];
+    const jobs = [flowers.job, distill.job, study.job, experiments.job];
 
     const timeSlots = computed(() => {
         let slots = 0;
@@ -268,6 +269,10 @@ export const getInitialLayers = (
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((player.layers?.distill as any).milestones.studyMilestone.earned.value) {
             layers.push(study);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((player.layers?.distill as any).milestones.experimentsMilestone.earned.value) {
+            layers.push(experiments);
         }
         return layers;
     }
