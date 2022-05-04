@@ -71,7 +71,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const name = "Harvesting Flowers";
     const color = "#F1EBD9";
 
-    const flowers = createResource<DecimalSource>(0, "flowers");
+    const flowers = createResource<DecimalSource>(0, "moly");
 
     const job = createJob(name, () => ({
         color,

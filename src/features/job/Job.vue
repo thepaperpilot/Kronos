@@ -45,7 +45,7 @@
                 }"
                 :disabled="!hasTimeSlotAvailable && !unref(timeLoopActive)"
             >
-                loop
+                all_inclusive
             </button>
         </Tooltip>
         <Node :id="id" />
@@ -259,17 +259,20 @@ export default defineComponent({
 
 .job-loop-toggle button {
     color: var(--background);
-    font-weight: bolder;
-    background: none;
     border: none;
+    padding: 0;
+    margin: 10px;
+    background: var(--foreground);
+    border-radius: 50%;
 }
 
 .job-loop-toggle button.active {
     color: var(--link);
+    box-shadow: 0 0 8px 4px var(--link);
 }
 
 .job-loop-toggle button:not([disabled]):hover {
-    text-shadow: 0 0 12px var(--points) !important;
+    box-shadow: 0 0 12px var(--points);
     cursor: pointer;
 }
 

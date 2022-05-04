@@ -7,3 +7,8 @@
 .modifier-toggle.collapsed {
     transform: translate(-5px, -5px) rotate(-90deg);
 }
+
+.nigredo {
+    background: black;
+    --background: black;
+}

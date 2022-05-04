@@ -176,7 +176,7 @@ export const main = createLayer(id, () => {
         if (chapter.value === 1) {
             return (
                 <h2>
-                    Current Goal: Harvest all the flowers
+                    Current Goal: Harvest all the moly
                     <br />({formatWhole(
                         Decimal.sub(10000000, flowers.flowers.value).clampMin(0)
                     )}{" "}
@@ -197,6 +197,7 @@ export const main = createLayer(id, () => {
         resetTimes,
         closeTimeLoop,
         activeCutscene,
+        classes: "nigredo",
         display: jsx(() =>
             activeCutscene.value ? (
                 <Cutscene
