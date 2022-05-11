@@ -222,10 +222,10 @@ export const main = createLayer(id, () => {
                 <>
                     {player.devSpeed === 0 ? <div>Game Paused</div> : null}
                     {player.devSpeed && player.devSpeed !== 1 ? (
-                        <div>Dev Speed: {format(player.devSpeed || 0)}x</div>
+                        <div>Dev Speed: {format(player.devSpeed)}x</div>
                     ) : null}
-                    {player.offlineTime != undefined ? (
-                        <div>Offline Time: {formatTime(player.offlineTime || 0)}</div>
+                    {player.offlineTime ? (
+                        <div>Offline Time: {formatTime(player.offlineTime)}</div>
                     ) : null}
                     {player.devSpeed != null ||
                     player.offlineTime != null ||
