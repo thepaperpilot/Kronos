@@ -1,0 +1,18 @@
+.element-display {
+    flex-direction: column;
+    z-index: 2;
+}
+
+.element-logo {
+    font-size: 5em;
+    text-shadow: 0 0 4px white;
+    margin: 0px 20px !important;
+    cursor: default;
+    user-select: none;
+    line-height: 1em;
+    transform: translateY(-.05em);
+}
+
+.element-amount {
+    font-size: 1.5em;
+}

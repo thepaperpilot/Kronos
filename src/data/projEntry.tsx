@@ -186,7 +186,7 @@ export const main = createLayer(id, () => {
                 </h2>
             );
         } else if (chapter.value == 2) {
-            return <h2>Current Goal: Perform Ritual of Genesis</h2>;
+            return <h2>Current Goal: Perform Ritual of Génesis</h2>;
         }
         return <></>;
     });

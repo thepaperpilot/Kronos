@@ -5,27 +5,60 @@
 
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
+import Node from "components/Node.vue";
 import { createCollapsibleModifierSections } from "data/common";
 import { main } from "data/projEntry";
 import { jsx, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
+import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
 import { createTabFamily } from "features/tabs/tabFamily";
+import Tooltip from "features/tooltips/Tooltip.vue";
 import { addLayer, BaseLayer, createLayer } from "game/layers";
 import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
-import Decimal, { DecimalSource } from "util/bignum";
-import { getFirstFeature, renderColJSX, renderJSX } from "util/vue";
-import { computed, ComputedRef } from "vue";
+import Decimal, { DecimalSource, formatWhole } from "util/bignum";
+import { getFirstFeature, render, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
+import { computed, ComputedRef, nextTick, ref, unref, watch } from "vue";
 import experiments from "../experiments/experiments";
 import globalQuips from "../quips.json";
 import study from "../study/study";
+import "./distill.css";
 import alwaysQuips from "./quips.json";
+import elementParticles from "./elementParticles.json";
+import { camelToTitle } from "util/common";
+import { EmitterConfigV3 } from "@pixi/particle-emitter";
+import { Computable, convertComputable } from "util/computed";
 
 const isPastChapter1: ComputedRef<Visibility> = computed(() => showIf(main.chapter.value > 1));
+
+function getElementParticlesConfig(startColor: string, endColor: string) {
+    return Object.assign({}, elementParticles, {
+        behaviors: [
+            ...elementParticles.behaviors,
+            {
+                type: "color",
+                config: {
+                    color: {
+                        list: [
+                            {
+                                time: 0,
+                                value: startColor
+                            },
+                            {
+                                time: 1,
+                                value: endColor
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    });
+}
 
 const id = "distill";
 const layer = createLayer(id, function (this: BaseLayer) {
@@ -50,25 +83,25 @@ const layer = createLayer(id, function (this: BaseLayer) {
         visibility: isPastChapter1
     }));
 
-    const spellExpMilestone = createMilestone(() => ({
+    const waterMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
             requirement: "Achieve Distilling Flowers Level 2",
-            effectDisplay: "???"
+            effectDisplay: "Unlock Water"
         }
     }));
-    const flowerSpellMilestone = createMilestone(() => ({
+    const principlesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
             requirement: "Achieve Distilling Flowers Level 4",
-            effectDisplay: "???"
+            effectDisplay: "Unlock Principles"
         },
         visibility() {
-            return showIf(spellExpMilestone.earned.value);
+            return showIf(waterMilestone.earned.value);
         }
     }));
     const studyMilestone = createMilestone(() => ({
@@ -80,34 +113,34 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: 'Unlock "Study Flowers" Job'
         },
         visibility() {
-            return showIf(flowerSpellMilestone.earned.value);
+            return showIf(principlesMilestone.earned.value);
         },
         onComplete() {
             addLayer(study, player);
         }
     }));
-    const chargeSpellMilestone = createMilestone(() => ({
+    const airMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
             requirement: "Achieve Distilling Flowers Level 6",
-            effectDisplay: "???"
+            effectDisplay: "Unlock Air"
         },
         visibility() {
             return showIf(studyMilestone.earned.value);
         }
     }));
-    const expSpellMilestone = createMilestone(() => ({
+    const fireMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
             requirement: "Achieve Distilling Flowers Level 8",
-            effectDisplay: "???"
+            effectDisplay: "Unlock Fire"
         },
         visibility() {
-            return showIf(chargeSpellMilestone.earned.value);
+            return showIf(airMilestone.earned.value);
         }
     }));
     const experimentsMilestone = createMilestone(() => ({
@@ -119,27 +152,27 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: `Unlock "Experiment" Job`
         },
         visibility() {
-            return showIf(expSpellMilestone.earned.value);
+            return showIf(fireMilestone.earned.value);
         },
         onComplete() {
             addLayer(experiments, player);
         }
     }));
     const milestones = {
-        spellExpMilestone,
-        flowerSpellMilestone,
+        waterMilestone,
+        principlesMilestone,
         studyMilestone,
-        chargeSpellMilestone,
-        expSpellMilestone,
+        airMilestone,
+        fireMilestone,
         experimentsMilestone
     };
     const orderedMilestones = [
         experimentsMilestone,
-        expSpellMilestone,
-        chargeSpellMilestone,
+        fireMilestone,
+        airMilestone,
         studyMilestone,
-        flowerSpellMilestone,
-        spellExpMilestone
+        principlesMilestone,
+        waterMilestone
     ];
     const collapseMilestones = persistent<boolean>(true);
     const lockedMilestones = computed(() =>
@@ -149,6 +182,125 @@ const layer = createLayer(id, function (this: BaseLayer) {
         orderedMilestones,
         m => m.earned.value
     );
+
+    const particles = createParticles(() => ({
+        fullscreen: false,
+        zIndex: -1,
+        boundingRect: ref<DOMRect | undefined>(undefined),
+        onContainerResized(boundingRect) {
+            this.boundingRect.value = boundingRect;
+        },
+        onHotReload() {
+            Object.values(elements).forEach(element => element.refreshParticleEffect());
+        }
+    }));
+
+    function createElement(
+        name: string,
+        symbol: string,
+        gain: ComputedRef<DecimalSource>,
+        color: string,
+        particlesConfig: EmitterConfigV3,
+        visible: Computable<boolean> = true
+    ) {
+        const processedVisible = convertComputable(visible);
+        const amount = createResource(0, name + " essence");
+        const display = jsx(() =>
+            unref(processedVisible) ? (
+                <div class="element-display" style={"color: " + color}>
+                    <Tooltip display={camelToTitle(name)}>
+                        <div class="element-logo">
+                            {symbol}
+                            <Node id={name} />
+                        </div>
+                    </Tooltip>
+                    <div class="element-amount">{formatWhole(amount.value)}</div>
+                </div>
+            ) : (
+                ""
+            )
+        );
+        const particlesEmitter = ref(particles.addEmitter(particlesConfig));
+        const updateParticleEffect = async ([isGaining, rect, boundingRect]: [
+            boolean,
+            DOMRect | undefined,
+            DOMRect | undefined
+        ]) => {
+            const particle = await particlesEmitter.value;
+            particle.emit = isGaining;
+            if (isGaining && rect && boundingRect) {
+                particle.cleanup();
+                particle.updateOwnerPos(
+                    rect.x + rect.width / 2 - boundingRect.x,
+                    rect.y + rect.height / 2 - boundingRect.y
+                );
+                particle.resetPositionTracking();
+            }
+        };
+        const refreshParticleEffect = () => {
+            particlesEmitter.value.then(e => e.destroy());
+            particlesEmitter.value = particles.addEmitter(particlesConfig);
+            updateParticleEffect([
+                Decimal.gt(gain.value, 0),
+                layer.nodes.value[name]?.rect,
+                particles.boundingRect.value
+            ]);
+        };
+
+        nextTick(() =>
+            watch(
+                () =>
+                    [
+                        Decimal.gt(gain.value, 0),
+                        layer.nodes.value[name]?.rect,
+                        particles.boundingRect.value
+                    ] as [boolean, DOMRect | undefined, DOMRect | undefined],
+                updateParticleEffect,
+                { immediate: true }
+            )
+        );
+
+        return {
+            amount,
+            gain,
+            display,
+            particlesEmitter,
+            refreshParticleEffect
+        };
+    }
+
+    const earth = createElement(
+        "earth",
+        "🜃",
+        computed(() => 1),
+        "green",
+        getElementParticlesConfig("#B6FF0D", "#59E80C")
+    );
+    const water = createElement(
+        "water",
+        "🜄",
+        computed(() => 1),
+        "blue",
+        getElementParticlesConfig("#0D8CFF", "#0C46E8"),
+        waterMilestone.earned
+    );
+    const air = createElement(
+        "air",
+        "🜁",
+        computed(() => 1),
+        "yellow",
+        getElementParticlesConfig("#FFCE0D", "#E8D20C"),
+        airMilestone.earned
+    );
+    const fire = createElement(
+        "fire",
+        "🜂",
+        computed(() => 1),
+        "red",
+        getElementParticlesConfig("#FF530D", "#E82C0C"),
+        fireMilestone.earned
+    );
+    const elements = { earth, water, air, fire };
 
     const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(1.1, job.level.value)
@@ -197,6 +349,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         color,
         minWidth: 670,
         essentia,
+        earth,
+        water,
+        air,
+        fire,
         job,
         modifiers,
         milestones,
@@ -225,7 +381,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             />
                         ))
                     )}
+                    {renderRowJSX(earth.display, water.display, air.display, fire.display)}
                     <Spacer />
+                    {render(particles)}
                 </>
             );
         })
