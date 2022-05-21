@@ -16,3 +16,62 @@
 .element-amount {
     font-size: 1.5em;
 }
+
+.instrument {
+    width: 600px;
+    height: 140px;
+    box-sizing: border-box;
+    margin: var(--feature-margin);
+    padding: 10px;
+    border-radius: 10px;
+    border: 2px solid var(--layer-color);
+    position: relative;
+    display: flex;
+    flex-flow: column;
+    color: var(--foreground);
+    text-shadow: 1px 1px 2px black;
+}
+
+.instrument::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background-color: var(--layer-color);
+    opacity: var(--progress);
+    z-index: -1;
+    border-radius: inherit;
+}
+
+.instrument-logo {
+    width: 150px;
+    margin-right: 10px;
+    display: inline-block;
+    font-size: 5em;
+    transform: translateY(-0.05em) scale(1.5);
+}
+
+.instrument-details {
+    flex-grow: 1;
+    display: inline-block;
+    text-align: left;
+}
+
+.instrument .field {
+    margin: 0;
+    margin-bottom: -0.5em;
+}
+
+.instrument input[type="range"] {
+    width: 100%;
+}
+
+.instrument.principled {
+    width: calc(480px - 2 * var(--feature-margin));
+}
+
+.instrument + .feature {
+    min-height: 140px;
+}

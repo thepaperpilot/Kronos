@@ -25,7 +25,7 @@ import alwaysQuips from "./quips.json";
 
 const id = "study";
 const layer = createLayer(id, function (this: BaseLayer) {
-    const name = "Study Flowers";
+    const name = "Studying";
     const color = "#9b6734";
 
     const properties = createResource<DecimalSource>(0, "properties");
@@ -52,7 +52,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Study Flowers Level 2",
+            requirement: "Achieve Studying Level 2",
             effectDisplay: "???"
         }
     }));
@@ -61,7 +61,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Study Flowers Level 4",
+            requirement: "Achieve Studying Level 4",
             effectDisplay: "???"
         },
         visibility() {
@@ -73,7 +73,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Study Flowers Level 6",
+            requirement: "Achieve Studying Level 6",
             effectDisplay: "???"
         },
         visibility() {
@@ -85,7 +85,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Study Flowers Level 8",
+            requirement: "Achieve Studying Level 8",
             effectDisplay: "???"
         },
         visibility() {
@@ -118,7 +118,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const jobXpGain = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Study Flowers level (x1.1 each)")
+        createMultiplicativeModifier(jobLevelEffect, "Studying level (x1.1 each)")
     );
 
     const modifiers = {
@@ -127,7 +127,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
         {
-            title: "Study Flowers EXP Gain",
+            title: "Studying EXP Gain",
             modifier: jobXpGain,
             base: 0,
             unit: "/sec"

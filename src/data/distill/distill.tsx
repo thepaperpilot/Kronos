@@ -3,35 +3,64 @@
  * @hidden
  */
 
+import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
+import Slider from "components/fields/Slider.vue";
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
 import Node from "components/Node.vue";
 import { createCollapsibleModifierSections } from "data/common";
+import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
-import { jsx, showIf, Visibility } from "features/feature";
+import { createBuyable, GenericBuyable } from "features/buyable";
+import { jsx, JSXFunction, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
-import { createResource } from "features/resources/resource";
+import { createResource, displayResource, Resource } from "features/resources/resource";
 import { createTabFamily } from "features/tabs/tabFamily";
 import Tooltip from "features/tooltips/Tooltip.vue";
 import { addLayer, BaseLayer, createLayer } from "game/layers";
-import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
-import { persistent } from "game/persistence";
+import {
+    createAdditiveModifier,
+    createMultiplicativeModifier,
+    createSequentialModifier,
+    Modifier
+} from "game/modifiers";
+import { Persistent, persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource, formatWhole } from "util/bignum";
+import { camelToTitle, WithRequired } from "util/common";
+import { Computable, convertComputable, ProcessedComputable } from "util/computed";
 import { getFirstFeature, render, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
-import { computed, ComputedRef, nextTick, ref, unref, watch } from "vue";
+import { computed, ComputedRef, nextTick, Ref, ref, unref, watch } from "vue";
 import experiments from "../experiments/experiments";
 import globalQuips from "../quips.json";
 import study from "../study/study";
 import "./distill.css";
-import alwaysQuips from "./quips.json";
 import elementParticles from "./elementParticles.json";
-import { camelToTitle } from "util/common";
-import { EmitterConfigV3 } from "@pixi/particle-emitter";
-import { Computable, convertComputable } from "util/computed";
+import alwaysQuips from "./quips.json";
+
+export interface Element {
+    name: string;
+    symbol: string;
+    color: string;
+    resource: Resource;
+    conversionAmount: Persistent<number>;
+    inefficiency: WithRequired<Modifier, "revert" | "description">;
+    computedInefficiency: Ref<DecimalSource>;
+    cost: WithRequired<Modifier, "revert" | "description">;
+    computedCost: Ref<DecimalSource>;
+    gain: WithRequired<Modifier, "revert" | "description">;
+    computedGain: Ref<DecimalSource>;
+    tab: JSXFunction;
+    tabCollapsed: Persistent<boolean>[];
+    display: JSXFunction;
+    visible: ProcessedComputable<boolean>;
+    principleClickable: GenericBuyable | null;
+    particlesEmitter: Ref<Promise<Emitter>>;
+    refreshParticleEffect: VoidFunction;
+}
 
 const isPastChapter1: ComputedRef<Visibility> = computed(() => showIf(main.chapter.value > 1));
 
@@ -62,7 +91,7 @@ function getElementParticlesConfig(startColor: string, endColor: string) {
 
 const id = "distill";
 const layer = createLayer(id, function (this: BaseLayer) {
-    const name = "Distill Flowers";
+    const name = "Purifying Flowers";
     const color = "#8AFFC1";
 
     const essentia = createResource<DecimalSource>(0, "essentia");
@@ -88,7 +117,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 2",
+            requirement: "Achieve Purifying Flowers Level 2",
             effectDisplay: "Unlock Water"
         }
     }));
@@ -97,7 +126,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 4",
+            requirement: "Achieve Purifying Flowers Level 4",
             effectDisplay: "Unlock Principles"
         },
         visibility() {
@@ -109,8 +138,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 5);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 5",
-            effectDisplay: 'Unlock "Study Flowers" Job'
+            requirement: "Achieve Purifying Flowers Level 5",
+            effectDisplay: 'Unlock "Studying" Job'
         },
         visibility() {
             return showIf(principlesMilestone.earned.value);
@@ -124,7 +153,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 6",
+            requirement: "Achieve Purifying Flowers Level 6",
             effectDisplay: "Unlock Air"
         },
         visibility() {
@@ -136,7 +165,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 8",
+            requirement: "Achieve Purifying Flowers Level 8",
             effectDisplay: "Unlock Fire"
         },
         visibility() {
@@ -148,8 +177,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 10);
         },
         display: {
-            requirement: "Achieve Distilling Flowers Level 10",
-            effectDisplay: `Unlock "Experiment" Job`
+            requirement: "Achieve Purifying Flowers Level 10",
+            effectDisplay: `Unlock "Experimenting" Job`
         },
         visibility() {
             return showIf(fireMilestone.earned.value);
@@ -198,13 +227,86 @@ const layer = createLayer(id, function (this: BaseLayer) {
     function createElement(
         name: string,
         symbol: string,
-        gain: ComputedRef<DecimalSource>,
         color: string,
         particlesConfig: EmitterConfigV3,
+        principle = "",
         visible: Computable<boolean> = true
     ) {
         const processedVisible = convertComputable(visible);
-        const amount = createResource(0, name + " essence");
+        const resource = createResource<DecimalSource>(0, name + " essence");
+        const conversionAmount = persistent<number>(0);
+        let principleClickable: GenericBuyable | null = null;
+        if (principle) {
+            principleClickable = createBuyable(() => ({
+                display: {
+                    description: `Prepare ${principle} to make the conversion more efficient`
+                },
+                visibility: () => showIf(principlesMilestone.earned.value),
+                resource,
+                purchaseLimit: 8,
+                cost() {
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    return Decimal.times(10, Decimal.pow(10, principleClickable!.amount.value));
+                }
+            }));
+        }
+        const inefficiency = createSequentialModifier(
+            createAdditiveModifier(
+                () => (principleClickable ? Decimal.neg(principleClickable.amount.value) : 0),
+                camelToTitle(principle),
+                !!principle
+            )
+        );
+        const computedInefficiency = computed(() => inefficiency.apply(10));
+        const cost = createSequentialModifier();
+        const computedCost = computed(() =>
+            cost.apply(
+                Decimal.times(flowers.flowers.value, conversionAmount.value).div(100).floor()
+            )
+        );
+        const gain = createSequentialModifier(
+            createMultiplicativeModifier(() => Decimal.div(conversionAmount.value, 100))
+        );
+        const computedGain = computed(() =>
+            gain.apply(
+                Decimal.gt(computedCost.value, 0)
+                    ? Decimal.div(computedCost.value, 100).ceil().log(computedInefficiency.value)
+                    : 0
+            )
+        );
+        const [tab, tabCollapsed] = createCollapsibleModifierSections([
+            {
+                title: `${camelToTitle(name)} Conversion Inefficiency`,
+                modifier: inefficiency,
+                base: 10
+            },
+            {
+                title: "Flowers Loss",
+                modifier: cost,
+                base: () =>
+                    Decimal.times(flowers.flowers.value, conversionAmount.value).div(100).floor(),
+                baseText: jsx(() => <>Base (⌊flowers x conversion amount⌋)</>),
+                unit: "/sec"
+            },
+            {
+                title: `${camelToTitle(name)} Essence Gain`,
+                subtitle: "When cost is non-zero",
+                modifier: gain,
+                base: () =>
+                    Decimal.gt(computedCost.value, 0)
+                        ? Decimal.div(computedCost.value, 100)
+                              .ceil()
+                              .log(computedInefficiency.value)
+                        : 0,
+                baseText: jsx(() => (
+                    <>
+                        Base (log<sub>inefficiency</sub>(flowers loss))
+                    </>
+                )),
+                unit: "/sec"
+            }
+        ]);
+
         const display = jsx(() =>
             unref(processedVisible) ? (
                 <div class="element-display" style={"color: " + color}>
@@ -214,7 +316,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             <Node id={name} />
                         </div>
                     </Tooltip>
-                    <div class="element-amount">{formatWhole(amount.value)}</div>
+                    <div class="element-amount">{formatWhole(resource.value)}</div>
                 </div>
             ) : (
                 ""
@@ -241,7 +343,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             particlesEmitter.value.then(e => e.destroy());
             particlesEmitter.value = particles.addEmitter(particlesConfig);
             updateParticleEffect([
-                Decimal.gt(gain.value, 0),
+                Decimal.gt(computedGain.value, 0),
                 layer.nodes.value[name]?.rect,
                 particles.boundingRect.value
             ]);
@@ -249,21 +351,34 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
         nextTick(() =>
             watch(
-                () =>
-                    [
-                        Decimal.gt(gain.value, 0),
-                        layer.nodes.value[name]?.rect,
-                        particles.boundingRect.value
-                    ] as [boolean, DOMRect | undefined, DOMRect | undefined],
+                [
+                    () => Decimal.gt(computedGain.value, 0),
+
+                    () => layer.nodes.value[name]?.rect,
+                    particles.boundingRect
+                ],
                 updateParticleEffect,
                 { immediate: true }
             )
         );
 
         return {
-            amount,
+            name,
+            symbol,
+            color,
+            resource,
+            conversionAmount,
+            inefficiency,
+            computedInefficiency,
+            cost,
+            computedCost,
             gain,
+            computedGain,
+            tab,
+            tabCollapsed,
             display,
+            visible: processedVisible,
+            principleClickable,
             particlesEmitter,
             refreshParticleEffect
         };
@@ -272,92 +387,175 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const earth = createElement(
         "earth",
         "🜃",
-        computed(() => 1),
         "green",
         getElementParticlesConfig("#B6FF0D", "#59E80C")
     );
     const water = createElement(
         "water",
         "🜄",
-        computed(() => 1),
         "blue",
         getElementParticlesConfig("#0D8CFF", "#0C46E8"),
+        "salt",
         waterMilestone.earned
     );
     const air = createElement(
         "air",
         "🜁",
-        computed(() => 1),
         "yellow",
         getElementParticlesConfig("#FFCE0D", "#E8D20C"),
+        "mercury",
         airMilestone.earned
     );
     const fire = createElement(
         "fire",
         "🜂",
-        computed(() => 1),
         "red",
         getElementParticlesConfig("#FF530D", "#E82C0C"),
+        "sulfur",
         fireMilestone.earned
     );
     const elements = { earth, water, air, fire };
 
-    const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
-        Decimal.pow(1.1, job.level.value)
+    function createInstrument(element: Element, name: string, symbol: string) {
+        const display = jsx(() =>
+            unref(element.visible) ? (
+                <div>
+                    <div
+                        class={{
+                            instrument: true,
+                            principled:
+                                element.principleClickable &&
+                                unref(element.principleClickable.visibility) == Visibility.Visible
+                        }}
+                        style={`--progress: ${
+                            element.conversionAmount.value / 100
+                        }; --foreground: ${element.color}`}
+                    >
+                        <div style="width: 100%; display: flex">
+                            <span class="instrument-logo">{symbol}</span>
+                            <span class="instrument-details">
+                                <div>{camelToTitle(name)}</div>
+                                <div>
+                                    -{displayResource(flowers.flowers, element.computedCost.value)}{" "}
+                                    {flowers.flowers.displayName}/sec
+                                </div>
+                                <div>
+                                    +{displayResource(element.resource, element.computedGain.value)}{" "}
+                                    {element.resource.displayName}/sec
+                                </div>
+                                <Slider
+                                    max={Object.values(instruments)
+                                        .filter(i => i.name !== name)
+                                        .reduce(
+                                            (acc, curr) =>
+                                                acc - curr.element.conversionAmount.value,
+                                            100
+                                        )}
+                                    modelValue={element.conversionAmount.value}
+                                    onUpdate:modelValue={v => (element.conversionAmount.value = v)}
+                                />
+                            </span>
+                        </div>
+                    </div>
+                    {element.principleClickable ? renderJSX(element.principleClickable) : null}
+                </div>
+            ) : (
+                ""
+            )
+        );
+
+        return {
+            name,
+            symbol,
+            element,
+            display
+        };
+    }
+
+    const alembic = createInstrument(earth, "alembic", "🝪");
+    const retort = createInstrument(water, "retort", "🝭");
+    const crucible = createInstrument(air, "crucible", "🝧");
+    const bainMarie = createInstrument(fire, "bainMarie", "🝫");
+    const instruments = { retort, alembic, crucible, bainMarie };
+
+    const jobXp = createSequentialModifier(
+        createMultiplicativeModifier(() => Decimal.max(1, earth.resource.value), "Earth Essence"),
+        createMultiplicativeModifier(() => Decimal.max(1, water.resource.value), "Water Essence"),
+        createMultiplicativeModifier(() => Decimal.max(1, air.resource.value), "Air Essence"),
+        createMultiplicativeModifier(() => Decimal.max(1, fire.resource.value), "Fire Essence")
     );
 
-    const jobXpGain = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Distilling Flowers level (x1.1 each)")
+    const totalFlowerLoss = createSequentialModifier(
+        createAdditiveModifier(() => earth.computedCost.value, "Alembic"),
+        createAdditiveModifier(() => water.computedCost.value, "Retort"),
+        createAdditiveModifier(() => air.computedCost.value, "Crucible"),
+        createAdditiveModifier(() => fire.computedCost.value, "Bain-Marie")
     );
-
-    const modifiers = {
-        jobXpGain
-    };
 
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
         {
-            title: "Distilling Flowers EXP Gain",
-            modifier: jobXpGain,
+            title: "Essentia",
+            subtitle: "Also Purifying Flowers EXP Amount",
+            modifier: jobXp,
+            base: 1
+        },
+        {
+            title: "Flowers Loss",
+            modifier: totalFlowerLoss,
             base: 0,
             unit: "/sec"
         }
     ]);
-    const modifierTabs = createTabFamily(
-        {
-            general: () => ({
-                display: "General",
-                glowColor(): string {
-                    return modifierTabs.activeTab.value === this.tab ? color : "";
-                },
-                tab: generalTab,
-                generalTabCollapsed
-            })
-        },
-        () => ({
-            style: `--layer-color: ${color}`
-        })
-    );
+    const modifierTabs = createTabFamily({
+        general: () => ({
+            display: "General",
+            glowColor(): string {
+                return modifierTabs.activeTab.value === this.tab ? color : "";
+            },
+            tab: generalTab,
+            generalTabCollapsed
+        }),
+        ...Object.entries(elements).reduce((acc, [id, element]) => {
+            return {
+                ...acc,
+                [id]: () => ({
+                    display: camelToTitle(element.name),
+                    glowColor(): string {
+                        return modifierTabs.activeTab.value === this.tab ? color : "";
+                    },
+                    tab: element.tab,
+                    tabCollapsed: element.tabCollapsed
+                })
+            };
+        }, {})
+    });
 
     this.on("preUpdate", diff => {
+        job.xp.value = essentia.value = Object.values(elements).reduce(
+            (acc, curr) => acc.times(Decimal.max(1, curr.resource.value)),
+            new Decimal(1)
+        );
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
 
-        job.xp.value = Decimal.add(job.xp.value, Decimal.times(jobXpGain.apply(0), diff));
+        const spentFlowers = totalFlowerLoss.apply(0);
+        Object.values(elements).forEach(element => {
+            element.resource.value = Decimal.add(
+                element.resource.value,
+                Decimal.times(element.computedGain.value, diff)
+            );
+        });
+        flowers.flowers.value = Decimal.sub(flowers.flowers.value, spentFlowers).max(0);
     });
 
     return {
         name,
         color,
         minWidth: 670,
-        essentia,
-        earth,
-        water,
-        air,
-        fire,
+        elements,
+        instruments,
         job,
-        modifiers,
         milestones,
         collapseMilestones,
-        modifierTabs,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
             if (firstMilestone.value) {
@@ -383,6 +581,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     )}
                     {renderRowJSX(earth.display, water.display, air.display, fire.display)}
                     <Spacer />
+                    {renderRowJSX(
+                        alembic.display,
+                        retort.display,
+                        crucible.display,
+                        bainMarie.display
+                    )}
                     {render(particles)}
                 </>
             );

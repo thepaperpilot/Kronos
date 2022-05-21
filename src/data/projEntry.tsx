@@ -161,6 +161,16 @@ export const main = createLayer(id, () => {
                         )),
                         caption:
                             "I can wrap this field in a time loop and reset it whenever the field is empty. If I take the flowers out of the loop before hand I will have a perfectly sustainable source of moly."
+                    },
+                    {
+                        stage: jsx(() => (
+                            <img
+                                style="max-width: 100%; flex-grow: 1"
+                                src="https://dummyimage.com/720x320/000/fff.png"
+                            />
+                        )),
+                        caption:
+                            "Now my focus will be transforming the flowers, and determining how best to utilize their power. I'll start by distilling the flowers into their component elements."
                     }
                 ],
                 page: 0,

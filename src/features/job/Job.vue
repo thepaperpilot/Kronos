@@ -28,7 +28,12 @@
                 <h2>{{ name }}</h2>
                 <span style="margin-bottom: 2px">Lv. {{ formatWhole(level.value) }}</span>
                 <span style="flex-grow: 1" />
-                <ModifierInfo :display="modifierInfo" :name="name" v-bind="modifierModalAttrs" />
+                <ModifierInfo
+                    v-if="modifierInfo"
+                    :display="modifierInfo"
+                    :name="name"
+                    v-bind="modifierModalAttrs"
+                />
             </div>
         </div>
         <div v-if="selected && unref(currentQuip)" class="job-quip">"{{ unref(currentQuip) }}"</div>
@@ -132,10 +137,7 @@ export default defineComponent({
             type: processedPropType<string[]>(Array),
             required: true
         },
-        modifierInfo: {
-            type: processedPropType<CoercableComponent>(String, Object, Function),
-            required: true
-        },
+        modifierInfo: processedPropType<CoercableComponent>(String, Object, Function),
         id: {
             type: String,
             required: true

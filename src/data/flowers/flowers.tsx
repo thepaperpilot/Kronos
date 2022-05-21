@@ -1039,13 +1039,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
             unit: "/sec"
         },
         {
-            title: "Harvesting Flowers EXP Gain",
-            subtitle: "When Téchnasma is active",
-            modifier: jobXpGain,
-            base: 0,
-            unit: "/sec"
-        },
-        {
             title: "Flowers Gain",
             subtitle: "When Therizó is active",
             modifier: flowerGain,
@@ -1227,7 +1220,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })
     );
 
-    this.on("preUpdate", diff => {
+    this.on("update", diff => {
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
 
         if (xpSpell.active.value) {

@@ -25,7 +25,7 @@ import alwaysQuips from "./quips.json";
 
 const id = "experiments";
 const layer = createLayer(id, function (this: BaseLayer) {
-    const name = "Experiment";
+    const name = "Experimenting";
     const color = "#C2B280";
 
     const potentia = createResource<DecimalSource>(0, "potentia");
@@ -51,7 +51,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Experiment Level 2",
+            requirement: "Achieve Experimenting Level 2",
             effectDisplay: "???"
         }
     }));
@@ -60,7 +60,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Experiment Level 4",
+            requirement: "Achieve Experimenting Level 4",
             effectDisplay: "???"
         },
         visibility() {
@@ -72,7 +72,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Experiment Level 6",
+            requirement: "Achieve Experimenting Level 6",
             effectDisplay: "???"
         },
         visibility() {
@@ -84,7 +84,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Experiment Level 8",
+            requirement: "Achieve Experimenting Level 8",
             effectDisplay: "???"
         },
         visibility() {

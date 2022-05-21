@@ -44,7 +44,7 @@ export interface JobOptions {
     resource?: Resource | Resource[];
     randomQuips?: Computable<string[]>;
     layerID: string;
-    modifierInfo: Computable<CoercableComponent>;
+    modifierInfo?: Computable<CoercableComponent>;
     modifierModalAttrs?: Record<string, unknown>;
 }
 
