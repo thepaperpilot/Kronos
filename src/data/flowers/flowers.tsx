@@ -171,7 +171,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const lockedMilestones = computed(() =>
         orderedMilestones.filter(m => m.earned.value === false)
     );
-    const { firstFeature: firstMilestone, hiddenFeatures: otherMilestones } = getFirstFeature(
+    const { firstFeature, collapsedContent, hasCollapsedContent } = getFirstFeature(
         orderedMilestones,
         m => m.earned.value
     );
@@ -1322,8 +1322,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
         modifierTabs,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
-            if (firstMilestone.value) {
-                milestonesToDisplay.push(firstMilestone.value);
+            if (firstFeature.value) {
+                milestonesToDisplay.push(firstFeature.value);
             }
             return (
                 <>
@@ -1340,13 +1340,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         jsx(() => (
                             <Collapsible
                                 collapsed={collapseMilestones}
-                                content={jsx(() => renderColJSX(...otherMilestones.value))}
+                                content={collapsedContent}
                                 display={
                                     collapseMilestones.value
                                         ? "Show other completed milestones"
                                         : "Hide other completed milestones"
                                 }
-                                v-show={otherMilestones.value.length > 0}
+                                v-show={unref(hasCollapsedContent)}
                             />
                         ))
                     )}
