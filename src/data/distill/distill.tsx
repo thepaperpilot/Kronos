@@ -8,7 +8,7 @@ import Slider from "components/fields/Slider.vue";
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
 import Node from "components/Node.vue";
-import { createCollapsibleModifierSections } from "data/common";
+import { createCollapsibleModifierSections, Section } from "data/common";
 import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
 import { createBuyable, GenericBuyable } from "features/buyable";
@@ -47,12 +47,10 @@ export interface Element {
     color: string;
     resource: Resource;
     conversionAmount: Persistent<number>;
-    inefficiency: WithRequired<Modifier, "revert" | "description">;
-    computedInefficiency: Ref<DecimalSource>;
     cost: WithRequired<Modifier, "revert" | "description">;
     computedCost: Ref<DecimalSource>;
     gain: WithRequired<Modifier, "revert" | "description">;
-    computedGain: Ref<DecimalSource>;
+    actualGain: Ref<DecimalSource>;
     tab: JSXFunction;
     tabCollapsed: Persistent<boolean>[];
     display: JSXFunction;
@@ -224,40 +222,46 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
 
+    const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
+        Decimal.pow(1.1, job.level.value)
+    );
+
     function createElement(
         name: string,
         symbol: string,
         color: string,
         particlesConfig: EmitterConfigV3,
         principle = "",
+        prevElement: Element | null = null,
         visible: Computable<boolean> = true
     ) {
         const processedVisible = convertComputable(visible);
-        const resource = createResource<DecimalSource>(0, name + " essence");
+        const resource = createResource<DecimalSource>(0, name + " essence", 2);
         const conversionAmount = persistent<number>(0);
         let principleClickable: GenericBuyable | null = null;
         if (principle) {
             principleClickable = createBuyable(() => ({
-                display: {
-                    description: `Prepare ${principle} to make the conversion more efficient`
-                },
+                display: jsx(() => (
+                    <div>
+                        Prepare {principle} to gain a portion of {name} whenever the above
+                        instrument is active
+                        {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                        <br />({formatWhole(passiveEssenceGain.apply(0))}%)
+                        <br />
+                        <br />
+                        {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                        Cost: {displayResource(resource, unref(principleClickable!.cost))}{" "}
+                        {resource.displayName}
+                    </div>
+                )),
                 visibility: () => showIf(principlesMilestone.earned.value),
                 resource,
-                purchaseLimit: 8,
                 cost() {
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    return Decimal.times(10, Decimal.pow(10, principleClickable!.amount.value));
+                    return Decimal.pow(10, principleClickable!.amount.value);
                 }
             }));
         }
-        const inefficiency = createSequentialModifier(
-            createAdditiveModifier(
-                () => (principleClickable ? Decimal.neg(principleClickable.amount.value) : 0),
-                camelToTitle(principle),
-                !!principle
-            )
-        );
-        const computedInefficiency = computed(() => inefficiency.apply(10));
         const cost = createSequentialModifier();
         const computedCost = computed(() =>
             cost.apply(
@@ -265,21 +269,28 @@ const layer = createLayer(id, function (this: BaseLayer) {
             )
         );
         const gain = createSequentialModifier(
-            createMultiplicativeModifier(() => Decimal.div(conversionAmount.value, 100))
+            createMultiplicativeModifier(() => Decimal.div(conversionAmount.value, 100)),
+            createMultiplicativeModifier(jobLevelEffect, "Purifying Flowers level (x1.1 each)")
         );
-        const computedGain = computed(() =>
-            gain.apply(
-                Decimal.gt(computedCost.value, 0)
-                    ? Decimal.div(computedCost.value, 100).ceil().log(computedInefficiency.value)
-                    : 0
+        const passiveEssenceGain = createSequentialModifier(
+            createAdditiveModifier(
+                computed(() => Decimal.sqrt(principleClickable?.amount.value ?? 0).times(10)),
+                `${camelToTitle(principle)} amount`
             )
         );
-        const [tab, tabCollapsed] = createCollapsibleModifierSections([
-            {
-                title: `${camelToTitle(name)} Conversion Inefficiency`,
-                modifier: inefficiency,
-                base: 10
-            },
+        const actualGain = computed(() =>
+            Decimal.add(
+                gain.apply(
+                    Decimal.gt(computedCost.value, 0)
+                        ? Decimal.div(computedCost.value, 100).ceil().log(10)
+                        : 0
+                ),
+                Decimal.times(prevElement?.actualGain.value ?? 0, passiveEssenceGain.apply(0)).div(
+                    100
+                )
+            )
+        );
+        const modifierSections: Section[] = [
             {
                 title: "Flowers Loss",
                 modifier: cost,
@@ -294,18 +305,26 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 modifier: gain,
                 base: () =>
                     Decimal.gt(computedCost.value, 0)
-                        ? Decimal.div(computedCost.value, 100)
-                              .ceil()
-                              .log(computedInefficiency.value)
+                        ? Decimal.div(computedCost.value, 100).ceil().log(10)
                         : 0,
                 baseText: jsx(() => (
                     <>
-                        Base (log<sub>inefficiency</sub>(flowers loss))
+                        Base (log<sub>10</sub>(flowers loss))
                     </>
                 )),
                 unit: "/sec"
             }
-        ]);
+        ];
+        if (principleClickable && prevElement) {
+            modifierSections.push({
+                title: `${camelToTitle(name)} Essence Gain`,
+                subtitle: `% of ${camelToTitle(prevElement.name)} essence gain`,
+                modifier: passiveEssenceGain,
+                base: 0,
+                unit: "%"
+            });
+        }
+        const [tab, tabCollapsed] = createCollapsibleModifierSections(modifierSections);
 
         const display = jsx(() =>
             unref(processedVisible) ? (
@@ -343,7 +362,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             particlesEmitter.value.then(e => e.destroy());
             particlesEmitter.value = particles.addEmitter(particlesConfig);
             updateParticleEffect([
-                Decimal.gt(computedGain.value, 0),
+                Decimal.gt(actualGain.value, 0),
                 layer.nodes.value[name]?.rect,
                 particles.boundingRect.value
             ]);
@@ -352,7 +371,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         nextTick(() =>
             watch(
                 [
-                    () => Decimal.gt(computedGain.value, 0),
+                    () => Decimal.gt(actualGain.value, 0),
 
                     () => layer.nodes.value[name]?.rect,
                     particles.boundingRect
@@ -368,12 +387,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             color,
             resource,
             conversionAmount,
-            inefficiency,
-            computedInefficiency,
             cost,
             computedCost,
             gain,
-            computedGain,
+            actualGain,
             tab,
             tabCollapsed,
             display,
@@ -396,6 +413,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         "blue",
         getElementParticlesConfig("#0D8CFF", "#0C46E8"),
         "salt",
+        earth,
         waterMilestone.earned
     );
     const air = createElement(
@@ -404,6 +422,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         "yellow",
         getElementParticlesConfig("#FFCE0D", "#E8D20C"),
         "mercury",
+        water,
         airMilestone.earned
     );
     const fire = createElement(
@@ -412,6 +431,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         "red",
         getElementParticlesConfig("#FF530D", "#E82C0C"),
         "sulfur",
+        air,
         fireMilestone.earned
     );
     const elements = { earth, water, air, fire };
@@ -440,7 +460,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                     {flowers.flowers.displayName}/sec
                                 </div>
                                 <div>
-                                    +{displayResource(element.resource, element.computedGain.value)}{" "}
+                                    +{displayResource(element.resource, element.actualGain.value)}{" "}
                                     {element.resource.displayName}/sec
                                 </div>
                                 <Slider
@@ -541,7 +561,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         Object.values(elements).forEach(element => {
             element.resource.value = Decimal.add(
                 element.resource.value,
-                Decimal.times(element.computedGain.value, diff)
+                Decimal.times(element.actualGain.value, diff)
             );
         });
         flowers.flowers.value = Decimal.sub(flowers.flowers.value, spentFlowers).max(0);

@@ -191,16 +191,18 @@ export function createLayerTreeNode<T extends LayerTreeNodeOptions>(
     }) as unknown as LayerTreeNode<T>;
 }
 
+export interface Section {
+    title: string;
+    subtitle?: string;
+    modifier: WithRequired<Modifier, "description">;
+    base?: Computable<DecimalSource>;
+    unit?: string;
+    baseText?: Computable<CoercableComponent>;
+    visible?: Computable<boolean>;
+}
+
 export function createCollapsibleModifierSections(
-    sections: {
-        title: string;
-        subtitle?: string;
-        modifier: WithRequired<Modifier, "description">;
-        base?: Computable<DecimalSource>;
-        unit?: string;
-        baseText?: Computable<CoercableComponent>;
-        visible?: Computable<boolean>;
-    }[]
+    sections: Section[]
 ): [JSXFunction, Persistent<boolean>[]] {
     const processedBase = sections.map(s => convertComputable(s.base));
     const processedBaseText = sections.map(s => convertComputable(s.baseText));
