@@ -577,6 +577,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         instruments,
         job,
         milestones,
+        modifierTabs,
         collapseMilestones,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
