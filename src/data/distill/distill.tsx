@@ -348,8 +348,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             DOMRect | undefined
         ]) => {
             const particle = await particlesEmitter.value;
-            particle.emit = isGaining;
-            if (isGaining && rect && boundingRect) {
+            particle.emit = isGaining && rect != undefined && boundingRect != undefined;
+            if (isGaining && rect && boundingRect && !particle.destroyed) {
                 particle.cleanup();
                 particle.updateOwnerPos(
                     rect.x + rect.width / 2 - boundingRect.x,
@@ -359,13 +359,16 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
         };
         const refreshParticleEffect = () => {
-            particlesEmitter.value.then(e => e.destroy());
-            particlesEmitter.value = particles.addEmitter(particlesConfig);
-            updateParticleEffect([
-                Decimal.gt(actualGain.value, 0),
-                layer.nodes.value[name]?.rect,
-                particles.boundingRect.value
-            ]);
+            particlesEmitter.value
+                .then(e => e.destroy())
+                .then(() => (particlesEmitter.value = particles.addEmitter(particlesConfig)))
+                .then(() =>
+                    updateParticleEffect([
+                        Decimal.gt(actualGain.value, 0),
+                        layer.nodes.value[name]?.rect,
+                        particles.boundingRect.value
+                    ])
+                );
         };
 
         nextTick(() =>
@@ -376,8 +379,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     () => layer.nodes.value[name]?.rect,
                     particles.boundingRect
                 ],
-                updateParticleEffect,
-                { immediate: true }
+                updateParticleEffect
             )
         );
 

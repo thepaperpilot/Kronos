@@ -281,7 +281,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
             },
             onClick() {
                 spell.active.value = !spell.active.value;
-                spell.updateParticleEffect(spell.active.value);
                 spell.castingTime.value = 0;
             },
             visibility
@@ -324,30 +323,34 @@ const layer = createLayer(id, function (this: BaseLayer) {
             particleEffect: ref(particles.addEmitter(spellParticles)),
             async updateParticleEffect(active: boolean) {
                 const particle = await spell.particleEffect.value;
+                spell.particleEffectWatcher.value?.();
                 if (active) {
-                    particle.emit = true;
-                    spell.particleEffectWatcher.value?.();
                     spell.particleEffectWatcher.value = watch(
                         [() => layer.nodes.value[selector.id]?.rect, particles.boundingRect],
                         async ([rect, boundingRect]) => {
-                            if (rect && boundingRect) {
+                            if (rect != null && boundingRect != null) {
                                 particle.cleanup();
                                 particle.updateOwnerPos(
                                     rect.x + rect.width / 2 - boundingRect.x,
                                     rect.y + rect.height / 2 - boundingRect.y
                                 );
                                 particle.resetPositionTracking();
+                                particle.emit = true;
+                            } else {
+                                particle.emit = false;
                             }
                         },
                         { immediate: true }
                     );
                 } else {
                     particle.emit = false;
-                    spell.particleEffectWatcher.value?.();
                     spell.particleEffectWatcher.value = null;
                 }
             }
         };
+
+        watch(spell.active, spell.updateParticleEffect);
+
         return spell;
     }
 
@@ -356,7 +359,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         direction: Direction.Right,
         height: 20,
         width: 200,
-        style: () =>
+        fillStyle: () =>
             `--time: ${((player.time % 100000000) / 10).toLocaleString("fullwide", {
                 useGrouping: false
             })}px; --time-deg: ${((player.time % 100000000) / 100).toLocaleString("fullwide", {
