@@ -75,10 +75,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const job = createJob(name, () => ({
         color,
-        image: "https://dummyimage.com/512x288/000/fff.png",
+        image: "/harvesting.png",
         imageFocus: {
-            x: "75%",
-            y: "30%"
+            x: "50%",
+            y: "65%"
         },
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];

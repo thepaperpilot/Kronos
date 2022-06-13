@@ -26,7 +26,7 @@
             </div>
             <div class="job-title">
                 <h2>{{ name }}</h2>
-                <span style="margin-bottom: 2px">Lv. {{ formatWhole(level.value) }}</span>
+                <span style="margin-bottom: 0">Lv. {{ formatWhole(level.value) }}</span>
                 <span style="flex-grow: 1" />
                 <ModifierInfo
                     v-if="modifierInfo"
@@ -272,12 +272,13 @@ export default defineComponent({
 }
 
 .job-loop-toggle button {
-    color: var(--background);
+    color: var(--outline);
     border: none;
     padding: 0;
     margin: 10px;
     background: var(--foreground);
     border-radius: 50%;
+    border: solid 2px var(--outline);
 }
 
 .job-loop-toggle button.active {
@@ -321,8 +322,42 @@ export default defineComponent({
     display: inline-block;
 }
 
-.job-resource + .job-resource::before {
-    content: ", ";
+.job.selected .job-resource,
+.job.selected .job-title h2,
+.job.selected .job-title > span:nth-child(2) {
+    background: var(--locked);
+    border-radius: var(--border-radius);
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.job.selected .job-resource {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.job.selected .job-title h2 {
+    border-top-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.job-title > span:nth-child(2) {
+    margin-left: 0px;
+}
+
+.job.selected .job-title > span:nth-child(2) {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    margin-left: -10px;
+    padding-left: 10px;
+}
+
+.job-resource + .job-resource {
+    margin-left: 10px;
+}
+
+.job.selected .job-resource + .job-resource {
+    border-top-left-radius: 0;
 }
 
 .job-progress-container {
