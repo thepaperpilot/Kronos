@@ -1,12 +1,17 @@
-import { App as VueApp, createApp } from "vue";
-import App from "./App.vue";
-import projInfo from "./data/projInfo.json";
-import { GenericLayer } from "./game/layers";
-import { PlayerData } from "./game/player";
-import { Settings } from "./game/settings";
-import { Transient } from "./game/state";
-import Decimal, { DecimalSource } from "./util/bignum";
-import { load } from "./util/save";
+import App from "App.vue";
+import projInfo from "data/projInfo.json";
+import type { GenericLayer } from "game/layers";
+import "game/notifications";
+import type { PlayerData } from "game/player";
+import type { Settings } from "game/settings";
+import type { Transient } from "game/state";
+import type { DecimalSource } from "util/bignum";
+import Decimal from "util/bignum";
+import { load } from "util/save";
+import { useRegisterSW } from "virtual:pwa-register/vue";
+import type { App as VueApp } from "vue";
+import { createApp, nextTick } from "vue";
+import { useToast } from "vue-toastification";
 
 document.title = projInfo.title;
 if (projInfo.id === "") {
@@ -44,12 +49,44 @@ requestAnimationFrame(async () => {
         "padding: 4px;"
     );
     await load();
-    const { globalBus, startGameLoop } = await require("./game/events");
+    const { globalBus, startGameLoop } = await import("./game/events");
 
     // Create Vue
     const vue = (window.vue = createApp(App));
     globalBus.emit("setupVue", vue);
     vue.mount("#app");
+
+    // Setup PWA update prompt
+    nextTick(() => {
+        const toast = useToast();
+        const { updateServiceWorker } = useRegisterSW({
+            onNeedRefresh() {
+                toast.info("New content available, click or reload to update.", {
+                    timeout: false,
+                    closeOnClick: false,
+                    draggable: false,
+                    icon: {
+                        iconClass: "material-icons",
+                        iconChildren: "refresh",
+                        iconTag: "i"
+                    },
+                    rtl: false,
+                    onClick() {
+                        updateServiceWorker();
+                    }
+                });
+            },
+            onOfflineReady() {
+                toast.info("App ready to work offline");
+            },
+            onRegisterError: console.warn,
+            onRegistered(r) {
+                if (r) {
+                    setInterval(r.update, 60 * 60 * 1000);
+                }
+            }
+        });
+    });
 
     startGameLoop();
 });

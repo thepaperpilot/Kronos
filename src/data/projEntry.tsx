@@ -1,20 +1,23 @@
 import Spacer from "components/layout/Spacer.vue";
-import { CoercableComponent, jsx, showIf } from "features/feature";
+import type { CoercableComponent } from "features/feature";
+import { jsx, showIf } from "features/feature";
 import { createParticles } from "features/particles/particles";
 import { createUpgrade } from "features/upgrades/upgrade";
 import { globalBus } from "game/events";
-import { addLayer, createLayer, GenericLayer } from "game/layers";
+import type { GenericLayer } from "game/layers";
+import { addLayer, createLayer } from "game/layers";
 import { persistent } from "game/persistence";
-import player, { PlayerData } from "game/player";
+import type { LayerData, PlayerData } from "game/player";
+import player from "game/player";
 import Decimal, { format, formatTime, formatWhole } from "util/bignum";
 import { render, renderCol } from "util/vue";
 import { computed, ref, unref, watch, watchEffect } from "vue";
 import confetti from "./confetti.json";
 import Cutscene from "./Cutscene.vue";
 import distill from "./distill/distill";
+import experiments from "./experiments/experiments";
 import flowers from "./flowers/flowers";
 import study from "./study/study";
-import experiments from "./experiments/experiments";
 
 interface Cutscene {
     pages: CutscenePage[];
@@ -269,7 +272,7 @@ export const getInitialLayers = (
     /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     player: Partial<PlayerData>
 ): Array<GenericLayer> => {
-    const chapter = player.layers?.main?.chapter ?? 0;
+    const chapter = (player.layers?.main as LayerData<typeof main> | undefined)?.chapter ?? 0;
     if (chapter === 0) {
         return [main];
     } else if (chapter === 1) {

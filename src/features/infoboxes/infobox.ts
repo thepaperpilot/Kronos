@@ -1,23 +1,15 @@
-import {
-    CoercableComponent,
-    Component,
-    GatherProps,
-    getUniqueID,
-    OptionsFunc,
-    Replace,
-    setDefault,
-    StyleValue,
-    Visibility
-} from "features/feature";
+import type { CoercableComponent, OptionsFunc, Replace, StyleValue } from "features/feature";
+import { Component, GatherProps, getUniqueID, setDefault, Visibility } from "features/feature";
 import InfoboxComponent from "features/infoboxes/Infobox.vue";
-import { Persistent, persistent } from "game/persistence";
-import {
+import type { Persistent } from "game/persistence";
+import { persistent } from "game/persistence";
+import type {
     Computable,
     GetComputableType,
     GetComputableTypeWithDefault,
-    processComputable,
     ProcessedComputable
 } from "util/computed";
+import { processComputable } from "util/computed";
 import { createLazyProxy } from "util/proxies";
 import { unref } from "vue";
 
@@ -64,7 +56,7 @@ export type GenericInfobox = Replace<
 >;
 
 export function createInfobox<T extends InfoboxOptions>(
-    optionsFunc: OptionsFunc<T, BaseInfobox>
+    optionsFunc: OptionsFunc<T, BaseInfobox, GenericInfobox>
 ): Infobox<T> {
     const collapsed = persistent<boolean>(false);
     return createLazyProxy(() => {
