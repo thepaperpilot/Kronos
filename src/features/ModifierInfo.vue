@@ -13,10 +13,11 @@
 </template>
 
 <script setup lang="ts">
-import Modal from "../components/Modal.vue";
-import { ProcessedComputable } from "util/computed";
+import { Direction } from "util/common";
+import type { ProcessedComputable } from "util/computed";
+import { coerceComponent, unwrapRef } from "util/vue";
+import type { Component } from "vue";
 import {
-    Component,
     onBeforeUnmount,
     ref,
     shallowRef,
@@ -25,10 +26,9 @@ import {
     watchEffect,
     WatchStopHandle
 } from "vue";
-import { coerceComponent, unwrapRef } from "util/vue";
-import { CoercableComponent } from "./feature";
+import Modal from "../components/Modal.vue";
+import type { CoercableComponent } from "./feature";
 import Tooltip from "./tooltips/Tooltip.vue";
-import { Direction } from "util/common";
 
 const props = defineProps<{
     display: ProcessedComputable<CoercableComponent>;

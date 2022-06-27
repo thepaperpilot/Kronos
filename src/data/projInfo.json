@@ -14,7 +14,7 @@
 	"defaultDecimalsShown": 2,
 	"useHeader": true,
 	"banner": "banner.png",
-	"logo": "android-chrome-192x192.png",
+	"logo": "pwa-192x192.png",
 	"initialTabs": [ "main" ],
 
 	"maxTickLength": 3600,

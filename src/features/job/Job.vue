@@ -160,7 +160,7 @@ export default defineComponent({
             player.tabs.splice(1, 1, layerID.value);
         }
 
-        let quipTimer: number | undefined = undefined;
+        let quipTimer: NodeJS.Timer | undefined = undefined;
         watchEffect(() => {
             clearInterval(quipTimer);
             const quips = unwrapRef(randomQuips);

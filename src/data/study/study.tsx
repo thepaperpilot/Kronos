@@ -5,7 +5,7 @@
 
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
-import Sqrt from "components/layout/Sqrt.vue";
+import Sqrt from "components/math/Sqrt.vue";
 import { createCollapsibleModifierSections } from "data/common";
 import { jsx, showIf } from "features/feature";
 import { createJob } from "features/job/job";

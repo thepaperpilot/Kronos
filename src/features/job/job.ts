@@ -85,7 +85,7 @@ export type GenericJob = Replace<
 
 export function createJob<T extends JobOptions>(
     name: string,
-    optionsFunc: OptionsFunc<T, Job<T>, BaseJob>
+    optionsFunc: OptionsFunc<T, BaseJob, GenericJob>
 ): Job<T> {
     const xp = createResource<DecimalSource>(0, name + " XP");
     const timeLoopActive = persistent<boolean>(false);

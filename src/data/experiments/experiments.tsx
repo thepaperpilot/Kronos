@@ -18,7 +18,7 @@ import { persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource } from "util/bignum";
 import { getFirstFeature, renderColJSX, renderJSX } from "util/vue";
-import { computed, ComputedRef } from "vue";
+import { computed, ComputedRef, unref } from "vue";
 import distill from "../distill/distill";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
@@ -107,7 +107,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const lockedMilestones = computed(() =>
         orderedMilestones.filter(m => m.earned.value === false)
     );
-    const { firstFeature: firstMilestone, hiddenFeatures: otherMilestones } = getFirstFeature(
+    const { firstFeature, collapsedContent, hasCollapsedContent } = getFirstFeature(
         orderedMilestones,
         m => m.earned.value
     );
@@ -166,8 +166,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
         modifierTabs,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
-            if (firstMilestone.value) {
-                milestonesToDisplay.push(firstMilestone.value);
+            if (firstFeature.value) {
+                milestonesToDisplay.push(firstFeature.value);
             }
             return (
                 <>
@@ -177,13 +177,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         jsx(() => (
                             <Collapsible
                                 collapsed={collapseMilestones}
-                                content={jsx(() => renderColJSX(...otherMilestones.value))}
+                                content={collapsedContent}
                                 display={
                                     collapseMilestones.value
                                         ? "Show other completed milestones"
                                         : "Hide other completed milestones"
                                 }
-                                v-show={otherMilestones.value.length > 0}
+                                v-show={unref(hasCollapsedContent)}
                             />
                         ))
                     )}

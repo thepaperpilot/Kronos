@@ -24,7 +24,7 @@
 }
 
 .spellSelector::after {
-    content: url(../../../public/android-chrome-192x192.png);
+    content: url(/pwa-192x192.png);
     clip-path: inset(2px 44px 47px 2px);
     z-index: 1;
     position: absolute;

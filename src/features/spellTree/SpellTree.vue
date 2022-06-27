@@ -29,10 +29,11 @@
 
 <script setup lang="tsx">
 import "components/common/features.css";
-import { GenericSpellTreeNode, Spell } from "data/flowers/layer";
+import { GenericSpellTreeNode, Spell } from "data/flowers/flowers";
 import { createClickable } from "features/clickables/clickable";
 import { render } from "util/vue";
-import { Component, shallowRef, watchEffect } from "vue";
+import type { Component } from "vue";
+import { shallowRef, watchEffect } from "vue";
 
 const props = defineProps<{
     spell: Spell<string>;
@@ -70,7 +71,7 @@ const clickableComponent = render(clickable);
 
 /*
 .spell-tree-container::after {
-    content: url(/public/android-chrome-512x512.png);
+    content: url(/pwa-512x512.png);
     -webkit-clip-path: inset(2px 44px 47px 2px);
     clip-path: inset(2px 44px 47px 2px);
     position: absolute;
