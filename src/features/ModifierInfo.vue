@@ -1,8 +1,8 @@
 <template>
     <Tooltip :direction="Direction.Left" display="Open Modifiers" xoffset="10px">
-        <span class="material-icons-outlined modifier-info-toggle" @click.stop="openModal = true"
-            >help</span
-        >
+    <div class="modifier-info-toggle">
+        <button @click.stop="openModal = true">?</button>
+        </div>
     </Tooltip>
     <Modal v-model="openModal" class="modifiers-modal" v-bind="$attrs">
         <template v-slot:header
@@ -56,7 +56,15 @@ onBeforeUnmount(() => watcher?.());
 </script>
 
 <style scoped>
-.modifier-info-toggle {
+.modifier-info-toggle button {
+    color: var(--outline);
+    background: var(--foreground);
+    border: solid 2px var(--outline);
+    border-radius: 50%;
+    font-size: 24px;
+    line-height: 1;
+    margin: 0;
+    padding: 0 4.8px;
     cursor: pointer;
 }
 </style>
