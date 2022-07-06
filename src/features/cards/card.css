@@ -1,0 +1,148 @@
+.card {
+    min-height: 200px !important;
+    height: 240px;
+    width: 140px !important;
+    padding: 5px !important;
+    background: darkcyan;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    box-shadow: black 0px 0px 1rem 0;
+    border: 4px solid rgba(0, 0, 0, 0.125) !important;
+}
+
+.card.lunar::after,
+.card.solar::after {
+    content: "";
+    position: absolute;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
+    height: 30px;
+    bottom: -5px;
+    left: -5px;
+    right: -5px;
+    clip-path: polygon(0 -100%, 100% -100%, 100% 100%, 0% 100%);
+    opacity: 0.25;
+}
+
+.card.lunar::after {
+    box-shadow: black 0px 0px 10px 10px;
+    background: black;
+}
+
+.card.solar::after {
+    box-shadow: white 0px 0px 10px 10px;
+    background: white;
+}
+
+.card.big {
+    transform: scale(1.5);
+    margin: 85px !important;
+}
+
+.card.hidden {
+    opacity: 0;
+    transition-duration: 0s;
+}
+
+.card.playing:not(.flipping) {
+    visibility: hidden;
+}
+
+.card.flipping {
+    animation: flip 1s;
+    z-index: 10;
+}
+
+.card.shop {
+    margin: 20px;
+    margin: 0 20px;
+}
+
+.card:not(.shop) + .card:not(.shop) {
+    margin-left: -50px;
+}
+
+.card.can:hover {
+    transform: translateY(-20px);
+    box-shadow: black 0px 0px 2rem 0;
+    z-index: unset;
+}
+
+.card.can:hover + .card {
+    margin-left: 0px;
+}
+
+.card > h3 {
+    margin-top: 0;
+    font-size: small;
+}
+
+.card .metal {
+    color: transparent;
+    font-size: 700%;
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-shadow: rgb(245 245 245 / 15%) 1px 2px 1px;
+    background-repeat: no-repeat;
+    background-position: -120px -120px, 0 0;
+    background: linear-gradient(45deg, #403556 15%, #3f5e35 30%, #407435 40%, #007457 60%, #006874 70%, #334873 85%);
+    background-size: 250% 250%, 100% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+}
+
+.card .formula {
+    margin-bottom: 0;
+}
+
+.card .badge {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    transform: translateX(-50%);
+    font-size: large;
+    background: var(--locked);
+    border: 2px solid var(--outline);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card .badge.amount::before {
+    content: "x";
+}
+
+.card .badge.new {
+    transform: translate(-50%) rotateZ(-30deg);
+    width: 50px;
+}
+
+@keyframes shadow-rotate {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes flip {
+    0% {
+        transform: rotateY(90deg) scale(1.5);
+    }
+
+    80% {
+        transform: rotateY(0deg) scale(2);
+        box-shadow: black 0px 0px 2rem 0;
+    }
+
+    100% {
+        transform: scale(1.5);
+    }
+}

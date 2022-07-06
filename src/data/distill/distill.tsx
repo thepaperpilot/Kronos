@@ -7,6 +7,7 @@ import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
 import Slider from "components/fields/Slider.vue";
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
+import Sqrt from "components/math/Sqrt.vue";
 import Node from "components/Node.vue";
 import { createCollapsibleModifierSections, Section } from "data/common";
 import flowers from "data/flowers/flowers";
@@ -275,7 +276,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
         const passiveEssenceGain = createSequentialModifier(
             createAdditiveModifier(
                 computed(() => Decimal.sqrt(principleClickable?.amount.value ?? 0).times(10)),
-                `${camelToTitle(principle)} effect (10 x sqrt(salt amount))`
+                jsx(() => (
+                    <>
+                        {camelToTitle(principle)} effect (10 x <Sqrt>salt amount</Sqrt>)
+                    </>
+                ))
             )
         );
         const actualGain = computed(() =>
@@ -553,10 +558,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
     });
 
     this.on("preUpdate", diff => {
-        job.xp.value = essentia.value = Object.values(elements).reduce(
+        essentia.value = Object.values(elements).reduce(
             (acc, curr) => acc.times(Decimal.max(1, curr.resource.value)),
             new Decimal(1)
         );
+        if (Decimal.gt(essentia.value, job.xp.value)) {
+            job.xp.value = essentia.value;
+        }
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
 
         const spentFlowers = totalFlowerLoss.apply(0);
@@ -573,6 +581,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         name,
         color,
         minWidth: 670,
+        essentia,
         elements,
         instruments,
         job,

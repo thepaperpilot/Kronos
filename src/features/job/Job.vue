@@ -21,9 +21,12 @@
     >
         <img :src="unref(image)" />
         <div class="job-contents">
-            <div class="job-resource" v-for="(resource, index) in resourceArray" :key="index">
-                {{ displayResource(resource) }} {{ resource.displayName }}
-            </div>
+            <template v-for="(resource, index) in resourceArray" :key="index">
+                <div class="job-resource">
+                    {{ displayResource(resource) }} {{ resource.displayName }}<br/>
+                </div>
+                <br />
+            </template>
             <div class="job-title">
                 <h2>{{ name }}</h2>
                 <span style="margin-bottom: 0">Lv. {{ formatWhole(level.value) }}</span>
@@ -326,19 +329,9 @@ export default defineComponent({
 .job.selected .job-title h2,
 .job.selected .job-title > span:nth-child(2) {
     background: var(--locked);
-    border-radius: var(--border-radius);
     padding-left: 4px;
     padding-right: 4px;
-}
-
-.job.selected .job-resource {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.job.selected .job-title h2 {
-    border-top-left-radius: 0;
-    border-bottom-right-radius: 0;
+    opacity: 0.9;
 }
 
 .job-title > span:nth-child(2) {
@@ -346,18 +339,8 @@ export default defineComponent({
 }
 
 .job.selected .job-title > span:nth-child(2) {
-    border-bottom-left-radius: 0;
-    border-top-left-radius: 0;
     margin-left: -10px;
     padding-left: 10px;
-}
-
-.job-resource + .job-resource {
-    margin-left: 10px;
-}
-
-.job.selected .job-resource + .job-resource {
-    border-top-left-radius: 0;
 }
 
 .job-progress-container {

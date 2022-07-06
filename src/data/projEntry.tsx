@@ -1,6 +1,7 @@
 import Spacer from "components/layout/Spacer.vue";
 import type { CoercableComponent } from "features/feature";
 import { jsx, showIf } from "features/feature";
+import { GenericJob } from "features/job/job";
 import { createParticles } from "features/particles/particles";
 import { createUpgrade } from "features/upgrades/upgrade";
 import { globalBus } from "game/events";
@@ -37,12 +38,15 @@ const id = "main";
 export const main = createLayer(id, () => {
     const chapter = persistent<number>(0);
 
-    const jobs = [flowers.job, distill.job, study.job, experiments.job];
+    const jobs = [flowers.job, distill.job, study.job, experiments.job] as GenericJob[];
 
     const timeSlots = computed(() => {
         let slots = 0;
         if (chapter.value > 1) {
             slots = 1;
+            if (study.milestones.timeSlotMilestone.earned.value) {
+                slots++;
+            }
         }
         return slots;
     });
@@ -213,6 +217,7 @@ export const main = createLayer(id, () => {
         closeTimeLoop,
         activeCutscene,
         classes: { nigredo: true },
+        jobs,
         display: jsx(() =>
             activeCutscene.value ? (
                 <Cutscene
@@ -268,6 +273,26 @@ globalBus.on("update", diff => {
     }
 });
 
+export const numJobs = computed(() => {
+    let jobs = 1;
+    if ((player.layers?.main as LayerData<typeof main>)?.chapter ?? 0 > 1) {
+        jobs++;
+    }
+    if (
+        (player.layers.distill as LayerData<typeof distill>)?.milestones?.experimentsMilestone
+            ?.earned === true
+    ) {
+        jobs++;
+    }
+    if (
+        (player.layers?.distill as LayerData<typeof distill>)?.milestones?.studyMilestone
+            ?.earned === true
+    ) {
+        jobs++;
+    }
+    return jobs;
+});
+
 export const getInitialLayers = (
     /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     player: Partial<PlayerData>
@@ -279,12 +304,16 @@ export const getInitialLayers = (
         return [main, flowers];
     } else if (chapter === 2) {
         const layers: GenericLayer[] = [main, flowers, distill];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((player.layers?.distill as any).milestones.studyMilestone.earned.value) {
+        if (
+            (player.layers?.distill as LayerData<typeof distill>)?.milestones?.studyMilestone
+                ?.earned === true
+        ) {
             layers.push(study);
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((player.layers?.distill as any).milestones.experimentsMilestone.earned.value) {
+        if (
+            (player.layers?.distill as LayerData<typeof distill>)?.milestones?.experimentsMilestone
+                ?.earned === true
+        ) {
             layers.push(experiments);
         }
         return layers;

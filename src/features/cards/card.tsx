@@ -9,11 +9,12 @@ import {
     JSXFunction,
     OptionsFunc,
     Replace,
-    setDefault
+    setDefault,
+    StyleValue,
+    Visibility
 } from "features/feature";
-import { Resource } from "features/resources/resource";
 import { DefaultValue, persistent, Persistent } from "game/persistence";
-import Decimal, { DecimalSource, formatWhole } from "util/bignum";
+import Decimal, { DecimalSource } from "util/bignum";
 import {
     Computable,
     GetComputableType,
@@ -22,8 +23,8 @@ import {
 } from "util/computed";
 import { createLazyProxy } from "util/proxies";
 import { coerceComponent } from "util/vue";
-import { unref } from "vue";
-import "./cards.css";
+import { ref, Ref, unref } from "vue";
+import "./card.css";
 
 export const metalSymbols = {
     gold: "☉", // Sun, Apollo (healing, arts, knowledge)
@@ -35,21 +36,40 @@ export const metalSymbols = {
     lead: "♄" // Saturn, Kronos (harvest)
 };
 
+export const solarSigns = ["leo", "virgo", "libra", "scorpio", "capricorn", "pisces"];
+export const lunarSigns = ["aries", "taurus", "gemini", "cancer", "sagittarius", "aquarius"];
+
+export const signElements = {
+    aries: "fire",
+    taurus: "earth",
+    gemini: "air",
+    cancer: "water",
+    leo: "fire",
+    virgo: "earth",
+    libra: "air",
+    scorpio: "water",
+    sagittarius: "fire",
+    capricorn: "earth",
+    aquarius: "air",
+    pisces: "water"
+};
+
 export const CardType = Symbol("Card");
 
 export interface CardActions {
     onPlay?: (level: DecimalSource, isGhost: boolean) => void;
-    onNextCardPlay?: (nextCard: GenericCard, isGhost: boolean) => void;
+    onNextCardPlay?: (nextCard: GenericCard, isGhost: boolean) => boolean;
 }
 
 export interface CardOptions {
     description: Computable<CoercableComponent> | ((level: DecimalSource) => CoercableComponent);
     metal: keyof typeof metalSymbols;
+    sign: keyof typeof signElements;
     actions?: CardActions;
     formula?: Computable<CoercableComponent>;
     startingAmount?: number;
     price?: DecimalSource;
-    resource?: Resource;
+    onSelect: VoidFunction;
 }
 
 export interface BaseCard {
@@ -57,9 +77,12 @@ export interface BaseCard {
     amount: Persistent<number>;
     level: Persistent<DecimalSource>;
     display: JSXFunction;
-    renderForUpgrade: JSXFunction;
+    renderForUpgrade: (showUpgrade: boolean) => JSX.Element;
     renderForDeck: JSXFunction;
     renderForShop: JSXFunction;
+    renderForPlay: (drawnCards: Ref<number>) => JSX.Element;
+    classes: Record<string, boolean>;
+    style: StyleValue;
     type: typeof CardType;
     [Component]: typeof ClickableComponent;
     [GatherProps]: () => Record<string, unknown>;
@@ -89,14 +112,6 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
     return createLazyProxy(() => {
         const card = optionsFunc();
 
-        if ((card.price == null) != (card.resource == null)) {
-            console.warn(
-                "Cannot create card with only a price or resource. The card must have neither or both.",
-                card
-            );
-            throw "Cannot create card with only a price or resource. The card must have neither or both.";
-        }
-
         card.id = getUniqueID("card-");
         card.type = CardType;
         card[Component] = ClickableComponent;
@@ -107,6 +122,8 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
             amount[DefaultValue] = amount.value = card.startingAmount;
         }
 
+        // TODO make things like card.playComponent, card.shopComponent, etc.
+        // that are all VueComponent (same component, unique gather props functions)
         card.display = jsx(() => {
             const genericCard = card as GenericCard;
             const Description = coerceComponent(
@@ -121,7 +138,7 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
             return (
                 <>
                     <Description />
-                    <div class="metal">{genericCard.metal}</div>
+                    <div class="metal">{metalSymbols[genericCard.metal]}</div>
                     {genericCard.formula ? (
                         <div class="formula">
                             <Formula />
@@ -130,106 +147,133 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                 </>
             );
         });
-        card.renderForUpgrade = jsx(() => {
+        card.renderForUpgrade = showUpgraded => {
             const genericCard = card as GenericCard;
-            const Description = coerceComponent(
-                typeof genericCard.description === "function"
-                    ? (genericCard.description as (level: DecimalSource) => CoercableComponent)(
-                          Decimal.add(genericCard.level.value, 1)
-                      )
-                    : unref(genericCard.description),
-                "h3"
-            );
-            const Formula = coerceComponent(unref(genericCard.formula) ?? "");
-            const display = jsx(() => (
-                <>
-                    <Description />
-                    <div class="metal">{genericCard.metal}</div>
-                    {genericCard.formula ? (
-                        <div class="formula">
-                            <Formula />
-                        </div>
-                    ) : null}
-                </>
-            ));
+            let Display;
+            if (showUpgraded) {
+                const Description = coerceComponent(
+                    typeof genericCard.description === "function"
+                        ? (genericCard.description as (level: DecimalSource) => CoercableComponent)(
+                              Decimal.add(unref(genericCard.level), 1)
+                          )
+                        : unref(genericCard.description),
+                    "h3"
+                );
+                const Formula = coerceComponent(unref(genericCard.formula) ?? "");
+                Display = jsx(() => (
+                    <>
+                        <Description />
+                        <div class="metal">{metalSymbols[genericCard.metal]}</div>
+                        {genericCard.formula ? (
+                            <div class="formula">
+                                <Formula />
+                            </div>
+                        ) : null}
+                    </>
+                ));
+            } else {
+                Display = genericCard.display;
+            }
             const Component = ClickableComponent as GenericComponent;
-            return <Component {...genericCard[GatherProps]()} display={display} />;
-        });
+            return (
+                <Component
+                    id={`${card.id}-upg-${showUpgraded}`}
+                    {...genericCard[GatherProps]()}
+                    display={Display}
+                    class="big"
+                    canClick={false}
+                />
+            );
+        };
         card.renderForDeck = jsx(() => {
             const genericCard = card as GenericCard;
-            const Description = coerceComponent(
-                typeof genericCard.description === "function"
-                    ? (genericCard.description as (level: DecimalSource) => CoercableComponent)(
-                          unref(genericCard.level)
-                      )
-                    : unref(genericCard.description),
-                "h3"
-            );
-            const Formula = coerceComponent(unref(genericCard.formula) ?? "");
-            const display = jsx(() => (
-                <>
-                    <Description />
-                    <div class="amount">{genericCard.amount.value}</div>
-                    <div class="metal">{genericCard.metal}</div>
-                    {genericCard.formula ? (
-                        <div class="formula">
-                            <Formula />
-                        </div>
-                    ) : null}
-                </>
-            ));
-            const Component = ClickableComponent as GenericComponent;
-            // TODO onClick to select card
-            return <Component {...genericCard[GatherProps]()} display={display} />;
-        });
-        card.renderForShop = jsx(() => {
-            const genericCard = card as GenericCard;
-            const canClick =
-                genericCard.price != null &&
-                genericCard.resource != null &&
-                Decimal.gt(genericCard.resource.value, genericCard.price);
-            const onClick = function () {
-                if (canClick) {
-                    genericCard.resource!.value = Decimal.sub(
-                        genericCard.resource!.value,
-                        genericCard.price!
-                    );
-                    genericCard.amount.value++;
-                    // TODO visual feedback / disabling the card?
-                }
-            };
             const Display = coerceComponent(genericCard.display);
             const display = jsx(() => (
                 <>
                     <Display />
-                    <div class="amount">
-                        {genericCard.amount.value === 0 ? "NEW" : genericCard.amount.value}
-                    </div>
-                    <div class="cost">{formatWhole(genericCard.price ?? 0)}</div>
+                    <div class="badge amount">{genericCard.amount.value}</div>
                 </>
             ));
             const Component = ClickableComponent as GenericComponent;
             return (
                 <Component
+                    id={`${card.id}-deck`}
                     {...genericCard[GatherProps]()}
                     display={display}
-                    canClick={canClick}
-                    onClick={onClick}
+                    onClick={genericCard.onSelect}
                 />
             );
         });
+        card.renderForShop = jsx(() => {
+            const genericCard = card as GenericCard;
+            const Display = coerceComponent(genericCard.display);
+            const display = jsx(() => (
+                <>
+                    <Display />
+                    {genericCard.amount.value === 0 ? <div class="badge new">NEW!</div> : null}
+                </>
+            ));
+            const Component = ClickableComponent as GenericComponent;
+            if (genericCard.price == null) {
+                return (
+                    <Component
+                        id={`${card.id}-shop`}
+                        {...genericCard[GatherProps]()}
+                        class={{ shop: true, hidden: true }}
+                    />
+                );
+            }
+            return (
+                <Component
+                    id={`${card.id}-shop`}
+                    {...genericCard[GatherProps]()}
+                    class={{ shop: true }}
+                    display={display}
+                    canClick={false}
+                />
+            );
+        });
+        const flipping = ref(true);
+        let lastCardsDrawn = -1;
+        // TODO this is a mess, and will animate on mount
+        // Can I fix this with a custom component?
+        // TODO speed up animation based on draw time (and devSpeed?)
+        card.renderForPlay = cardsDrawn => {
+            const genericCard = card as GenericCard;
+            const Display = coerceComponent(genericCard.display);
+            const Component = ClickableComponent as GenericComponent;
+            if (cardsDrawn.value !== lastCardsDrawn) {
+                flipping.value = false;
+                requestAnimationFrame(() => (flipping.value = true));
+                lastCardsDrawn = cardsDrawn.value;
+            }
+            return (
+                <Component
+                    id={`${card.id}-play`}
+                    {...genericCard[GatherProps]()}
+                    display={Display}
+                    class={{ big: true, playing: true, flipping: flipping.value }}
+                    canClick={false}
+                />
+            );
+        };
 
         processComputable(card as T, "description");
         setDefault(card, "actions", {});
         processComputable(card as T, "formula");
 
         card[GatherProps] = function (this: GenericCard) {
-            const { id, display } = this;
+            const { id, display, sign } = this;
             return {
                 id,
                 display,
-                visibility: true,
-                classes: { card: true },
+                visibility: Visibility.Visible,
+                classes: {
+                    card: true,
+                    dontMerge: true,
+                    solar: solarSigns.includes(sign),
+                    lunar: lunarSigns.includes(sign)
+                },
                 canClick: true
             };
         };

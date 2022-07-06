@@ -4,27 +4,46 @@
  */
 
 import Collapsible from "components/layout/Collapsible.vue";
+import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
+import Sticky from "components/layout/Sticky.vue";
+import Floor from "components/math/Floor.vue";
 import Sqrt from "components/math/Sqrt.vue";
-import { createCollapsibleModifierSections } from "data/common";
+import Node from "components/Node.vue";
+import { colorText, createCollapsibleModifierSections } from "data/common";
+import { main, numJobs } from "data/projEntry";
+import { CardActions, createCard, GenericCard, signElements } from "features/cards/card";
+import { createClickable } from "features/clickables/clickable";
 import { jsx, showIf } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
-import { createResource } from "features/resources/resource";
+import { createParticles } from "features/particles/particles";
+import { createResource, displayResource } from "features/resources/resource";
 import Resource from "features/resources/Resource.vue";
 import { createTab } from "features/tabs/tab";
 import { createTabFamily } from "features/tabs/tabFamily";
+import { addTooltip } from "features/tooltips/tooltip";
 import { BaseLayer, createLayer } from "game/layers";
 import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
-import Decimal, { DecimalSource, format, formatWhole } from "util/bignum";
-import { getFirstFeature, render, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
-import { computed, ComputedRef, unref } from "vue";
+import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
+import { Direction } from "util/common";
+import {
+    coerceComponent,
+    getFirstFeature,
+    render,
+    renderColJSX,
+    renderJSX,
+    renderRow
+} from "util/vue";
+import { computed, ComputedRef, nextTick, ref, unref } from "vue";
 import distill from "../distill/distill";
+import flowers from "../flowers/flowers";
 import globalQuips from "../quips.json";
-import { createCard, GenericCard } from "features/cards/card";
 import alwaysQuips from "./quips.json";
+import sellParticles from "./sell.json";
+import "./study.css";
 
 const id = "study";
 const layer = createLayer(id, function (this: BaseLayer) {
@@ -33,6 +52,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const properties = createResource<DecimalSource>(0, "properties");
     const insights = createResource<DecimalSource>(0, "insights");
+    const timeDrawing = persistent<number>(0);
 
     const job = createJob(name, () => ({
         color,
@@ -44,68 +64,96 @@ const layer = createLayer(id, function (this: BaseLayer) {
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: [properties, insights],
+        resource: properties,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: () => showIf(distill.milestones.studyMilestone.earned.value)
     }));
 
-    const spellExpMilestone = createMilestone(() => ({
+    const manualMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
             requirement: "Achieve Studying Level 2",
-            effectDisplay: "???"
+            effectDisplay: "Unlock drawing cards manually"
         }
     }));
-    const flowerSpellMilestone = createMilestone(() => ({
+    const shopMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
             requirement: "Achieve Studying Level 4",
-            effectDisplay: "???"
+            effectDisplay: "Unlock purchasing cards"
         },
         visibility() {
-            return showIf(spellExpMilestone.earned.value);
+            return showIf(manualMilestone.earned.value);
         }
     }));
-    const chargeSpellMilestone = createMilestone(() => ({
+    const timeSlotMilestone = createMilestone(() => ({
+        shouldEarn(): boolean {
+            return Decimal.gte(job.rawLevel.value, 5);
+        },
+        display: {
+            requirement: "Achieve Studying Level 5",
+            effectDisplay: "Unlock a time slot"
+        },
+        visibility() {
+            return showIf(shopMilestone.earned.value);
+        }
+    }));
+    const upgradingMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
             requirement: "Achieve Studying Level 6",
-            effectDisplay: "???"
+            effectDisplay: "Unlock upgrading cards"
         },
         visibility() {
-            return showIf(flowerSpellMilestone.earned.value);
+            return showIf(timeSlotMilestone.earned.value);
         }
     }));
-    const expSpellMilestone = createMilestone(() => ({
+    const sellingMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
             requirement: "Achieve Studying Level 8",
-            effectDisplay: "???"
+            effectDisplay: "Unlock selling cards"
         },
         visibility() {
-            return showIf(chargeSpellMilestone.earned.value);
+            return showIf(upgradingMilestone.earned.value);
+        }
+    }));
+    const jobMilestone = createMilestone(() => ({
+        shouldEarn(): boolean {
+            return Decimal.gte(job.rawLevel.value, 10);
+        },
+        display: {
+            requirement: "Achieve Studying Level 10",
+            effectDisplay: `Unlock "???" Job`
+        },
+        visibility() {
+            return showIf(sellingMilestone.earned.value);
         }
     }));
     const milestones = {
-        spellExpMilestone,
-        flowerSpellMilestone,
-        chargeSpellMilestone,
-        expSpellMilestone
+        manualMilestone,
+        shopMilestone,
+        timeSlotMilestone,
+        upgradingMilestone,
+        sellingMilestone,
+        jobMilestone
     };
     const orderedMilestones = [
-        expSpellMilestone,
-        chargeSpellMilestone,
-        flowerSpellMilestone,
-        spellExpMilestone
+        jobMilestone,
+        sellingMilestone,
+        upgradingMilestone,
+        timeSlotMilestone,
+        shopMilestone,
+        manualMilestone
     ];
     const collapseMilestones = persistent<boolean>(true);
     const lockedMilestones = computed(() =>
@@ -121,47 +169,56 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const propertiesGain = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Studying level (x1.1 each)"),
-        createMultiplicativeModifier(
-            () =>
-                Decimal.times(
-                    increasePointsGainUses.value,
-                    new Decimal(25).times(Decimal.pow(1.25, increasePointsGain.level.value))
-                ),
-            "Increase Properties Gain Card",
-            () => Decimal.gt(increasePointsGainUses.value, 0)
-        )
+        createMultiplicativeModifier(jobLevelEffect, "Studying level (x1.1 each)")
     );
     const computedPropertiesGain = computed(() => propertiesGain.apply(10));
 
-    const jobXpGain = createSequentialModifier(
-        createMultiplicativeModifier(
-            () =>
-                Decimal.times(
-                    increaseXpGainUses.value,
-                    new Decimal(10).times(Decimal.pow(1.5, increaseXpGain.level.value))
-                ),
-            "Increase Studying EXP Gain Card",
-            () => Decimal.gt(increaseXpGainUses.value, 0)
-        )
-    );
+    const jobXpGain = createSequentialModifier();
 
     const modifiers = {
         propertiesGain,
         jobXpGain
     };
 
+    const particles = createParticles(() => ({
+        fullscreen: false,
+        zIndex: -1,
+        boundingRect: ref<null | DOMRect>(null),
+        onContainerResized(boundingRect) {
+            this.boundingRect.value = boundingRect;
+        }
+    }));
+
     const totalCards = computed(() =>
         Object.values(cards).reduce((acc, curr) => acc + curr.amount.value, 0)
     ) as ComputedRef<number>;
 
-    const nothing = createCard(() => ({ description: "Do nothing.", metal: "mercury" }));
+    const selectedCard = persistent<string>("");
+    type BuyableCards =
+        | {
+              [K in keyof typeof cards]: typeof cards[K] extends { price: DecimalSource }
+                  ? K
+                  : never;
+          }[keyof typeof cards]
+        | "";
+    const cardShop = persistent<BuyableCards[]>(["", "", ""]);
+    const drawnCard = persistent<keyof typeof cards>("nothing");
+    const drawnCards = ref<number>(0);
+
+    const nothing = createCard(() => ({
+        description: "Do nothing.",
+        metal: "mercury",
+        sign: "gemini",
+        startingAmount: 4,
+        onSelect: () => (selectedCard.value = "nothing")
+    }));
     const gainPoints = createCard(() => ({
         description: level =>
-            `Record ${format(
-                Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1))
+            `Record ${colorText(
+                format(Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)))
             )} properties and job exp.`,
         metal: "gold",
+        sign: "leo",
         actions: {
             onPlay: level => {
                 const gain = Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1));
@@ -169,15 +226,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 job.xp.value = Decimal.add(job.xp.value, jobXpGain.apply(gain));
             }
         },
-        formula: jsx(() => <>properties gain x level</>),
-        price: 1
+        formula: colorText("properties gain x level"),
+        price: 1,
+        startingAmount: 4,
+        onSelect: () => (selectedCard.value = "gainPoints")
     }));
     const gainBigPoints = createCard(() => ({
         description: level =>
-            `Record ${format(
-                Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)).pow(1.2)
+            `Record ${colorText(
+                format(Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)).pow(1.2))
             )} properties and job exp. Destroy this card.`,
         metal: "tin",
+        sign: "sagittarius",
         actions: {
             onPlay: (level, canDestroy) => {
                 const gain = Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)).pow(
@@ -191,35 +251,37 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
         },
         formula: jsx(() => (
-            <>
+            <span style="color: var(--accent2)">
                 (properties gain x level)<sup>1.2</sup>
-            </>
+            </span>
         )),
-        price: 8
+        price: 8,
+        onSelect: () => (selectedCard.value = "gainBigPoints")
     }));
     const gainInsight = createCard(() => ({
         description: level =>
             Decimal.eq(level, 0)
-                ? "Gain a key insight."
-                : `Gain ${formatWhole(Decimal.add(level, 1))} key insights.`,
+                ? `Gain ${colorText("1")} key insight.`
+                : `Gain ${colorText(formatWhole(Decimal.add(level, 1)))} key insights.`,
         metal: "copper",
+        sign: "libra",
         actions: {
             onPlay: level => {
                 insights.value = Decimal.add(insights.value, level).add(1);
             }
         },
-        formula: jsx(() => <>level</>),
-        price: 0
+        formula: colorText("level"),
+        price: 0,
+        startingAmount: 2,
+        onSelect: () => (selectedCard.value = "gainInsight")
     }));
     const gainBigInsight = createCard(() => ({
         description: level =>
-            `Use the size of your deck to gain ${Decimal.times(
-                totalCards.value,
-                Decimal.add(level, 1)
-            )
-                .sqrt()
-                .floor()} key insights.`,
+            `Use the size of your deck to gain ${colorText(
+                format(Decimal.times(totalCards.value, Decimal.add(level, 1)).sqrt().floor())
+            )} key insights.`,
         metal: "silver",
+        sign: "cancer",
         actions: {
             onPlay: level => {
                 const amount = Decimal.times(totalCards.value, Decimal.add(level, 1))
@@ -229,21 +291,24 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
         },
         formula: jsx(() => (
-            <>
-                ⌊<Sqrt>cards x level</Sqrt>⌋
-            </>
+            <span style="color: var(--accent2)">
+                <Floor>
+                    <Sqrt>cards x level</Sqrt>
+                </Floor>
+            </span>
         )),
-        price: 13
+        price: 13,
+        onSelect: () => (selectedCard.value = "gainBigInsight")
     }));
     const playTwice = createCard(() => ({
         description: level =>
             Decimal.eq(level, 0)
                 ? "Play the next card twice. Unaffected by multi-play effects."
-                : `Play the next card twice, with the effect boosted by ${Decimal.div(
-                      level,
-                      4
+                : `Play the next card twice, with the effect boosted by ${colorText(
+                      format(Decimal.div(level, 4))
                   )} levels. Unaffected by multi-play effects.`,
-        metal: "mercury",
+        metal: "iron",
+        sign: "scorpio",
         actions: {
             onNextCardPlay: nextCard => {
                 const onPlay = nextCard.actions.onPlay;
@@ -253,41 +318,20 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         true
                     );
                 }
+                return true;
             }
         },
-        formula: jsx(() => <>(level - 1) / 4</>),
-        price: 16
-    }));
-    const increasePointsGainUses = persistent<DecimalSource>(0);
-    const increasePointsGain = createCard(() => ({
-        description: level =>
-            `Permanently increase studied properties gain by ${formatWhole(
-                new Decimal(25).times(Decimal.pow(1.25, level))
-            )}%.<br/><br/>Currently: +${formatWhole(
-                Decimal.times(
-                    increasePointsGainUses.value,
-                    new Decimal(25).times(Decimal.pow(1.25, level))
-                )
-            )}%`,
-        metal: "lead",
-        actions: {
-            onPlay: () =>
-                (increasePointsGainUses.value = Decimal.add(increasePointsGainUses.value, 1))
-        },
-        formula: jsx(() => (
-            <>
-                25 x (level - 1)<sup>1.25</sup>
-            </>
-        )),
-        uses: increasePointsGainUses,
-        price: 6
+        formula: colorText("(level - 1) / 4"),
+        price: 32,
+        onSelect: () => (selectedCard.value = "playTwice")
     }));
     const gainXp = createCard(() => ({
         description: level =>
-            `Gain xp equal to ${format(
-                Decimal.div(Decimal.add(level, 1), 10)
+            `Gain xp equal to ${colorText(
+                format(Decimal.div(Decimal.add(level, 1), 10))
             )}x times your number of properties.`,
-        metal: "gold",
+        metal: "tin",
+        sign: "pisces",
         actions: {
             onPlay: level => {
                 job.xp.value = Decimal.add(
@@ -296,31 +340,159 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 );
             }
         },
-        formula: jsx(() => <>properties x level / 10</>),
-        price: 25
+        formula: colorText("properties x level / 10"),
+        price: 25,
+        onSelect: () => (selectedCard.value = "gainXp")
     }));
-    const increaseXpGainUses = persistent<DecimalSource>(0);
-    const increaseXpGain = createCard(() => ({
+    const fasterDrawTime = persistent<number>(0);
+    const fasterDraws = createCard(() => ({
         description: level =>
-            `Permanently increase this job's exp gain by ${formatWhole(
-                new Decimal(10).times(Decimal.pow(1.5, level))
-            )}%.<br/><br/>Currently: +${formatWhole(
-                Decimal.times(
-                    increaseXpGainUses.value,
-                    new Decimal(10).times(Decimal.pow(1.5, level))
-                )
-            )}%`,
-        metal: "tin",
+            `Drawing cards is 2x faster for the next ${colorText(
+                formatWhole(Decimal.times(numJobs.value, Decimal.add(level, 1)))
+            )} seconds (doesn't stack)`,
+        metal: "mercury",
+        sign: "virgo",
         actions: {
-            onPlay: () => (increaseXpGainUses.value = Decimal.add(increaseXpGainUses.value, 1))
+            onPlay: level =>
+                (fasterDrawTime.value = Decimal.times(
+                    Object.values(player.tabs).length - 1,
+                    level
+                ).toNumber())
+        },
+        formula: colorText("number of jobs x level"),
+        price: 48,
+        onSelect: () => (selectedCard.value = "fasterDraws")
+    }));
+    const gainElementalEssence = createCard(() => ({
+        description: level =>
+            `Gain ${colorText(
+                formatWhole(
+                    main.jobs
+                        .reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))
+                        .times(Decimal.add(level, 1))
+                )
+            )} of a random elemental essence`,
+        metal: "iron",
+        sign: "aries",
+        actions: {
+            onPlay: level => {
+                const unlockedElements = Object.values(distill.elements).filter(e =>
+                    unref(e.visible)
+                );
+                const randomElement =
+                    unlockedElements[Math.floor(Math.random() * unlockedElements.length)];
+                const sumJobLevels = main.jobs.reduce(
+                    (acc, curr) => acc.add(curr.level.value),
+                    new Decimal(0)
+                );
+                randomElement.resource.value = Decimal.add(
+                    randomElement.resource.value,
+                    sumJobLevels.times(Decimal.add(level, 1))
+                );
+            }
+        },
+        formula: colorText("sum job levels x level"),
+        price: 16,
+        onSelect: () => (selectedCard.value = "gainElementalEssence")
+    }));
+    const gainInsightFromJobs = createCard(() => ({
+        description: level =>
+            `Gain ${colorText(
+                formatWhole(
+                    Decimal.times(
+                        main.jobs.reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0)),
+                        Decimal.add(level, 1)
+                    ).floor()
+                )
+            )} key insights`,
+        metal: "lead",
+        sign: "capricorn",
+        actions: {
+            onPlay: level => {
+                const amount = Decimal.times(
+                    main.jobs.reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0)),
+                    Decimal.add(level, 1)
+                ).floor();
+                insights.value = Decimal.add(insights.value, amount);
+            }
         },
         formula: jsx(() => (
-            <>
-                10 x 1.5<sup>level - 1</sup>
-            </>
+            <span style="color: var(--accent2)">
+                <Floor>
+                    <Sqrt>sum job levels</Sqrt>
+                </Floor>{" "}
+                x level
+            </span>
         )),
-        uses: increaseXpGainUses,
-        price: 12
+        price: 14,
+        onSelect: () => (selectedCard.value = "gainInsightFromJobs")
+    }));
+    const gainMolyFromEssentia = createCard(() => ({
+        description: level =>
+            `Gain ${colorText(
+                formatWhole(
+                    Decimal.sqrt(distill.essentia.value).times(Decimal.add(1, level)).floor()
+                )
+            )} moly`,
+        metal: "lead",
+        sign: "aquarius",
+        actions: {
+            onPlay: level => {
+                const amount = Decimal.sqrt(distill.essentia.value)
+                    .times(Decimal.add(1, level))
+                    .floor();
+                flowers.flowers.value = Decimal.add(flowers.flowers.value, amount);
+            }
+        },
+        formula: jsx(() => (
+            <span style="color: var(--accent2)">
+                <Floor>
+                    <Sqrt>essentia</Sqrt>
+                </Floor>{" "}
+                x level
+            </span>
+        )),
+        price: 9,
+        onSelect: () => (selectedCard.value = "gainMolyFromEssentia")
+    }));
+    const gainPropertiesFromFlowers = createCard(() => ({
+        description: level =>
+            `Convert half your moly into ${colorText(
+                formatWhole(
+                    Decimal.div(flowers.flowers.value, 2)
+                        .max(1)
+                        .log10()
+                        .floor()
+                        .times(Decimal.add(1, level))
+                        .times(computedPropertiesGain.value)
+                )
+            )} properties and job exp`,
+        metal: "copper",
+        sign: "taurus",
+        actions: {
+            onPlay: level => {
+                const amount = Decimal.div(flowers.flowers.value, 2)
+                    .max(1)
+                    .log10()
+                    .floor()
+                    .times(Decimal.add(1, level))
+                    .times(computedPropertiesGain.value);
+                flowers.flowers.value = Decimal.div(flowers.flowers.value, 2).floor();
+                properties.value = Decimal.add(properties.value, amount);
+                job.xp.value = Decimal.add(job.xp.value, jobXpGain.apply(amount));
+            }
+        },
+        formula: jsx(() => (
+            <span style="color: var(--accent2)">
+                properties gain x{" "}
+                <Floor>
+                    log<sub>10</sub>(spent moly)
+                </Floor>{" "}
+                x level
+            </span>
+        )),
+        price: 8,
+        onSelect: () => (selectedCard.value = "gainPropertiesFromFlowers")
     }));
     const cards = {
         nothing,
@@ -329,10 +501,236 @@ const layer = createLayer(id, function (this: BaseLayer) {
         gainInsight,
         gainBigInsight,
         playTwice,
-        increasePointsGain,
         gainXp,
-        increaseXpGain
+        fasterDraws,
+        gainElementalEssence,
+        gainInsightFromJobs,
+        gainMolyFromEssentia,
+        gainPropertiesFromFlowers
     };
+
+    const upgradeCost = computed(() => {
+        if (selectedCard.value in cards) {
+            const card = cards[selectedCard.value as keyof typeof cards] as GenericCard;
+            return new Decimal(10).pow(Decimal.add(card.level.value, 2));
+        }
+        return 0;
+    });
+    const upgradeButton = createClickable(() => ({
+        display: {
+            title: "+1 Level",
+            description: jsx(() => {
+                if (selectedCard.value in cards) {
+                    const card = cards[selectedCard.value as keyof typeof cards] as GenericCard;
+                    return (
+                        <>
+                            Current level: {formatWhole(Decimal.add(card.level.value, 1))}
+                            <br />
+                            {selectedCard.value === "nothing" ? (
+                                <span>Max level!</span>
+                            ) : (
+                                <span>
+                                    Cost: {format(upgradeCost.value)} {insights.displayName}
+                                </span>
+                            )}
+                        </>
+                    );
+                }
+                return "";
+            })
+        },
+        canClick() {
+            return (
+                selectedCard.value !== "nothing" &&
+                selectedCard.value in cards &&
+                Decimal.gte(insights.value, upgradeCost.value)
+            );
+        },
+        onClick() {
+            if (selectedCard.value in cards) {
+                const card = cards[selectedCard.value as keyof typeof cards] as GenericCard;
+                insights.value = Decimal.sub(insights.value, upgradeCost.value);
+                card.level.value = Decimal.add(card.level.value, 1);
+            }
+        },
+        style: {
+            height: "120px",
+            alignSelf: "center"
+        }
+    }));
+
+    const canManualDraw = computed(() =>
+        Decimal.gte(timeDrawing.value, computedManualDrawTime.value)
+    );
+    const drawButton = createClickable(() => ({
+        display: {
+            title: "Draw",
+            description: jsx(() => (
+                <>
+                    <div>Focus harder in order to discover the next card faster.</div>
+                    {canManualDraw.value ? (
+                        <div>Available Now!</div>
+                    ) : (
+                        <div>
+                            Available in{" "}
+                            {formatTime(
+                                Decimal.sub(computedManualDrawTime.value, timeDrawing.value)
+                            )}
+                        </div>
+                    )}
+                </>
+            ))
+        },
+        canClick: canManualDraw,
+        onClick: drawCard,
+        style: {
+            minHeight: "50px",
+            width: "200px"
+        }
+    }));
+
+    const soldCards = persistent<number>(0);
+    const sellCost = computed(() => new Decimal(500).times(new Decimal(10).pow(soldCards.value)));
+    const sellButton = createClickable(() => ({
+        display: {
+            title: "Purge card",
+            description: jsx(() => (
+                <>
+                    Remove card from deck
+                    <br />
+                    Cost: {format(sellCost.value)} {insights.displayName}
+                </>
+            ))
+        },
+        canClick() {
+            if (selectedCard.value === "gainInsight" || selectedCard.value === "gainBigInsight") {
+                // Make sure they can still gain insights
+                if (Decimal.add(gainInsight.amount.value, gainBigInsight.amount.value).lte(1)) {
+                    return false;
+                }
+            }
+            return Decimal.gte(insights.value, sellCost.value);
+        },
+        async onClick() {
+            if (selectedCard.value in cards) {
+                const card = cards[selectedCard.value as keyof typeof cards] as GenericCard;
+                insights.value = Decimal.sub(insights.value, sellCost.value);
+                soldCards.value++;
+                card.amount.value--;
+                const boundingRect = particles.boundingRect.value;
+                const rect = layer.nodes.value.deck?.rect;
+                console.log(boundingRect, layer.nodes.value, card.id);
+                if (boundingRect && rect) {
+                    await nextTick();
+                    particles.addEmitter(sellParticles).then(e => {
+                        e.updateOwnerPos(
+                            rect.x + rect.width / 2 - boundingRect.x,
+                            rect.y + rect.height / 2 - boundingRect.y
+                        );
+                        e.playOnceAndDestroy();
+                    });
+                }
+                if (card.amount.value <= 0) {
+                    selectedCard.value = "";
+                }
+            }
+        },
+        style: {
+            "--layer-color": "var(--danger)",
+            minHeight: "50px",
+            width: "200px"
+        }
+    }));
+
+    const buyButtons = new Array(3).fill(0).map((_, i) => {
+        const buyButton = createClickable(() => ({
+            display: {
+                title: "Purchase Card",
+                description: jsx(() => {
+                    const cardKey = cardShop.value[i];
+                    if (cardKey === "") {
+                        return (
+                            <>
+                                Out of Stock!
+                                <div class="element-cost"></div>
+                            </>
+                        );
+                    }
+                    const card = cards[cardKey];
+                    const element = signElements[card.sign] as "fire" | "earth" | "air" | "water";
+                    return (
+                        <>
+                            {formatWhole(card.price)} {element} essence
+                            <div
+                                class="element-cost"
+                                style={{ color: distill.elements[element].color }}
+                            >
+                                {distill.elements[element].symbol}
+                            </div>
+                        </>
+                    );
+                })
+            },
+            canClick() {
+                const cardKey = cardShop.value[i];
+                if (cardKey === "") {
+                    return false;
+                }
+                const card = cards[cardKey];
+                const element = signElements[card.sign] as "fire" | "earth" | "air" | "water";
+                const baseResource = distill.elements[element].resource;
+                return Decimal.gte(baseResource.value, card.price);
+            },
+            onClick() {
+                const cardKey = cardShop.value[i];
+                if (cardKey === "") {
+                    return false;
+                }
+                const card = cards[cardKey];
+                const element = signElements[card.sign] as "fire" | "earth" | "air" | "water";
+                const baseResource = distill.elements[element].resource;
+                card.amount.value += 1;
+                baseResource.value = Decimal.sub(baseResource.value, card.price);
+                cardShop.value[i] = "";
+            },
+            style: {
+                width: "165px",
+                margin: "20px 7.5px",
+                minHeight: "50px",
+                paddingLeft: "55px",
+                borderTopLeftRadius: "25px",
+                borderBottomLeftRadius: "25px"
+            }
+        }));
+        addTooltip(buyButton, {
+            display: jsx(() => {
+                const cardKey = cardShop.value[i];
+                if (cardKey === "") {
+                    return <></>;
+                }
+                const card = cards[cardKey];
+                const element = signElements[card.sign] as "fire" | "earth" | "air" | "water";
+                const baseResource = distill.elements[element].resource;
+                return (
+                    <>
+                        You have {displayResource(baseResource)} {baseResource.displayName}
+                    </>
+                );
+            }),
+            direction: Direction.Down
+        });
+        return buyButton;
+    });
+
+    const drawTime = createSequentialModifier(
+        createMultiplicativeModifier(0.5, "Faster draw card", () => fasterDrawTime.value > 0)
+    );
+    const computedDrawTime = computed(() => drawTime.apply(10));
+
+    const manualDrawTime = createSequentialModifier(
+        createMultiplicativeModifier(0.5, "Manual bonus")
+    );
+    const computedManualDrawTime = computed(() => manualDrawTime.apply(computedDrawTime.value));
 
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
         {
@@ -345,6 +743,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
             modifier: jobXpGain,
             base: 1,
             baseText: "Base (per property gained)"
+        },
+        {
+            title: "Automatic Card Draw",
+            modifier: drawTime,
+            base: 10,
+            unit: "s"
+        },
+        {
+            title: "Manual Card Draw",
+            modifier: manualDrawTime,
+            base: computedDrawTime,
+            unit: "s"
         }
     ]);
     const modifierTabs = createTabFamily(
@@ -363,40 +773,180 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })
     );
 
+    const cardsDrawnToShop = persistent<number>(0);
+    const cardsDrawnPerRefresh = computed(() => 12);
+
+    function drawCard() {
+        timeDrawing.value = 0;
+        drawnCards.value++;
+        cardsDrawnToShop.value++;
+
+        const prevCard = drawnCard.value;
+        let draw = Math.floor(Math.random() * totalCards.value);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        drawnCard.value = (Object.keys(cards) as (keyof typeof cards)[]).find(key => {
+            if (draw <= cards[key].amount.value) {
+                return true;
+            }
+            draw -= cards[key].amount.value;
+            return false;
+        })!;
+
+        if (
+            (cards[prevCard].actions as CardActions).onNextCardPlay?.(
+                cards[drawnCard.value] as GenericCard,
+                false
+            ) ??
+            true
+        ) {
+            (cards[drawnCard.value].actions as CardActions).onPlay?.(
+                cards[drawnCard.value].level.value,
+                false
+            );
+        }
+
+        if (cardsDrawnToShop.value >= cardsDrawnPerRefresh.value) {
+            cardsDrawnToShop.value = 0;
+            const buyableCards = (Object.keys(cards) as (keyof typeof cards)[]).filter(
+                c => "price" in cards[c]
+            ) as BuyableCards[];
+            cardShop.value = new Array(3)
+                .fill(0)
+                .map(() => buyableCards[Math.floor(Math.random() * buyableCards.length)]);
+        }
+    }
+
     this.on("preUpdate", diff => {
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
 
-        // TODO playing cards
+        timeDrawing.value += diff;
+        fasterDrawTime.value = Math.max(0, fasterDrawTime.value - diff);
+
+        if (Decimal.gte(timeDrawing.value, computedDrawTime.value)) {
+            drawCard();
+        }
     });
 
-    const tabs = createTabFamily({
-        play: () => ({
-            display: "Play",
-            tab: createTab(() => ({
-                display: jsx(() => <>Placeholder</>)
-            }))
-        }),
-        deck: () => ({
-            display: "Deck",
-            tab: createTab(() => ({
-                display: jsx(() => (
-                    <>
-                        {renderRowJSX(
-                            ...(Object.values(cards) as GenericCard[]).filter(
-                                c => c.amount.value > 0
-                            )
-                        )}
-                    </>
-                ))
-            }))
-        }),
-        shop: () => ({
-            display: "Shop",
-            tab: createTab(() => ({
-                display: jsx(() => <>Placeholder</>)
-            }))
+    const tabs = createTabFamily(
+        {
+            play: () => ({
+                display: "Play",
+                tab: createTab(() => ({
+                    display: jsx(() => (
+                        <>
+                            {cards[drawnCard.value].renderForPlay(drawnCards)}
+                            {manualMilestone.earned.value ? renderRow(drawButton) : null}
+                            {shopMilestone.earned.value ? (
+                                <div>
+                                    Shop will refresh in{" "}
+                                    {cardsDrawnPerRefresh.value - cardsDrawnToShop.value} draws
+                                </div>
+                            ) : null}
+                            <Spacer />
+                            <div>
+                                Card will be drawn automatically in{" "}
+                                {formatTime(Decimal.sub(computedDrawTime.value, timeDrawing.value))}
+                            </div>
+                        </>
+                    ))
+                })),
+                style: {
+                    borderLeft: "5px solid var(--outline)",
+                    marginLeft: "5px"
+                }
+            }),
+            deck: () => ({
+                display: "Cards",
+                tab: createTab(() => ({
+                    display: jsx(() => {
+                        const ownedCards = (Object.values(cards) as GenericCard[]).filter(
+                            c => c.amount.value > 0
+                        );
+                        const deckRows = Math.ceil(ownedCards.length / 6);
+                        return (
+                            <>
+                                <Spacer />
+                                <h2>Shop</h2>
+                                <Spacer />
+                                {cardShop.value.map(c =>
+                                    c === ""
+                                        ? cards.nothing.renderForShop()
+                                        : cards[c].renderForShop()
+                                )}
+                                {renderRow(...buyButtons)}
+                                <div>
+                                    Shop will refresh in{" "}
+                                    {cardsDrawnPerRefresh.value - cardsDrawnToShop.value} draws
+                                </div>
+                                <Spacer height="50px" />
+                                <h2>Deck</h2>
+                                <Spacer />
+                                <div class="cardDeck-container">
+                                    <Node id="deck" />
+                                    {...new Array(deckRows)
+                                        .fill(0)
+                                        .map((_, i) => (
+                                            <Row>
+                                                {...ownedCards
+                                                    .slice(
+                                                        i * Math.ceil(ownedCards.length / deckRows),
+                                                        (i + 1) *
+                                                            Math.ceil(ownedCards.length / deckRows)
+                                                    )
+                                                    .map(c => c.renderForDeck())}
+                                            </Row>
+                                        ))}
+                                </div>
+                                <Spacer />
+                                {selectedCard.value ? (
+                                    <>
+                                        {upgradingMilestone.earned.value ? (
+                                            <div style="display: flex; justify-content: center;">
+                                                {cards[
+                                                    selectedCard.value as keyof typeof cards
+                                                ].renderForUpgrade(false)}
+                                                <div style="display: flex; flex-direction: column; color: var(--layer-color); font-size: xxx-large; margin-left: -30px; margin-right: -30px">
+                                                    <span style="margin-bottom: 20px">
+                                                        &#62;&#62;&#62;
+                                                    </span>
+                                                    {render(upgradeButton)}
+                                                    <span style="margin-top: 20px">
+                                                        &#62;&#62;&#62;
+                                                    </span>
+                                                </div>
+                                                {cards[
+                                                    selectedCard.value as keyof typeof cards
+                                                ].renderForUpgrade(true)}
+                                            </div>
+                                        ) : (
+                                            cards[
+                                                selectedCard.value as keyof typeof cards
+                                            ].renderForUpgrade(false)
+                                        )}
+                                        {sellingMilestone.earned.value ? render(sellButton) : null}
+                                    </>
+                                ) : null}
+                            </>
+                        );
+                    })
+                })),
+                visibility: () => showIf(shopMilestone.earned.value)
+            })
+        },
+        () => ({
+            classes: {
+                floating: false
+            },
+            style: {
+                borderStyle: "none",
+                marginLeft: "-20px",
+                marginRight: "-20px"
+            },
+            buttonContainerStyle: {
+                top: "50px"
+            }
         })
-    });
+    );
 
     return {
         name,
@@ -404,11 +954,20 @@ const layer = createLayer(id, function (this: BaseLayer) {
         minWidth: 670,
         properties,
         insights,
+        timeDrawing,
         job,
+        cards,
         modifiers,
         milestones,
         collapseMilestones,
         modifierTabs,
+        tabs,
+        selectedCard,
+        drawnCard,
+        soldCards,
+        cardShop,
+        cardsDrawnToShop,
+        fasterDrawTime,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
             if (firstFeature.value) {
@@ -416,11 +975,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
             return (
                 <>
-                    <div>
-                        You have <Resource resource={properties} color={color} /> properties studied
-                        and <Resource resource={insights} color="darkcyan" /> key insights
-                    </div>
-                    <br />
+                    <Sticky>
+                        <div style="height: 50px; line-height: 50px; margin-bottom: 20px">
+                            You have <Resource resource={properties} color={color} /> properties
+                            studied and <Resource resource={insights} color="darkcyan" /> key
+                            insights
+                        </div>
+                    </Sticky>
                     {renderColJSX(
                         ...milestonesToDisplay,
                         jsx(() => (
@@ -438,6 +999,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     )}
                     <Spacer />
                     {render(tabs)}
+                    {render(particles)}
                 </>
             );
         })
