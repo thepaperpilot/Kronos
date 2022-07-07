@@ -14,7 +14,7 @@ import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
-import { createResource } from "features/resources/resource";
+import { createResource, trackBest } from "features/resources/resource";
 import SpellTree from "features/spellTree/SpellTree.vue";
 import { createTabFamily } from "features/tabs/tabFamily";
 import {
@@ -72,6 +72,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const color = "#F1EBD9";
 
     const flowers = createResource<DecimalSource>(0, "moly");
+    const bestMoly = trackBest(flowers);
 
     const job = createJob(name, () => ({
         color,
@@ -506,7 +507,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             moreFlowersPerLevel: {
                 display: jsx(() => (
                     <div>
-                        Additional x1.1 flower gain per Therizó level
+                        Additional x1.1 Therizó potency per Therizó level
                         <br />
                         (x{format(moreFlowersPerLevelEffect.value)})
                     </div>
@@ -1316,6 +1317,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         color,
         minWidth: 670,
         flowers,
+        bestMoly,
         job,
         spells,
         modifiers,

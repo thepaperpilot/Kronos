@@ -1,7 +1,7 @@
 import ClickableComponent from "features/clickables/Clickable.vue";
 import {
     CoercableComponent,
-    Component,
+    Component as ComponentKey,
     GatherProps,
     GenericComponent,
     getUniqueID,
@@ -84,7 +84,7 @@ export interface BaseCard {
     classes: Record<string, boolean>;
     style: StyleValue;
     type: typeof CardType;
-    [Component]: typeof ClickableComponent;
+    [ComponentKey]: typeof ClickableComponent;
     [GatherProps]: () => Record<string, unknown>;
 }
 
@@ -114,7 +114,7 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
 
         card.id = getUniqueID("card-");
         card.type = CardType;
-        card[Component] = ClickableComponent;
+        card[ComponentKey] = ClickableComponent;
 
         card.amount = amount;
         card.level = level;
@@ -147,79 +147,71 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                 </>
             );
         });
-        card.renderForUpgrade = showUpgraded => {
+        const Display = coerceComponent(card.display);
+        const Component = ClickableComponent as GenericComponent;
+        const upgradedDisplay = jsx(() => {
             const genericCard = card as GenericCard;
-            let Display;
-            if (showUpgraded) {
-                const Description = coerceComponent(
-                    typeof genericCard.description === "function"
-                        ? (genericCard.description as (level: DecimalSource) => CoercableComponent)(
-                              Decimal.add(unref(genericCard.level), 1)
-                          )
-                        : unref(genericCard.description),
-                    "h3"
-                );
-                const Formula = coerceComponent(unref(genericCard.formula) ?? "");
-                Display = jsx(() => (
-                    <>
-                        <Description />
-                        <div class="metal">{metalSymbols[genericCard.metal]}</div>
-                        {genericCard.formula ? (
-                            <div class="formula">
-                                <Formula />
-                            </div>
-                        ) : null}
-                    </>
-                ));
-            } else {
-                Display = genericCard.display;
-            }
-            const Component = ClickableComponent as GenericComponent;
-            return (
-                <Component
-                    id={`${card.id}-upg-${showUpgraded}`}
-                    {...genericCard[GatherProps]()}
-                    display={Display}
-                    class="big"
-                    canClick={false}
-                />
+            const Description = coerceComponent(
+                typeof genericCard.description === "function"
+                    ? (genericCard.description as (level: DecimalSource) => CoercableComponent)(
+                          Decimal.add(unref(genericCard.level), 1)
+                      )
+                    : unref(genericCard.description),
+                "h3"
             );
-        };
-        card.renderForDeck = jsx(() => {
-            const genericCard = card as GenericCard;
-            const Display = coerceComponent(genericCard.display);
-            const display = jsx(() => (
-                <>
-                    <Display />
-                    <div class="badge amount">{genericCard.amount.value}</div>
-                </>
-            ));
-            const Component = ClickableComponent as GenericComponent;
+            const Formula = coerceComponent(unref(genericCard.formula) ?? "");
             return (
-                <Component
-                    id={`${card.id}-deck`}
-                    {...genericCard[GatherProps]()}
-                    display={display}
-                    onClick={genericCard.onSelect}
-                />
+                <>
+                    <Description />
+                    <div class="metal">{metalSymbols[genericCard.metal]}</div>
+                    {genericCard.formula ? (
+                        <div class="formula">
+                            <Formula />
+                        </div>
+                    ) : null}
+                </>
             );
         });
+        card.renderForUpgrade = showUpgraded => (
+            <Component
+                id={`${card.id}-upg-${showUpgraded}`}
+                {...(card as GenericCard)[GatherProps]()}
+                display={showUpgraded ? upgradedDisplay : Display}
+                class="big"
+                canClick={false}
+            />
+        );
+        const displayWithAmount = jsx(() => (
+            <>
+                <Display />
+                <div class="badge amount">{(card as GenericCard).amount.value}</div>
+            </>
+        ));
+        card.renderForDeck = jsx(() => (
+            <Component
+                id={`${card.id}-deck`}
+                {...(card as GenericCard)[GatherProps]()}
+                display={displayWithAmount}
+                onClick={(card as GenericCard).onSelect}
+            />
+        ));
+        const displayWithNew = jsx(() => (
+            <>
+                <Display />
+                {(card as GenericCard).amount.value === 0 ? (
+                    <div class="badge new">NEW!</div>
+                ) : null}
+            </>
+        ));
         card.renderForShop = jsx(() => {
             const genericCard = card as GenericCard;
-            const Display = coerceComponent(genericCard.display);
-            const display = jsx(() => (
-                <>
-                    <Display />
-                    {genericCard.amount.value === 0 ? <div class="badge new">NEW!</div> : null}
-                </>
-            ));
-            const Component = ClickableComponent as GenericComponent;
             if (genericCard.price == null) {
                 return (
                     <Component
                         id={`${card.id}-shop`}
                         {...genericCard[GatherProps]()}
                         class={{ shop: true, hidden: true }}
+                        canClick={false}
                     />
                 );
             }
@@ -228,7 +220,7 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                     id={`${card.id}-shop`}
                     {...genericCard[GatherProps]()}
                     class={{ shop: true }}
-                    display={display}
+                    display={displayWithNew}
                     canClick={false}
                 />
             );
@@ -240,7 +232,6 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
         // TODO speed up animation based on draw time (and devSpeed?)
         card.renderForPlay = cardsDrawn => {
             const genericCard = card as GenericCard;
-            const Display = coerceComponent(genericCard.display);
             const Component = ClickableComponent as GenericComponent;
             if (cardsDrawn.value !== lastCardsDrawn) {
                 flipping.value = false;
@@ -251,7 +242,6 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                 <Component
                     id={`${card.id}-play`}
                     {...genericCard[GatherProps]()}
-                    display={Display}
                     class={{ big: true, playing: true, flipping: flipping.value }}
                     canClick={false}
                 />

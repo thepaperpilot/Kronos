@@ -12,31 +12,29 @@ import Sqrt from "components/math/Sqrt.vue";
 import Node from "components/Node.vue";
 import { colorText, createCollapsibleModifierSections } from "data/common";
 import { main, numJobs } from "data/projEntry";
+import { createBar } from "features/bars/bar";
 import { CardActions, createCard, GenericCard, signElements } from "features/cards/card";
 import { createClickable } from "features/clickables/clickable";
 import { jsx, showIf } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
-import { createResource, displayResource } from "features/resources/resource";
+import { createResource, displayResource, trackBest } from "features/resources/resource";
 import Resource from "features/resources/Resource.vue";
 import { createTab } from "features/tabs/tab";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { addTooltip } from "features/tooltips/tooltip";
 import { BaseLayer, createLayer } from "game/layers";
-import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
+import {
+    createAdditiveModifier,
+    createMultiplicativeModifier,
+    createSequentialModifier
+} from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
 import { Direction } from "util/common";
-import {
-    coerceComponent,
-    getFirstFeature,
-    render,
-    renderColJSX,
-    renderJSX,
-    renderRow
-} from "util/vue";
+import { getFirstFeature, render, renderColJSX, renderJSX, renderRow } from "util/vue";
 import { computed, ComputedRef, nextTick, ref, unref } from "vue";
 import distill from "../distill/distill";
 import flowers from "../flowers/flowers";
@@ -52,7 +50,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const properties = createResource<DecimalSource>(0, "properties");
     const insights = createResource<DecimalSource>(0, "insights");
+    const bestInsights = trackBest(insights);
     const timeDrawing = persistent<number>(0);
+    const totalCardsDrawn = persistent<number>(0);
 
     const job = createJob(name, () => ({
         color,
@@ -85,7 +85,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         display: {
             requirement: "Achieve Studying Level 4",
-            effectDisplay: "Unlock purchasing cards"
+            effectDisplay: "Unlock purchasing and selling cards"
         },
         visibility() {
             return showIf(manualMilestone.earned.value);
@@ -103,28 +103,28 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return showIf(shopMilestone.earned.value);
         }
     }));
-    const upgradingMilestone = createMilestone(() => ({
+    const optimizationsMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
             requirement: "Achieve Studying Level 6",
-            effectDisplay: "Unlock upgrading cards"
+            effectDisplay: "Unlock optimizations"
         },
         visibility() {
             return showIf(timeSlotMilestone.earned.value);
         }
     }));
-    const sellingMilestone = createMilestone(() => ({
+    const upgradingMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
             requirement: "Achieve Studying Level 8",
-            effectDisplay: "Unlock selling cards"
+            effectDisplay: "Unlock upgrading cards"
         },
         visibility() {
-            return showIf(upgradingMilestone.earned.value);
+            return showIf(optimizationsMilestone.earned.value);
         }
     }));
     const jobMilestone = createMilestone(() => ({
@@ -136,21 +136,21 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: `Unlock "???" Job`
         },
         visibility() {
-            return showIf(sellingMilestone.earned.value);
+            return showIf(upgradingMilestone.earned.value);
         }
     }));
     const milestones = {
         manualMilestone,
         shopMilestone,
         timeSlotMilestone,
+        optimizationsMilestone,
         upgradingMilestone,
-        sellingMilestone,
         jobMilestone
     };
     const orderedMilestones = [
         jobMilestone,
-        sellingMilestone,
         upgradingMilestone,
+        optimizationsMilestone,
         timeSlotMilestone,
         shopMilestone,
         manualMilestone
@@ -164,21 +164,167 @@ const layer = createLayer(id, function (this: BaseLayer) {
         m => m.earned.value
     );
 
+    const expOptimization = computed(() =>
+        Decimal.pow(1.1, Decimal.max(flowers.bestMoly.value, 1).log10().floor())
+    );
+    const expOptimizationBar = createBar(() => ({
+        direction: Direction.Right,
+        width: 500,
+        height: 25,
+        progress: () =>
+            Decimal.sub(
+                1,
+                Decimal.add(flowers.bestMoly.value, 1)
+                    .log10()
+                    .ceil()
+                    .sub(Decimal.max(flowers.bestMoly.value, 1).log10())
+            ),
+        display: jsx(() => <>{format(flowers.bestMoly.value)} best moly</>),
+        borderStyle: {
+            borderColor: flowers.color,
+            color: "#888"
+        },
+        fillStyle: {
+            backgroundColor: flowers.color
+        }
+    }));
+    const studyingOptimization = computed(() =>
+        Decimal.pow(1.1, Decimal.max(distill.bestEssentia.value, 1).log10().floor())
+    );
+    const studyingOptimizationBar = createBar(() => ({
+        direction: Direction.Right,
+        width: 500,
+        height: 25,
+        progress: () =>
+            Decimal.sub(
+                1,
+                Decimal.add(distill.bestEssentia.value, 1)
+                    .log10()
+                    .ceil()
+                    .sub(Decimal.max(distill.bestEssentia.value, 1).log10())
+            ),
+        display: jsx(() => <>{format(distill.bestEssentia.value)} best essentia</>),
+        borderStyle: {
+            borderColor: distill.color,
+            color: "#888"
+        },
+        fillStyle: {
+            backgroundColor: distill.color
+        }
+    }));
+    const drawTimeOptimizaton = computed(() =>
+        Decimal.pow(1.1, Decimal.max(bestInsights.value, 1).log10().floor())
+    );
+    const drawTimeOptimizatonBar = createBar(() => ({
+        direction: Direction.Right,
+        width: 500,
+        height: 25,
+        progress: () =>
+            Decimal.sub(
+                1,
+                Decimal.add(bestInsights.value, 1)
+                    .log10()
+                    .ceil()
+                    .sub(Decimal.max(bestInsights.value, 1).log10())
+            ),
+        display: jsx(() => <>{format(bestInsights.value)} best insights</>),
+        borderStyle: {
+            borderColor: color,
+            color: "#888"
+        },
+        fillStyle: {
+            backgroundColor: color
+        }
+    }));
+
     const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(1.1, job.level.value)
     );
 
     const propertiesGain = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Studying level (x1.1 each)")
+        createMultiplicativeModifier(jobLevelEffect, "Studying level (x1.1 each)"),
+        createMultiplicativeModifier(
+            studyingOptimization,
+            "Studying optimization",
+            optimizationsMilestone.earned
+        )
     );
     const computedPropertiesGain = computed(() => propertiesGain.apply(10));
 
-    const jobXpGain = createSequentialModifier();
+    const jobXpGain = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => Decimal.times(0.01, totalCardsDrawn.value).add(1),
+            "Drawn cards (+.01x each)"
+        ),
+        createMultiplicativeModifier(
+            expOptimization,
+            "Experience optimization",
+            optimizationsMilestone.earned
+        )
+    );
+
+    const drawTime = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => Decimal.div(1, drawTimeOptimizaton.value),
+            "Draw speed optimization",
+            optimizationsMilestone.earned
+        ),
+        createMultiplicativeModifier(0.5, "Faster draw card", () => fasterDrawTime.value > 0)
+    );
+    const computedDrawTime = computed(() => drawTime.apply(10));
+
+    const manualDrawTime = createSequentialModifier(
+        createMultiplicativeModifier(0.5, "Manual bonus")
+    );
+    const computedManualDrawTime = computed(() => manualDrawTime.apply(computedDrawTime.value));
 
     const modifiers = {
         propertiesGain,
-        jobXpGain
+        jobXpGain,
+        drawTime,
+        manualDrawTime
     };
+
+    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Properties Gain",
+            modifier: propertiesGain,
+            base: 10
+        },
+        {
+            title: "Studying EXP Gain",
+            modifier: jobXpGain,
+            base: 1,
+            baseText: "Base (per property gained)"
+        },
+        {
+            title: "Automatic Card Draw",
+            modifier: drawTime,
+            base: 10,
+            unit: "s"
+        },
+        {
+            title: "Manual Card Draw",
+            modifier: manualDrawTime,
+            base: computedDrawTime,
+            unit: "s"
+        }
+    ]);
+    const modifierTabs = createTabFamily(
+        {
+            general: () => ({
+                display: "General",
+                glowColor(): string {
+                    return modifierTabs.activeTab.value === this.tab ? color : "";
+                },
+                tab: generalTab,
+                generalTabCollapsed
+            })
+        },
+        () => ({
+            style: `--layer-color: ${color}`
+        })
+    );
 
     const particles = createParticles(() => ({
         fullscreen: false,
@@ -215,7 +361,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const gainPoints = createCard(() => ({
         description: level =>
             `Record ${colorText(
-                format(Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)))
+                formatWhole(Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)))
             )} properties and job exp.`,
         metal: "gold",
         sign: "leo",
@@ -234,25 +380,32 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const gainBigPoints = createCard(() => ({
         description: level =>
             `Record ${colorText(
-                format(Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)).pow(1.2))
+                formatWhole(
+                    Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1))
+                        .times(10)
+                        .pow(1.2)
+                )
             )} properties and job exp. Destroy this card.`,
         metal: "tin",
         sign: "sagittarius",
         actions: {
-            onPlay: (level, canDestroy) => {
-                const gain = Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)).pow(
-                    1.2
-                );
+            onPlay: (level, isGhost) => {
+                const gain = Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1))
+                    .times(10)
+                    .pow(1.2);
                 properties.value = Decimal.add(properties.value, gain);
                 job.xp.value = Decimal.add(job.xp.value, jobXpGain.apply(gain));
-                if (canDestroy) {
+                if (!isGhost) {
                     gainBigPoints.amount.value = Math.max(gainBigPoints.amount.value - 1, 0);
+                    if (gainBigPoints.amount.value <= 0 && selectedCard.value === "gainBigPoints") {
+                        selectedCard.value = "";
+                    }
                 }
             }
         },
         formula: jsx(() => (
             <span style="color: var(--accent2)">
-                (properties gain x level)<sup>1.2</sup>
+                (properties gain x 10 x level)<sup>1.2</sup>
             </span>
         )),
         price: 8,
@@ -278,35 +431,27 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const gainBigInsight = createCard(() => ({
         description: level =>
             `Use the size of your deck to gain ${colorText(
-                format(Decimal.times(totalCards.value, Decimal.add(level, 1)).sqrt().floor())
+                formatWhole(Decimal.times(totalCards.value, Decimal.add(level, 1)))
             )} key insights.`,
         metal: "silver",
         sign: "cancer",
         actions: {
             onPlay: level => {
-                const amount = Decimal.times(totalCards.value, Decimal.add(level, 1))
-                    .sqrt()
-                    .floor();
+                const amount = Decimal.times(totalCards.value, Decimal.add(level, 1));
                 insights.value = Decimal.add(insights.value, amount);
             }
         },
-        formula: jsx(() => (
-            <span style="color: var(--accent2)">
-                <Floor>
-                    <Sqrt>cards x level</Sqrt>
-                </Floor>
-            </span>
-        )),
+        formula: jsx(() => <span style="color: var(--accent2)">cards x level</span>),
         price: 13,
         onSelect: () => (selectedCard.value = "gainBigInsight")
     }));
     const playTwice = createCard(() => ({
         description: level =>
             Decimal.eq(level, 0)
-                ? "Play the next card twice. Unaffected by multi-play effects."
-                : `Play the next card twice, with the effect boosted by ${colorText(
+                ? "Play the next card an extra time (does not stack)"
+                : `Play the next card an extra time, with ${colorText(
                       format(Decimal.div(level, 4))
-                  )} levels. Unaffected by multi-play effects.`,
+                  )} bonus levels (does not stack)`,
         metal: "iron",
         sign: "scorpio",
         actions: {
@@ -318,6 +463,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         true
                     );
                 }
+                totalCardsDrawn.value++;
                 return true;
             }
         },
@@ -355,8 +501,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
         actions: {
             onPlay: level =>
                 (fasterDrawTime.value = Decimal.times(
-                    Object.values(player.tabs).length - 1,
-                    level
+                    numJobs.value,
+                    Decimal.add(level, 1)
                 ).toNumber())
         },
         formula: colorText("number of jobs x level"),
@@ -369,6 +515,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 formatWhole(
                     main.jobs
                         .reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))
+                        .sqrt()
+                        .floor()
                         .times(Decimal.add(level, 1))
                 )
             )} of a random elemental essence`,
@@ -387,11 +535,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 );
                 randomElement.resource.value = Decimal.add(
                     randomElement.resource.value,
-                    sumJobLevels.times(Decimal.add(level, 1))
+                    sumJobLevels.times(Decimal.add(level, 1).sqrt().floor())
                 );
             }
         },
-        formula: colorText("sum job levels x level"),
+        formula: jsx(() => (
+            <span style="color: var(--accent2)">
+                <Floor>
+                    <Sqrt>sum job levels</Sqrt>
+                </Floor>{" "}
+                x level
+            </span>
+        )),
         price: 16,
         onSelect: () => (selectedCard.value = "gainElementalEssence")
     }));
@@ -416,14 +571,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 insights.value = Decimal.add(insights.value, amount);
             }
         },
-        formula: jsx(() => (
-            <span style="color: var(--accent2)">
-                <Floor>
-                    <Sqrt>sum job levels</Sqrt>
-                </Floor>{" "}
-                x level
-            </span>
-        )),
+        formula: jsx(() => <span style="color: var(--accent2)">sum job levels x level</span>),
         price: 14,
         onSelect: () => (selectedCard.value = "gainInsightFromJobs")
     }));
@@ -433,7 +581,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 formatWhole(
                     Decimal.sqrt(distill.essentia.value).times(Decimal.add(1, level)).floor()
                 )
-            )} moly`,
+            )} moly (unaffected by Therizó)`,
         metal: "lead",
         sign: "aquarius",
         actions: {
@@ -461,7 +609,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 formatWhole(
                     Decimal.div(flowers.flowers.value, 2)
                         .max(1)
-                        .log10()
+                        .ln()
                         .floor()
                         .times(Decimal.add(1, level))
                         .times(computedPropertiesGain.value)
@@ -473,7 +621,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             onPlay: level => {
                 const amount = Decimal.div(flowers.flowers.value, 2)
                     .max(1)
-                    .log10()
+                    .ln()
                     .floor()
                     .times(Decimal.add(1, level))
                     .times(computedPropertiesGain.value);
@@ -484,11 +632,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         formula: jsx(() => (
             <span style="color: var(--accent2)">
-                properties gain x{" "}
-                <Floor>
-                    log<sub>10</sub>(spent moly)
-                </Floor>{" "}
-                x level
+                properties gain x <Floor>ln(spent moly)</Floor> x level
             </span>
         )),
         price: 8,
@@ -590,7 +734,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }));
 
     const soldCards = persistent<number>(0);
-    const sellCost = computed(() => new Decimal(500).times(new Decimal(10).pow(soldCards.value)));
+    const sellCost = computed(() => Decimal.pow(2, soldCards.value).times(100));
     const sellButton = createClickable(() => ({
         display: {
             title: "Purge card",
@@ -603,12 +747,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
             ))
         },
         canClick() {
-            if (selectedCard.value === "gainInsight" || selectedCard.value === "gainBigInsight") {
-                // Make sure they can still gain insights
-                if (Decimal.add(gainInsight.amount.value, gainBigInsight.amount.value).lte(1)) {
-                    return false;
-                }
-            }
             return Decimal.gte(insights.value, sellCost.value);
         },
         async onClick() {
@@ -619,7 +757,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 card.amount.value--;
                 const boundingRect = particles.boundingRect.value;
                 const rect = layer.nodes.value.deck?.rect;
-                console.log(boundingRect, layer.nodes.value, card.id);
                 if (boundingRect && rect) {
                     await nextTick();
                     particles.addEmitter(sellParticles).then(e => {
@@ -722,64 +859,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
         return buyButton;
     });
 
-    const drawTime = createSequentialModifier(
-        createMultiplicativeModifier(0.5, "Faster draw card", () => fasterDrawTime.value > 0)
-    );
-    const computedDrawTime = computed(() => drawTime.apply(10));
-
-    const manualDrawTime = createSequentialModifier(
-        createMultiplicativeModifier(0.5, "Manual bonus")
-    );
-    const computedManualDrawTime = computed(() => manualDrawTime.apply(computedDrawTime.value));
-
-    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
-        {
-            title: "Properties Gain",
-            modifier: propertiesGain,
-            base: 10
-        },
-        {
-            title: "Studying EXP Gain",
-            modifier: jobXpGain,
-            base: 1,
-            baseText: "Base (per property gained)"
-        },
-        {
-            title: "Automatic Card Draw",
-            modifier: drawTime,
-            base: 10,
-            unit: "s"
-        },
-        {
-            title: "Manual Card Draw",
-            modifier: manualDrawTime,
-            base: computedDrawTime,
-            unit: "s"
-        }
-    ]);
-    const modifierTabs = createTabFamily(
-        {
-            general: () => ({
-                display: "General",
-                glowColor(): string {
-                    return modifierTabs.activeTab.value === this.tab ? color : "";
-                },
-                tab: generalTab,
-                generalTabCollapsed
-            })
-        },
-        () => ({
-            style: `--layer-color: ${color}`
-        })
-    );
-
     const cardsDrawnToShop = persistent<number>(0);
-    const cardsDrawnPerRefresh = computed(() => 12);
+    const cardsDrawnPerRefresh = computed(() => 7);
 
     function drawCard() {
         timeDrawing.value = 0;
         drawnCards.value++;
         cardsDrawnToShop.value++;
+        totalCardsDrawn.value++;
 
         const prevCard = drawnCard.value;
         let draw = Math.floor(Math.random() * totalCards.value);
@@ -862,23 +949,28 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         const ownedCards = (Object.values(cards) as GenericCard[]).filter(
                             c => c.amount.value > 0
                         );
-                        const deckRows = Math.ceil(ownedCards.length / 6);
+                        const deckRows = Math.ceil(ownedCards.length / 5);
                         return (
                             <>
                                 <Spacer />
-                                <h2>Shop</h2>
-                                <Spacer />
-                                {cardShop.value.map(c =>
-                                    c === ""
-                                        ? cards.nothing.renderForShop()
-                                        : cards[c].renderForShop()
-                                )}
-                                {renderRow(...buyButtons)}
-                                <div>
-                                    Shop will refresh in{" "}
-                                    {cardsDrawnPerRefresh.value - cardsDrawnToShop.value} draws
-                                </div>
-                                <Spacer height="50px" />
+                                {shopMilestone.earned.value ? (
+                                    <>
+                                        <h2>Shop</h2>
+                                        <Spacer />
+                                        {cardShop.value.map(c =>
+                                            c === ""
+                                                ? cards.nothing.renderForShop()
+                                                : cards[c].renderForShop()
+                                        )}
+                                        {renderRow(...buyButtons)}
+                                        <div>
+                                            Shop will refresh in{" "}
+                                            {cardsDrawnPerRefresh.value - cardsDrawnToShop.value}{" "}
+                                            draws
+                                        </div>
+                                        <Spacer height="50px" />
+                                    </>
+                                ) : null}
                                 <h2>Deck</h2>
                                 <Spacer />
                                 <div class="cardDeck-container">
@@ -923,14 +1015,63 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                                 selectedCard.value as keyof typeof cards
                                             ].renderForUpgrade(false)
                                         )}
-                                        {sellingMilestone.earned.value ? render(sellButton) : null}
+                                        {shopMilestone.earned.value ? render(sellButton) : null}
                                     </>
                                 ) : null}
                             </>
                         );
                     })
-                })),
-                visibility: () => showIf(shopMilestone.earned.value)
+                }))
+            }),
+            optimizations: () => ({
+                display: "Optimizations",
+                visibility: () => showIf(optimizationsMilestone.earned.value),
+                tab: createTab(() => ({
+                    display: jsx(() => (
+                        <>
+                            <Spacer />
+                            <h2>Experience Optimization</h2>
+                            <div style="margin: 20px">
+                                The magnitude of your best moly amount has allowed you to optimize
+                                your exp gain by{" "}
+                                {formatWhole(Decimal.times(expOptimization.value, 100).sub(100))}
+                                %.
+                                <br />
+                                Each additional order of magnitude gives a compounding 10%
+                                optimization.
+                            </div>
+                            {render(expOptimizationBar)}
+                            <Spacer height="50px" />
+                            <h2>Studying Optimization</h2>
+                            <div style="margin: 20px">
+                                The magnitude of your best essentia amount has allowed you to
+                                optimize your properties gain by{" "}
+                                {formatWhole(
+                                    Decimal.times(studyingOptimization.value, 100).sub(100)
+                                )}
+                                %.
+                                <br />
+                                Each additional order of magnitude gives a compounding 10%
+                                optimization.
+                            </div>
+                            {render(studyingOptimizationBar)}
+                            <Spacer height="50px" />
+                            <h2>Draw Speed Optimization</h2>
+                            <div style="margin: 20px">
+                                The magnitude of your best insights amount has allowed you to
+                                optimize your drawing speed by{" "}
+                                {formatWhole(
+                                    Decimal.times(drawTimeOptimizaton.value, 100).sub(100)
+                                )}
+                                %.
+                                <br />
+                                Each additional order of magnitude gives a compounding 10%
+                                optimization.
+                            </div>
+                            {render(drawTimeOptimizatonBar)}
+                        </>
+                    ))
+                }))
             })
         },
         () => ({
@@ -954,6 +1095,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         minWidth: 670,
         properties,
         insights,
+        bestInsights,
         timeDrawing,
         job,
         cards,
@@ -968,6 +1110,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         cardShop,
         cardsDrawnToShop,
         fasterDrawTime,
+        totalCardsDrawn,
         display: jsx(() => {
             const milestonesToDisplay = [...lockedMilestones.value];
             if (firstFeature.value) {

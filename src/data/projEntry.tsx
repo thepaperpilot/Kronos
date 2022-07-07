@@ -245,11 +245,7 @@ export const main = createLayer(id, () => {
                     {player.offlineTime ? (
                         <div>Offline Time: {formatTime(player.offlineTime)}</div>
                     ) : null}
-                    {player.devSpeed != null ||
-                    player.offlineTime != null ||
-                    hasTimeSlotAvailable.value ? (
-                        <Spacer />
-                    ) : null}
+                    {player.devSpeed != null || player.offlineTime != null ? <Spacer /> : null}
                     {unref(goalDisplay)}
                     <Spacer />
                     {Decimal.gt(timeSlots.value, 0) ? (

@@ -18,7 +18,7 @@ import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
-import { createResource, displayResource, Resource } from "features/resources/resource";
+import { createResource, displayResource, Resource, trackBest } from "features/resources/resource";
 import { createTabFamily } from "features/tabs/tabFamily";
 import Tooltip from "features/tooltips/Tooltip.vue";
 import { addLayer, BaseLayer, createLayer } from "game/layers";
@@ -94,6 +94,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const color = "#8AFFC1";
 
     const essentia = createResource<DecimalSource>(0, "essentia");
+    const bestEssentia = trackBest(essentia);
 
     const job = createJob(name, () => ({
         color,
@@ -582,6 +583,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         color,
         minWidth: 670,
         essentia,
+        bestEssentia,
         elements,
         instruments,
         job,
