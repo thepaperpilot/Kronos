@@ -1008,20 +1008,27 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const modifiers = {
+        chargeMult,
         allSpellPotency,
         allSpellXpGain,
         xpSpellPotency,
         xpSpellXp,
         jobXpGain,
+        jobXpDischargeRate,
         flowerSpellPotency,
         flowerSpellXp,
         flowerGain,
         flowerPassiveGain,
+        flowerDischargeRate,
         chargeSpellPotency,
         chargeSpellXp,
+        chargeCap,
+        chargeRate,
+        baseDischargeRate,
         massXpSpellPotency,
         massXpSpellXp,
-        massXpGain
+        massXpGain,
+        massXpDischargeRate
     };
 
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
