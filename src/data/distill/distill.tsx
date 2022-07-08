@@ -276,10 +276,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         );
         const passiveEssenceGain = createSequentialModifier(
             createAdditiveModifier(
-                computed(() => Decimal.sqrt(principleClickable?.amount.value ?? 0).times(10)),
+                computed(() => Decimal.times(principleClickable?.amount.value ?? 0, 5)),
                 jsx(() => (
                     <>
-                        {camelToTitle(principle)} effect (10 x <Sqrt>salt amount</Sqrt>)
+                        {camelToTitle(principle)} effect (5 x {principle} amount)
                     </>
                 ))
             )
