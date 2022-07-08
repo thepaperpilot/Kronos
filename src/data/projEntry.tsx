@@ -10,9 +10,11 @@ import { addLayer, createLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import type { LayerData, PlayerData } from "game/player";
 import player from "game/player";
+import settings from "game/settings";
 import Decimal, { format, formatTime, formatWhole } from "util/bignum";
 import { render, renderCol } from "util/vue";
 import { computed, ref, unref, watch, watchEffect } from "vue";
+import { useToast } from "vue-toastification";
 import confetti from "./confetti.json";
 import Cutscene from "./Cutscene.vue";
 import distill from "./distill/distill";
@@ -30,6 +32,8 @@ interface CutscenePage {
     stage: CoercableComponent;
     caption?: CoercableComponent;
 }
+
+const toast = useToast();
 
 const id = "main";
 /**
@@ -58,7 +62,13 @@ export const main = createLayer(id, () => {
     jobs.forEach(job => {
         let lastProc = 0;
         watch(job.rawLevel, (currLevel, prevLevel) => {
-            if (Decimal.neq(currLevel, prevLevel) && Date.now() - lastProc > 500) {
+            if (settings.active !== player.id || Decimal.neq(currLevel, Decimal.add(prevLevel, 1)))
+                return;
+            if (job.notif) {
+                toast.dismiss(job.notif);
+            }
+            job.notif = toast.info(`${job.name} is now level ${currLevel}!`);
+            if (Date.now() - lastProc > 500) {
                 const rect = main.nodes.value[job.id]?.rect;
                 const boundingRect = particles.boundingRect.value;
                 if (rect && boundingRect) {
@@ -113,6 +123,7 @@ export const main = createLayer(id, () => {
 
     const activeCutscene = ref<null | Cutscene>(null);
     watchEffect(() => {
+        if (settings.active !== player.id) return;
         if (chapter.value === 0) {
             activeCutscene.value = {
                 pages: [

@@ -22,6 +22,7 @@ import {
 } from "util/computed";
 import { createLazyProxy } from "util/proxies";
 import { computed, nextTick, ref, Ref, unref } from "vue";
+import { ToastID } from "vue-toastification/dist/types/types";
 
 export const JobType = Symbol("Job");
 const levelSoftcapPower = 0.7643; // chosen so that e308 = level 100
@@ -58,6 +59,7 @@ export interface BaseJob {
     timeLoopActive: Persistent<boolean>;
     currentQuip: Ref<string | null>;
     setQuip: (quip?: string) => void;
+    notif?: ToastID;
     type: typeof JobType;
     [Component]: typeof JobComponent;
     [GatherProps]: () => Record<string, unknown>;
