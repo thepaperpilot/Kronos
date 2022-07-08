@@ -25,11 +25,7 @@ import { createTab } from "features/tabs/tab";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { addTooltip } from "features/tooltips/tooltip";
 import { BaseLayer, createLayer } from "game/layers";
-import {
-    createAdditiveModifier,
-    createMultiplicativeModifier,
-    createSequentialModifier
-} from "game/modifiers";
+import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
@@ -66,7 +62,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         resource: properties,
         layerID: id,
-        modifierInfo: jsx(() => renderJSX(modifierTabs)),
+        modifierInfo: jsx(() => renderJSX(generalTab)),
         visibility: () => showIf(distill.milestones.studyMilestone.earned.value)
     }));
 
@@ -310,21 +306,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
             unit: "s"
         }
     ]);
-    const modifierTabs = createTabFamily(
-        {
-            general: () => ({
-                display: "General",
-                glowColor(): string {
-                    return modifierTabs.activeTab.value === this.tab ? color : "";
-                },
-                tab: generalTab,
-                generalTabCollapsed
-            })
-        },
-        () => ({
-            style: `--layer-color: ${color}`
-        })
-    );
 
     const particles = createParticles(() => ({
         fullscreen: false,
@@ -1102,7 +1083,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         modifiers,
         milestones,
         collapseMilestones,
-        modifierTabs,
+        generalTabCollapsed,
         tabs,
         selectedCard,
         drawnCard,
