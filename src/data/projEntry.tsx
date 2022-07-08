@@ -64,7 +64,7 @@ export const main = createLayer(id, () => {
         watch(job.rawLevel, (currLevel, prevLevel) => {
             if (settings.active !== player.id || Decimal.neq(currLevel, Decimal.add(prevLevel, 1)))
                 return;
-            if (job.notif) {
+            if (job.notif != null) {
                 toast.dismiss(job.notif);
             }
             job.notif = toast.info(`${job.name} is now level ${currLevel}!`);

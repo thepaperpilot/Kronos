@@ -33,12 +33,15 @@ import {
 } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
+import settings from "game/settings";
 import Decimal, { DecimalSource, format } from "util/bignum";
 import { formatWhole } from "util/break_eternity";
 import { Direction } from "util/common";
 import { ProcessedComputable } from "util/computed";
 import { getFirstFeature, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
 import { computed, ComputedRef, ref, Ref, unref, watch, WatchStopHandle } from "vue";
+import { useToast } from "vue-toastification";
+import { ToastID } from "vue-toastification/dist/types/types";
 import { createCollapsibleModifierSections } from "../common";
 import globalQuips from "../quips.json";
 import "./flowers.css";
@@ -60,11 +63,14 @@ export interface Spell<T extends string> {
     tree: GenericTree;
     selector: GenericClickable;
     visibility: Ref<Visibility>;
+    notif?: ToastID;
 }
 
 export type GenericSpellTreeNode = GenericTreeNode & {
     bought: Ref<boolean>;
 };
+
+const toast = useToast();
 
 const id = "flowers";
 const layer = createLayer(id, function (this: BaseLayer) {
@@ -348,9 +354,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     spell.particleEffectWatcher.value = null;
                 }
             }
-        };
+        } as Spell<T>;
 
         watch(spell.active, spell.updateParticleEffect);
+        watch(spell.level, (currLevel, prevLevel) => {
+            if (settings.active !== player.id || Decimal.neq(currLevel, Decimal.add(prevLevel, 1)))
+                return;
+            if (spell.notif != null) {
+                toast.dismiss(spell.notif);
+            }
+            spell.notif = toast.info(`${title} is now level ${currLevel}!`);
+        });
 
         return spell;
     }
