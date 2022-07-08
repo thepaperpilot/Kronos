@@ -28,16 +28,21 @@ import { BaseLayer, createLayer } from "game/layers";
 import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
+import settings from "game/settings";
 import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
 import { Direction } from "util/common";
 import { getFirstFeature, render, renderColJSX, renderJSX, renderRow } from "util/vue";
-import { computed, ComputedRef, nextTick, ref, unref } from "vue";
+import { computed, ComputedRef, nextTick, ref, unref, watch } from "vue";
+import { useToast } from "vue-toastification";
+import type { ToastID } from "vue-toastification/dist/types/types";
 import distill from "../distill/distill";
 import flowers from "../flowers/flowers";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import sellParticles from "./sell.json";
 import "./study.css";
+
+const toast = useToast();
 
 const id = "study";
 const layer = createLayer(id, function (this: BaseLayer) {
@@ -163,6 +168,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const expOptimization = computed(() =>
         Decimal.pow(1.1, Decimal.max(flowers.bestMoly.value, 1).log10().floor())
     );
+    let expOptimizationNotif: ToastID | null = null;
+    watch(
+        () => formatWhole(Decimal.times(expOptimization.value, 100).sub(100)),
+        currLevel => {
+            if (settings.active !== player.id) return;
+            if (expOptimizationNotif != null) {
+                toast.dismiss(expOptimizationNotif);
+            }
+            expOptimizationNotif = toast.info(`Experience Optimization is now ${currLevel}%!`);
+        }
+    );
     const expOptimizationBar = createBar(() => ({
         direction: Direction.Right,
         width: 500,
@@ -187,6 +203,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const studyingOptimization = computed(() =>
         Decimal.pow(1.1, Decimal.max(distill.bestEssentia.value, 1).log10().floor())
     );
+    let studyingOptimizationNotif: ToastID | null = null;
+    watch(
+        () => formatWhole(Decimal.times(studyingOptimization.value, 100).sub(100)),
+        currLevel => {
+            if (settings.active !== player.id) return;
+            if (studyingOptimizationNotif != null) {
+                toast.dismiss(studyingOptimizationNotif);
+            }
+            studyingOptimizationNotif = toast.info(`Studying Optimization is now ${currLevel}%!`);
+        }
+    );
     const studyingOptimizationBar = createBar(() => ({
         direction: Direction.Right,
         width: 500,
@@ -210,6 +237,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }));
     const drawTimeOptimizaton = computed(() =>
         Decimal.pow(1.1, Decimal.max(bestInsights.value, 1).log10().floor())
+    );
+    let drawTimeOptimizationNotif: ToastID | null = null;
+    watch(
+        () => formatWhole(Decimal.times(drawTimeOptimizaton.value, 100).sub(100)),
+        currLevel => {
+            if (settings.active !== player.id) return;
+            if (drawTimeOptimizationNotif != null) {
+                toast.dismiss(drawTimeOptimizationNotif);
+            }
+            drawTimeOptimizationNotif = toast.info(`Draw Time Optimization is now ${currLevel}%!`);
+        }
     );
     const drawTimeOptimizatonBar = createBar(() => ({
         direction: Direction.Right,

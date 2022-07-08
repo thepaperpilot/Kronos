@@ -41,7 +41,7 @@ import { ProcessedComputable } from "util/computed";
 import { getFirstFeature, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
 import { computed, ComputedRef, ref, Ref, unref, watch, WatchStopHandle } from "vue";
 import { useToast } from "vue-toastification";
-import { ToastID } from "vue-toastification/dist/types/types";
+import type { ToastID } from "vue-toastification/dist/types/types";
 import { createCollapsibleModifierSections } from "../common";
 import globalQuips from "../quips.json";
 import "./flowers.css";
