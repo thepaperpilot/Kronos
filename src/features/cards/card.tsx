@@ -1,3 +1,4 @@
+import Notif from "components/Notif.vue";
 import ClickableComponent from "features/clickables/Clickable.vue";
 import {
     CoercableComponent,
@@ -78,7 +79,7 @@ export interface BaseCard {
     level: Persistent<DecimalSource>;
     display: JSXFunction;
     renderForUpgrade: (showUpgrade: boolean) => JSX.Element;
-    renderForDeck: JSXFunction;
+    renderForDeck: (canUpgrade: boolean) => JSX.Element;
     renderForShop: JSXFunction;
     renderForPlay: (drawnCards: Ref<number>) => JSX.Element;
     classes: Record<string, boolean>;
@@ -181,20 +182,20 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                 canClick={false}
             />
         );
-        const displayWithAmount = jsx(() => (
-            <>
-                <Display />
-                <div class="badge amount">{(card as GenericCard).amount.value}</div>
-            </>
-        ));
-        card.renderForDeck = jsx(() => (
+        card.renderForDeck = canUpgrade => (
             <Component
                 id={`${card.id}-deck`}
                 {...(card as GenericCard)[GatherProps]()}
-                display={displayWithAmount}
+                display={jsx(() => (
+                    <>
+                        <Display />
+                        <div class="badge amount">{(card as GenericCard).amount.value}</div>
+                        {canUpgrade ? <Notif style="left: 20px; top: -20px" /> : null}
+                    </>
+                ))}
                 onClick={(card as GenericCard).onSelect}
             />
-        ));
+        );
         const displayWithNew = jsx(() => (
             <>
                 <Display />

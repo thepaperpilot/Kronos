@@ -47,6 +47,7 @@ export interface JobOptions {
     layerID: string;
     modifierInfo?: Computable<CoercableComponent>;
     modifierModalAttrs?: Record<string, unknown>;
+    showNotif?: Computable<boolean>;
 }
 
 export interface BaseJob {
@@ -164,6 +165,7 @@ export function createJob<T extends JobOptions>(
         processComputable(job as T, "imageFocus");
         processComputable(job as T, "randomQuips");
         processComputable(job as T, "modifierInfo");
+        processComputable(job as T, "showNotif");
 
         job[GatherProps] = function (this: GenericJob) {
             const {
@@ -184,7 +186,8 @@ export function createJob<T extends JobOptions>(
                 currentQuip,
                 randomQuips,
                 modifierInfo,
-                modifierModalAttrs
+                modifierModalAttrs,
+                showNotif
             } = this;
             return {
                 id,
@@ -204,7 +207,8 @@ export function createJob<T extends JobOptions>(
                 currentQuip,
                 randomQuips,
                 modifierInfo,
-                modifierModalAttrs
+                modifierModalAttrs,
+                showNotif
             };
         };
 

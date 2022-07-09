@@ -10,6 +10,7 @@ import Sticky from "components/layout/Sticky.vue";
 import Floor from "components/math/Floor.vue";
 import Sqrt from "components/math/Sqrt.vue";
 import Node from "components/Node.vue";
+import Notif from "components/Notif.vue";
 import { colorText, createCollapsibleModifierSections } from "data/common";
 import { main, numJobs } from "data/projEntry";
 import { createBar } from "features/bars/bar";
@@ -55,6 +56,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const timeDrawing = persistent<number>(0);
     const totalCardsDrawn = persistent<number>(0);
 
+    const upgradeNotif = computed(
+        () =>
+            shopMilestone.earned.value &&
+            Object.values(cards).some(c => canUpgrade(c as GenericCard))
+    );
+
     const job = createJob(name, () => ({
         color,
         image: "https://dummyimage.com/512x288/000/fff.png",
@@ -68,7 +75,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
         resource: properties,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(generalTab)),
-        visibility: () => showIf(distill.milestones.studyMilestone.earned.value)
+        visibility: () => showIf(distill.milestones.studyMilestone.earned.value),
+        showNotif: upgradeNotif
     }));
 
     const manualMilestone = createMilestone(() => ({
@@ -922,6 +930,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }
 
+    function canUpgrade(c: GenericCard) {
+        return (
+            shopMilestone.earned.value &&
+            c.amount.value > 0 &&
+            Decimal.gte(insights.value, new Decimal(10).pow(Decimal.add(c.level.value, 2)))
+        );
+    }
+
     this.on("preUpdate", diff => {
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
 
@@ -962,7 +978,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 }
             }),
             deck: () => ({
-                display: "Cards",
+                display: jsx(() => (
+                    <span style="position: relative;">
+                        Cards{upgradeNotif.value ? <Notif style="left: -15px; top: -10px" /> : null}
+                    </span>
+                )),
                 tab: createTab(() => ({
                     display: jsx(() => {
                         const ownedCards = (Object.values(cards) as GenericCard[]).filter(
@@ -1004,7 +1024,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                                         (i + 1) *
                                                             Math.ceil(ownedCards.length / deckRows)
                                                     )
-                                                    .map(c => c.renderForDeck())}
+                                                    .map(c => c.renderForDeck(canUpgrade(c)))}
                                             </Row>
                                         ))}
                                 </div>

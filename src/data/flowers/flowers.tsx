@@ -6,6 +6,7 @@ import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
 import Collapsible from "components/layout/Collapsible.vue";
 import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
+import Notif from "components/Notif.vue";
 import { main } from "data/projEntry";
 import { createBar } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
@@ -95,7 +96,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         modifierModalAttrs: {
             class: "flowers-modal"
-        }
+        },
+        showNotif: () =>
+            Object.values(spells).some(s =>
+                unref(s.tree.nodes).some(r => r.some(s => s !== blank && unref(s.canClick)))
+            )
     }));
 
     const activeSpells = computed(() => Object.values(spells).filter(s => s.active.value).length);
@@ -273,6 +278,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                         {formatWhole(level.value)})
                                     </span>
                                 </div>
+                            ) : null}
+                            {rows.some(r =>
+                                r.some(s => s !== blank && unref(treeNodes[s as T].canClick))
+                            ) ? (
+                                <Notif />
                             ) : null}
                         </>
                     ))

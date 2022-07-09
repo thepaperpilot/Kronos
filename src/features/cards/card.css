@@ -69,6 +69,10 @@
     z-index: unset;
 }
 
+.card.canUpgrade.can:hover {
+    box-shadow: black 0px 0px 2rem 0, white 0px 0px 1rem;
+}
+
 .card.can:hover + .card {
     margin-left: 0px;
 }

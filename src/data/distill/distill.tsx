@@ -7,7 +7,6 @@ import { Emitter, EmitterConfigV3 } from "@pixi/particle-emitter";
 import Slider from "components/fields/Slider.vue";
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
-import Sqrt from "components/math/Sqrt.vue";
 import Node from "components/Node.vue";
 import { createCollapsibleModifierSections, Section } from "data/common";
 import flowers from "data/flowers/flowers";
@@ -109,7 +108,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
         resource: essentia,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
-        visibility: isPastChapter1
+        visibility: isPastChapter1,
+        showNotif: () => Object.values(elements).some(e => unref(e.principleClickable?.canClick))
     }));
 
     const waterMilestone = createMilestone(() => ({

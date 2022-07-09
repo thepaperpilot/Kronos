@@ -23,7 +23,7 @@
         <div class="job-contents">
             <template v-for="(resource, index) in resourceArray" :key="index">
                 <div class="job-resource">
-                    {{ displayResource(resource) }} {{ resource.displayName }}<br/>
+                    {{ displayResource(resource) }} {{ resource.displayName }}<br />
                 </div>
                 <br />
             </template>
@@ -40,8 +40,10 @@
             </div>
         </div>
         <div v-if="selected && unref(currentQuip)" class="job-quip">"{{ unref(currentQuip) }}"</div>
-        <div class="job-progress-container">
-            <div class="job-progress"></div>
+        <div class="job-clipping-container">
+            <div class="job-progress-container">
+                <div class="job-progress"></div>
+            </div>
         </div>
         <Tooltip :direction="Direction.Left" display="Toggle Time Loop" class="job-loop-toggle">
             <button
@@ -57,12 +59,14 @@
             </button>
         </Tooltip>
         <Node :id="id" />
+        <Notif v-if="unref(showNotif)" />
     </span>
 </template>
 
 <script lang="tsx">
 import "components/common/features.css";
 import Node from "components/Node.vue";
+import Notif from "components/Notif.vue";
 import { main } from "data/projEntry";
 import { CoercableComponent, StyleValue, Visibility } from "features/feature";
 import ModifierInfo from "features/ModifierInfo.vue";
@@ -145,12 +149,14 @@ export default defineComponent({
             type: String,
             required: true
         },
-        modifierModalAttrs: Object as PropType<Record<string, unknown>>
+        modifierModalAttrs: Object as PropType<Record<string, unknown>>,
+        showNotif: processedPropType<boolean>(Boolean)
     },
     components: {
         Node,
         ModifierInfo,
-        Tooltip
+        Tooltip,
+        Notif
     },
     setup(props) {
         const { layerID, currentQuip, randomQuips, resource } = toRefs(props);
@@ -219,7 +225,6 @@ export default defineComponent({
     width: 516px;
     position: relative;
     background: var(--raised-background);
-    overflow: hidden;
     box-shadow: 0 4px 4px 0 rgb(0 0 0 / 25%);
 }
 
@@ -341,6 +346,16 @@ export default defineComponent({
 .job.selected .job-title > span:nth-child(2) {
     margin-left: -10px;
     padding-left: 10px;
+}
+
+.job-clipping-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    border-radius: inherit;
 }
 
 .job-progress-container {
