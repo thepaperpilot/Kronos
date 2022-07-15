@@ -118,7 +118,8 @@ export const main = createLayer(id, () => {
     // Preload images
     [
         "https://upload.wikimedia.org/wikipedia/commons/7/71/Serpiente_alquimica.jpg",
-        "https://dummyimage.com/720x320/000/fff.png"
+        "https://dummyimage.com/720x320/000/fff.png",
+        "https://dummyimage.com/386x320/000/fff.png"
     ].forEach(image => (new Image().src = image));
 
     const activeCutscene = ref<null | Cutscene>(null);
