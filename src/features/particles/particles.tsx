@@ -1,9 +1,9 @@
 import type { EmitterConfigV3 } from "@pixi/particle-emitter";
 import { Emitter, upgradeConfig } from "@pixi/particle-emitter";
-import type { OptionsFunc, Replace, StyleValue } from "features/feature";
+import type { GenericComponent, OptionsFunc, Replace, StyleValue } from "features/feature";
 import { Component, GatherProps, getUniqueID } from "features/feature";
 import ParticlesComponent from "features/particles/Particles.vue";
-import { Application } from "pixi.js";
+import { Application } from "@pixi/app";
 import type { Computable, GetComputableType } from "util/computed";
 import { createLazyProxy } from "util/proxies";
 import { Ref, shallowRef, unref } from "vue";
@@ -22,7 +22,7 @@ export interface BaseParticles {
     app: Ref<null | Application>;
     addEmitter: (config: EmitterConfigV3) => Promise<Emitter>;
     type: typeof ParticlesType;
-    [Component]: typeof ParticlesComponent;
+    [Component]: GenericComponent;
     [GatherProps]: () => Record<string, unknown>;
 }
 
