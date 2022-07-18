@@ -556,13 +556,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 );
                 const randomElement =
                     unlockedElements[Math.floor(Math.random() * unlockedElements.length)];
-                const sumJobLevels = main.jobs.reduce(
-                    (acc, curr) => acc.add(curr.level.value),
-                    new Decimal(0)
-                );
                 randomElement.resource.value = Decimal.add(
                     randomElement.resource.value,
-                    sumJobLevels.times(Decimal.add(level, 1).sqrt().floor())
+                    main.sumJobLevels.value.times(Decimal.add(level, 1).sqrt().floor())
                 );
             }
         },

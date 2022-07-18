@@ -3,6 +3,7 @@ import type { CoercableComponent } from "features/feature";
 import { jsx, showIf } from "features/feature";
 import { GenericJob } from "features/job/job";
 import { createParticles } from "features/particles/particles";
+import { createResource, trackBest, trackTotal } from "features/resources/resource";
 import { createUpgrade } from "features/upgrades/upgrade";
 import { globalBus } from "game/events";
 import type { GenericLayer } from "game/layers";
@@ -95,6 +96,13 @@ export const main = createLayer(id, () => {
             }
         });
     });
+
+    const sumJobLevels = createResource(
+        computed(() => jobs.reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))),
+        "Sum of all job levels"
+    );
+    const totalJobLevelsSum = trackTotal(sumJobLevels);
+    const bestJobLevelsSum = trackBest(sumJobLevels);
 
     const closeTimeLoop = createUpgrade(() => ({
         display: {
@@ -230,6 +238,9 @@ export const main = createLayer(id, () => {
         activeCutscene,
         classes: { nigredo: true },
         jobs,
+        sumJobLevels,
+        bestJobLevelsSum,
+        totalJobLevelsSum,
         display: jsx(() =>
             activeCutscene.value ? (
                 <Cutscene
