@@ -387,9 +387,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }));
     const gainPoints = createCard(() => ({
         description: level =>
-            `Record ${colorText(
-                formatWhole(Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1)))
-            )} properties and job exp.`,
+            jsx(() => (
+                <h3>
+                    Record{" "}
+                    {colorText(
+                        formatWhole(
+                            Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1))
+                        )
+                    )}{" "}
+                    properties and job exp.
+                </h3>
+            )),
         metal: "gold",
         sign: "leo",
         actions: {
@@ -399,20 +407,26 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 job.xp.value = Decimal.add(job.xp.value, jobXpGain.apply(gain));
             }
         },
-        formula: colorText("properties gain x level"),
+        formula: jsx(() => colorText("properties gain x level")),
         price: 1,
         startingAmount: 4,
         onSelect: () => (selectedCard.value = "gainPoints")
     }));
     const gainBigPoints = createCard(() => ({
         description: level =>
-            `Record ${colorText(
-                formatWhole(
-                    Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1))
-                        .times(10)
-                        .pow(1.2)
-                )
-            )} properties and job exp. Destroy this card.`,
+            jsx(() => (
+                <h3>
+                    Record{" "}
+                    {colorText(
+                        formatWhole(
+                            Decimal.times(computedPropertiesGain.value, Decimal.add(level, 1))
+                                .times(10)
+                                .pow(1.2)
+                        )
+                    )}{" "}
+                    properties and job exp. Destroy this card.
+                </h3>
+            )),
         metal: "tin",
         sign: "sagittarius",
         actions: {
@@ -441,8 +455,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const gainInsight = createCard(() => ({
         description: level =>
             Decimal.eq(level, 0)
-                ? `Gain ${colorText("1")} key insight.`
-                : `Gain ${colorText(formatWhole(Decimal.add(level, 1)))} key insights.`,
+                ? jsx(() => <h3>Gain {colorText("1")} key insight.</h3>)
+                : jsx(() => (
+                      <h3>Gain {colorText(formatWhole(Decimal.add(level, 1)))} key insights.</h3>
+                  )),
         metal: "copper",
         sign: "libra",
         actions: {
@@ -450,16 +466,20 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 insights.value = Decimal.add(insights.value, level).add(1);
             }
         },
-        formula: colorText("level"),
+        formula: jsx(() => colorText("level")),
         price: 0,
         startingAmount: 2,
         onSelect: () => (selectedCard.value = "gainInsight")
     }));
     const gainBigInsight = createCard(() => ({
         description: level =>
-            `Use the size of your deck to gain ${colorText(
-                formatWhole(Decimal.times(totalCards.value, Decimal.add(level, 1)))
-            )} key insights.`,
+            jsx(() => (
+                <h3>
+                    Use the size of your deck to gain{" "}
+                    {colorText(formatWhole(Decimal.times(totalCards.value, Decimal.add(level, 1))))}{" "}
+                    key insights.
+                </h3>
+            )),
         metal: "silver",
         sign: "cancer",
         actions: {
@@ -476,9 +496,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
         description: level =>
             Decimal.eq(level, 0)
                 ? "Play the next card an extra time (does not stack)"
-                : `Play the next card an extra time, with ${colorText(
-                      format(Decimal.div(level, 4))
-                  )} bonus levels (does not stack)`,
+                : jsx(() => (
+                      <h3>
+                          Play the next card an extra time, with{" "}
+                          {colorText(format(Decimal.div(level, 4)))} bonus levels (does not stack)
+                      </h3>
+                  )),
         metal: "iron",
         sign: "scorpio",
         actions: {
@@ -494,15 +517,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 return true;
             }
         },
-        formula: colorText("(level - 1) / 4"),
+        formula: jsx(() => colorText("(level - 1) / 4")),
         price: 32,
         onSelect: () => (selectedCard.value = "playTwice")
     }));
     const gainXp = createCard(() => ({
         description: level =>
-            `Gain xp equal to ${colorText(
-                format(Decimal.div(Decimal.add(level, 1), 10))
-            )}x times your number of properties.`,
+            jsx(() => (
+                <h3>
+                    Gain xp equal to {colorText(format(Decimal.div(Decimal.add(level, 1), 10)))}x
+                    times your number of properties.
+                </h3>
+            )),
         metal: "tin",
         sign: "pisces",
         actions: {
@@ -513,16 +539,20 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 );
             }
         },
-        formula: colorText("properties x level / 10"),
+        formula: jsx(() => colorText("properties x level / 10")),
         price: 25,
         onSelect: () => (selectedCard.value = "gainXp")
     }));
     const fasterDrawTime = persistent<number>(0);
     const fasterDraws = createCard(() => ({
         description: level =>
-            `Drawing cards is 2x faster for the next ${colorText(
-                formatWhole(Decimal.times(numJobs.value, Decimal.add(level, 1)))
-            )} seconds (doesn't stack)`,
+            jsx(() => (
+                <h3>
+                    Drawing cards is 2x faster for the next{" "}
+                    {colorText(formatWhole(Decimal.times(numJobs.value, Decimal.add(level, 1))))}{" "}
+                    seconds (doesn't stack)
+                </h3>
+            )),
         metal: "mercury",
         sign: "virgo",
         actions: {
@@ -532,21 +562,27 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     Decimal.add(level, 1)
                 ).toNumber())
         },
-        formula: colorText("number of jobs x level"),
+        formula: jsx(() => colorText("number of jobs x level")),
         price: 48,
         onSelect: () => (selectedCard.value = "fasterDraws")
     }));
     const gainElementalEssence = createCard(() => ({
         description: level =>
-            `Gain ${colorText(
-                formatWhole(
-                    main.jobs
-                        .reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))
-                        .sqrt()
-                        .floor()
-                        .times(Decimal.add(level, 1))
-                )
-            )} of a random elemental essence`,
+            jsx(() => (
+                <h3>
+                    Gain{" "}
+                    {colorText(
+                        formatWhole(
+                            main.jobs
+                                .reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))
+                                .sqrt()
+                                .floor()
+                                .times(Decimal.add(level, 1))
+                        )
+                    )}{" "}
+                    of a random elemental essence
+                </h3>
+            )),
         metal: "iron",
         sign: "aries",
         actions: {
@@ -575,14 +611,23 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }));
     const gainInsightFromJobs = createCard(() => ({
         description: level =>
-            `Gain ${colorText(
-                formatWhole(
-                    Decimal.times(
-                        main.jobs.reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0)),
-                        Decimal.add(level, 1)
-                    ).floor()
-                )
-            )} key insights`,
+            jsx(() => (
+                <h3>
+                    Gain{" "}
+                    {colorText(
+                        formatWhole(
+                            Decimal.times(
+                                main.jobs.reduce(
+                                    (acc, curr) => acc.add(curr.level.value),
+                                    new Decimal(0)
+                                ),
+                                Decimal.add(level, 1)
+                            ).floor()
+                        )
+                    )}{" "}
+                    key insights
+                </h3>
+            )),
         metal: "lead",
         sign: "capricorn",
         actions: {
@@ -600,11 +645,19 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }));
     const gainMolyFromEssentia = createCard(() => ({
         description: level =>
-            `Gain ${colorText(
-                formatWhole(
-                    Decimal.sqrt(distill.essentia.value).times(Decimal.add(1, level)).floor()
-                )
-            )} moly (unaffected by Therizó)`,
+            jsx(() => (
+                <h3>
+                    Gain{" "}
+                    {colorText(
+                        formatWhole(
+                            Decimal.sqrt(distill.essentia.value)
+                                .times(Decimal.add(1, level))
+                                .floor()
+                        )
+                    )}{" "}
+                    moly (unaffected by Therizó)
+                </h3>
+            )),
         metal: "lead",
         sign: "aquarius",
         actions: {
@@ -628,16 +681,22 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }));
     const gainPropertiesFromFlowers = createCard(() => ({
         description: level =>
-            `Convert half your moly into ${colorText(
-                formatWhole(
-                    Decimal.div(flowers.flowers.value, 2)
-                        .max(1)
-                        .ln()
-                        .floor()
-                        .times(Decimal.add(1, level))
-                        .times(computedPropertiesGain.value)
-                )
-            )} properties and job exp`,
+            jsx(() => (
+                <h3>
+                    Convert half your moly into{" "}
+                    {colorText(
+                        formatWhole(
+                            Decimal.div(flowers.flowers.value, 2)
+                                .max(1)
+                                .ln()
+                                .floor()
+                                .times(Decimal.add(1, level))
+                                .times(computedPropertiesGain.value)
+                        )
+                    )}{" "}
+                    properties and job exp
+                </h3>
+            )),
         metal: "copper",
         sign: "taurus",
         actions: {
