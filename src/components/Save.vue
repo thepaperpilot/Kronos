@@ -130,11 +130,6 @@ const progressDisplay = computeComponent(
                     ?.flowers ?? 0;
             return `Chapter 1; ${formatWhole(flowers)} flowers`;
         } else if (chapter == 2) {
-            console.log(
-                Object.values(
-                    (save.value?.layers?.main as LayerData<typeof main> | undefined)?.jobs ?? {}
-                )
-            );
             const totalJobLevels =
                 Object.values(
                     (save.value?.layers?.main as LayerData<typeof main> | undefined)?.jobs ?? {}
