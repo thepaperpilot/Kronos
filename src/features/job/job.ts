@@ -25,7 +25,7 @@ import { computed, nextTick, ref, Ref, unref } from "vue";
 import type { ToastID } from "vue-toastification/dist/types/types";
 
 export const JobType = Symbol("Job");
-const levelSoftcapPower = 0.7643; // chosen so that e308 = level 100
+export const levelSoftcapPower = 0.7643; // chosen so that e308 = level 100
 
 declare module "@vue/runtime-dom" {
     interface CSSProperties {

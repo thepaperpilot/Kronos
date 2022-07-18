@@ -59,6 +59,7 @@
             <span class="save-version">v{{ save.modVersion }}</span
             ><br />
             <div v-if="currentTime">Last played {{ dateFormat.format(currentTime) }}</div>
+            <div v-if="progressDisplay"><component :is="progressDisplay" /></div>
         </div>
         <div class="details" v-else-if="save.error == undefined && isEditing">
             <Text v-model="newName" class="editname" @submit="changeName" />
@@ -70,9 +71,15 @@
 </template>
 
 <script setup lang="ts">
+import type flowersLayer from "data/flowers/flowers";
+import type { main } from "data/projEntry";
+import { levelSoftcapPower } from "features/job/job";
 import Tooltip from "features/tooltips/Tooltip.vue";
+import type { LayerData } from "game/player";
 import player from "game/player";
+import Decimal, { formatWhole } from "util/bignum";
 import { Direction } from "util/common";
+import { computeComponent } from "util/vue";
 import { computed, ref, toRefs, watch } from "vue";
 import DangerButton from "./fields/DangerButton.vue";
 import FeedbackButton from "./fields/FeedbackButton.vue";
@@ -109,6 +116,47 @@ watch(isEditing, () => (newName.value = save.value.name || ""));
 const isActive = computed(() => save.value && save.value.id === player.id);
 const currentTime = computed(() =>
     isActive.value ? player.time : (save.value && save.value.time) || 0
+);
+
+const progressDisplay = computeComponent(
+    computed(() => {
+        const chapter =
+            (save.value?.layers?.main as LayerData<typeof main> | undefined)?.chapter ?? 0;
+        if (chapter == 0) {
+            return "Just started";
+        } else if (chapter == 1) {
+            const flowers =
+                (save.value?.layers?.flowers as LayerData<typeof flowersLayer> | undefined)
+                    ?.flowers ?? 0;
+            return `Chapter 1; ${formatWhole(flowers)} flowers`;
+        } else if (chapter == 2) {
+            console.log(
+                Object.values(
+                    (save.value?.layers?.main as LayerData<typeof main> | undefined)?.jobs ?? {}
+                )
+            );
+            const totalJobLevels =
+                Object.values(
+                    (save.value?.layers?.main as LayerData<typeof main> | undefined)?.jobs ?? {}
+                ).reduce((acc, curr) => {
+                    if (curr.xp == null) {
+                        return acc;
+                    }
+                    if (Decimal.eq(curr.xp, 0)) {
+                        return acc.add(1);
+                    }
+                    let baseLevel = Decimal.clampMin(curr.xp, 1).log10().add(1);
+                    if (baseLevel.gt(25)) {
+                        baseLevel = baseLevel.sub(25).pow(levelSoftcapPower).add(25);
+                    }
+                    return baseLevel.floor().add(acc);
+                }, new Decimal(0)) ?? new Decimal(0);
+            return `Chapter 2; ${formatWhole(totalJobLevels)} total job levels`;
+        } else {
+            return `Chapter ${chapter}`;
+        }
+        return "Unkown progress";
+    })
 );
 
 function changeName() {
