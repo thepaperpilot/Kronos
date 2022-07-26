@@ -1,7 +1,7 @@
 <template>
     <Tooltip :direction="Direction.Left" display="Open Modifiers" xoffset="10px">
-    <div class="modifier-info-toggle">
-        <button @click.stop="openModal = true">?</button>
+        <div class="modifier-info-toggle">
+            <button @click.stop="openModal = true">?</button>
         </div>
     </Tooltip>
     <Modal v-model="openModal" class="modifiers-modal" v-bind="$attrs">
@@ -17,15 +17,7 @@ import { Direction } from "util/common";
 import type { ProcessedComputable } from "util/computed";
 import { coerceComponent, unwrapRef } from "util/vue";
 import type { Component } from "vue";
-import {
-    onBeforeUnmount,
-    ref,
-    shallowRef,
-    toRef,
-    watch,
-    watchEffect,
-    WatchStopHandle
-} from "vue";
+import { onBeforeUnmount, ref, shallowRef, toRef, watch, watchEffect, WatchStopHandle } from "vue";
 import Modal from "../components/Modal.vue";
 import type { CoercableComponent } from "./feature";
 import Tooltip from "./tooltips/Tooltip.vue";
