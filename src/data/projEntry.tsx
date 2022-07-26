@@ -6,7 +6,7 @@ import { createParticles } from "features/particles/particles";
 import { createResource, trackBest, trackTotal } from "features/resources/resource";
 import { createUpgrade } from "features/upgrades/upgrade";
 import { globalBus } from "game/events";
-import type { GenericLayer } from "game/layers";
+import type { BaseLayer, GenericLayer } from "game/layers";
 import { addLayer, createLayer } from "game/layers";
 import { persistent } from "game/persistence";
 import type { LayerData, PlayerData } from "game/player";
@@ -40,7 +40,7 @@ const id = "main";
 /**
  * @hidden
  */
-export const main = createLayer(id, () => {
+export const main = createLayer(id, function (this: BaseLayer) {
     const chapter = persistent<number>(0);
 
     const jobs = {
