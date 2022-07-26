@@ -102,6 +102,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             x: "25%",
             y: "60%"
         },
+        symbol: "🝭",
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
@@ -178,7 +179,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         display: {
             requirement: "Achieve Purifying Flowers Level 10",
-            effectDisplay: `Unlock "Experimenting" Job`
+            effectDisplay: `Unlock "Measuring" Job`
         },
         visibility() {
             return showIf(fireMilestone.earned.value);
@@ -506,6 +507,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const bainMarie = createInstrument(fire, "bainMarie", "🝫");
     const instruments = { retort, alembic, crucible, bainMarie };
 
+    const timePassing = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => experiments.appliedTimeEffect.value,
+            "Applied time",
+            () =>
+                experiments.milestones.appliedTimeMilestone.earned.value &&
+                experiments.selectedJob.value === id
+        )
+    ) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    const computedTimePassing = computed(() => timePassing.apply(1));
+
     const jobXp = createSequentialModifier(
         createMultiplicativeModifier(() => Decimal.max(1, earth.resource.value), "Earth Essence"),
         createMultiplicativeModifier(() => Decimal.max(1, water.resource.value), "Water Essence"),
@@ -520,7 +532,19 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createAdditiveModifier(() => fire.computedCost.value, "Bain-Marie")
     );
 
+    const modifiers = {
+        timePassing,
+        jobXp,
+        totalFlowerLoss
+    };
+
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Time Passing",
+            modifier: timePassing,
+            base: 1,
+            visible: () => experiments.milestones.appliedTimeMilestone.earned.value
+        },
         {
             title: "Essentia",
             subtitle: "Also Purifying Flowers EXP Amount",
@@ -566,7 +590,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         if (Decimal.gt(essentia.value, job.xp.value)) {
             job.xp.value = essentia.value;
         }
+
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+
+        diff = Decimal.times(diff, computedTimePassing.value).toNumber();
 
         const spentFlowers = totalFlowerLoss.apply(0);
         Object.values(elements).forEach(element => {
@@ -588,6 +615,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         instruments,
         job,
         milestones,
+        modifiers,
         modifierTabs,
         collapseMilestones,
         display: jsx(() => {

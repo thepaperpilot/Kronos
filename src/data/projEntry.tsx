@@ -43,7 +43,12 @@ const id = "main";
 export const main = createLayer(id, () => {
     const chapter = persistent<number>(0);
 
-    const jobs = [flowers.job, distill.job, study.job, experiments.job] as GenericJob[];
+    const jobs = {
+        flowers: flowers.job as GenericJob,
+        distill: distill.job as GenericJob,
+        study: study.job as GenericJob,
+        experiments: experiments.job as GenericJob
+    } as Record<"flowers" | "distill" | "study" | "experiments", GenericJob>;
 
     const timeSlots = computed(() => {
         let slots = 0;
@@ -52,15 +57,20 @@ export const main = createLayer(id, () => {
             if (study.milestones.timeSlotMilestone.earned.value) {
                 slots++;
             }
+            if (experiments.milestones.timeSlotMilestone.earned.value) {
+                slots++;
+            }
         }
         return slots;
     });
-    const usedTimeSlots = computed(() => jobs.filter(j => j.timeLoopActive.value).length);
+    const usedTimeSlots = computed(
+        () => Object.values(jobs).filter(j => j.timeLoopActive.value).length
+    );
     const hasTimeSlotAvailable = computed(() => timeSlots.value > usedTimeSlots.value);
 
     const resetTimes = persistent<number[]>([0, 0, 0, 0, 0]);
 
-    jobs.forEach(job => {
+    Object.values(jobs).forEach(job => {
         let lastProc = 0;
         watch(job.rawLevel, (currLevel, prevLevel) => {
             if (settings.active !== player.id || Decimal.neq(currLevel, Decimal.add(prevLevel, 1)))
@@ -98,7 +108,9 @@ export const main = createLayer(id, () => {
     });
 
     const sumJobLevels = createResource(
-        computed(() => jobs.reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))),
+        computed(() =>
+            Object.values(jobs).reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))
+        ),
         "Sum of all job levels"
     );
     const totalJobLevelsSum = trackTotal(sumJobLevels);
@@ -277,7 +289,7 @@ export const main = createLayer(id, () => {
                             {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
                         </div>
                     ) : null}
-                    {renderCol(...jobs)}
+                    {renderCol(...Object.values(jobs))}
                     {render(closeTimeLoop)}
                     {render(particles)}
                 </>

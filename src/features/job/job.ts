@@ -41,6 +41,7 @@ export interface JobOptions {
     style?: Computable<StyleValue>;
     color: Computable<string>;
     image: Computable<string>;
+    symbol: Computable<string>;
     imageFocus: Computable<{ x: string; y: string }>;
     resource?: Resource | Resource[];
     randomQuips?: Computable<string[]>;
@@ -162,6 +163,7 @@ export function createJob<T extends JobOptions>(
         processComputable(job as T, "style");
         processComputable(job as T, "color");
         processComputable(job as T, "image");
+        processComputable(job as T, "symbol");
         processComputable(job as T, "imageFocus");
         processComputable(job as T, "randomQuips");
         processComputable(job as T, "modifierInfo");

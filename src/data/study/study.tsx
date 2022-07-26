@@ -12,6 +12,7 @@ import Sqrt from "components/math/Sqrt.vue";
 import Node from "components/Node.vue";
 import Notif from "components/Notif.vue";
 import { colorText, createCollapsibleModifierSections } from "data/common";
+import experiments from "data/experiments/experiments";
 import { main, numJobs } from "data/projEntry";
 import { createBar } from "features/bars/bar";
 import { CardActions, createCard, GenericCard, signElements } from "features/cards/card";
@@ -26,12 +27,12 @@ import { createTab } from "features/tabs/tab";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { addTooltip } from "features/tooltips/tooltip";
 import { BaseLayer, createLayer } from "game/layers";
-import { createMultiplicativeModifier, createSequentialModifier } from "game/modifiers";
+import { createMultiplicativeModifier, createSequentialModifier, Modifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
 import settings from "game/settings";
 import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
-import { Direction } from "util/common";
+import { Direction, WithRequired } from "util/common";
 import { getFirstFeature, render, renderColJSX, renderJSX, renderRow } from "util/vue";
 import { computed, ComputedRef, nextTick, ref, unref, watch } from "vue";
 import { useToast } from "vue-toastification";
@@ -69,6 +70,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             x: "25%",
             y: "20%"
         },
+        symbol: "🕮",
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
@@ -184,7 +186,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
             if (expOptimizationNotif != null) {
                 toast.dismiss(expOptimizationNotif);
             }
-            expOptimizationNotif = toast.info(`Experience Optimization is now ${currLevel}%!`);
+            expOptimizationNotif = toast.info(
+                <>
+                    <h3>Experience Optimized!</h3>
+                    <div>Experience optimization is now ${currLevel}%</div>
+                </>
+            );
         }
     );
     const expOptimizationBar = createBar(() => ({
@@ -219,7 +226,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
             if (studyingOptimizationNotif != null) {
                 toast.dismiss(studyingOptimizationNotif);
             }
-            studyingOptimizationNotif = toast.info(`Studying Optimization is now ${currLevel}%!`);
+            studyingOptimizationNotif = toast.info(
+                <>
+                    <h3>Studying Optimized!</h3>
+                    <div>Studying optimization is now ${currLevel}%</div>
+                </>
+            );
         }
     );
     const studyingOptimizationBar = createBar(() => ({
@@ -254,7 +266,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
             if (drawTimeOptimizationNotif != null) {
                 toast.dismiss(drawTimeOptimizationNotif);
             }
-            drawTimeOptimizationNotif = toast.info(`Draw Time Optimization is now ${currLevel}%!`);
+            drawTimeOptimizationNotif = toast.info(
+                <>
+                    <h3>Draw Time Optimized!</h3>
+                    <div>Draw time optimization is now ${currLevel}%</div>
+                </>
+            );
         }
     );
     const drawTimeOptimizatonBar = createBar(() => ({
@@ -282,6 +299,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(1.1, job.level.value)
     );
+
+    const timePassing = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => experiments.appliedTimeEffect.value,
+            "Applied time",
+            () =>
+                experiments.milestones.appliedTimeMilestone.earned.value &&
+                experiments.selectedJob.value === id
+        )
+    ) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    const computedTimePassing = computed(() => timePassing.apply(1));
 
     const propertiesGain = createSequentialModifier(
         createMultiplicativeModifier(jobLevelEffect, "Studying level (x1.1 each)"),
@@ -321,6 +349,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const computedManualDrawTime = computed(() => manualDrawTime.apply(computedDrawTime.value));
 
     const modifiers = {
+        timePassing,
         propertiesGain,
         jobXpGain,
         drawTime,
@@ -328,6 +357,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
     };
 
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Time Passing",
+            modifier: timePassing,
+            base: 1,
+            visible: () => experiments.milestones.appliedTimeMilestone.earned.value
+        },
         {
             title: "Properties Gain",
             modifier: propertiesGain,
@@ -573,7 +608,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     Gain{" "}
                     {colorText(
                         formatWhole(
-                            main.jobs
+                            Object.values(main.jobs)
                                 .reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0))
                                 .sqrt()
                                 .floor()
@@ -617,7 +652,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     {colorText(
                         formatWhole(
                             Decimal.times(
-                                main.jobs.reduce(
+                                Object.values(main.jobs).reduce(
                                     (acc, curr) => acc.add(curr.level.value),
                                     new Decimal(0)
                                 ),
@@ -633,7 +668,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         actions: {
             onPlay: level => {
                 const amount = Decimal.times(
-                    main.jobs.reduce((acc, curr) => acc.add(curr.level.value), new Decimal(0)),
+                    Object.values(main.jobs).reduce(
+                        (acc, curr) => acc.add(curr.level.value),
+                        new Decimal(0)
+                    ),
                     Decimal.add(level, 1)
                 ).floor();
                 insights.value = Decimal.add(insights.value, amount);
@@ -995,6 +1033,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     this.on("preUpdate", diff => {
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+
+        diff = Decimal.times(diff, computedTimePassing.value).toNumber();
 
         timeDrawing.value += diff;
         fasterDrawTime.value = Math.max(0, fasterDrawTime.value - diff);

@@ -1,0 +1,47 @@
+.potential {
+    width: 600px;
+    height: 100px;
+    background: var(--locked);
+    border-radius: 50px var(--feature-margin) var(--feature-margin) 50px !important;
+    display: flex;
+    padding-left: 100px !important;
+    flex-direction: column;
+}
+
+.potential .tooltip-container {
+    position: absolute;
+    left: -2px;
+    top: 3px;
+}
+
+.potential .clickable {
+    border-radius: 50px !important;
+    width: 90px;
+    height: 90px;
+    min-height: unset;
+}
+
+.potential-details {
+    text-align: left;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.potential-xp {    
+    height: 20px;
+    width: 100%;
+    border-radius: 10px;
+    background: var(--background);
+    margin-top: var(--feature-margin);
+    position: relative;
+    overflow: hidden;
+}
+
+.potential-xp-fill {
+    height: 20px;
+    background: var(--layer-color);
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    position: absolute;
+    left: 0;
+}

@@ -7,6 +7,7 @@ import Collapsible from "components/layout/Collapsible.vue";
 import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
 import Notif from "components/Notif.vue";
+import experiments from "data/experiments/experiments";
 import { main } from "data/projEntry";
 import { createBar } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
@@ -26,6 +27,7 @@ import {
     TreeBranch
 } from "features/trees/tree";
 import { BaseLayer, createLayer } from "game/layers";
+import type { Modifier } from "game/modifiers";
 import {
     createAdditiveModifier,
     createExponentialModifier,
@@ -37,7 +39,7 @@ import player from "game/player";
 import settings from "game/settings";
 import Decimal, { DecimalSource, format } from "util/bignum";
 import { formatWhole } from "util/break_eternity";
-import { Direction } from "util/common";
+import { Direction, WithRequired } from "util/common";
 import { ProcessedComputable } from "util/computed";
 import { getFirstFeature, renderColJSX, renderJSX, renderRowJSX } from "util/vue";
 import { computed, ComputedRef, ref, Ref, unref, watch, WatchStopHandle } from "vue";
@@ -88,6 +90,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             x: "50%",
             y: "65%"
         },
+        symbol: "⚘",
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
@@ -683,6 +686,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
         massXpSpell
     };
 
+    const timePassing = createSequentialModifier(
+        createMultiplicativeModifier(
+            () => experiments.appliedTimeEffect.value,
+            "Applied time",
+            () =>
+                experiments.milestones.appliedTimeMilestone.earned.value &&
+                experiments.selectedJob.value === id
+        )
+    ) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    const computedTimePassing = computed(() => timePassing.apply(1));
+
     const chargeMult = createSequentialModifier(
         createMultiplicativeModifier(
             1.25,
@@ -1032,6 +1046,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const modifiers = {
+        timePassing,
         chargeMult,
         allSpellPotency,
         allSpellXpGain,
@@ -1056,6 +1071,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
     };
 
     const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+        {
+            title: "Time Passing",
+            modifier: timePassing,
+            base: 1,
+            visible: () => experiments.milestones.appliedTimeMilestone.earned.value
+        },
         {
             title: "Harvesting Flowers EXP Gain",
             subtitle: "When Téchnasma is active",
@@ -1257,6 +1278,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     this.on("update", diff => {
         if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+
+        diff = Decimal.times(diff, computedTimePassing.value).toNumber();
 
         if (xpSpell.active.value) {
             job.xp.value = Decimal.add(job.xp.value, Decimal.times(jobXpGain.apply(0), diff));
