@@ -48,7 +48,7 @@ import globalQuips from "../quips.json";
 import AppliedTimeSelectors from "./AppliedTimeSelectors.vue";
 import "./experiments.css";
 import Grains from "./Grains.vue";
-import Hourglass from "./hourglass.vue";
+import Hourglass from "./Hourglass.vue";
 import alwaysQuips from "./quips.json";
 
 const toast = useToast();
