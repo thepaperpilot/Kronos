@@ -40,7 +40,11 @@
                 height="700px"
                 baseFrequency="0.005"
                 numOctaves="10"
-                :seed="1337"
+                :seed="
+                    Decimal.lt(baseGrains, 1024)
+                        ? visibleGrains
+                        : new Decimal(baseGrains).toNumber()
+                "
             ></feTurbulence>
             <feDisplacementMap in="SourceGraphic" scale="20" />
         </filter>
