@@ -686,361 +686,439 @@ const layer = createLayer(id, function (this: BaseLayer) {
         massXpSpell
     };
 
-    const timePassing = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => experiments.appliedTimeEffect.value,
-            "Applied time",
-            () =>
+    const timePassing = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: experiments.appliedTimeEffect,
+            description: "Applied time",
+            enabled: () =>
                 experiments.milestones.appliedTimeMilestone.earned.value &&
                 experiments.selectedJob.value === id
-        )
-    ) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+        }))
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
-    const chargeMult = createSequentialModifier(
-        createMultiplicativeModifier(
-            1.25,
-            "Prōficiō skill (x1.25 when discharging)",
-            () => chargeSpell.treeNodes.spellEff.bought.value && Decimal.gt(chargeAmount.value, 0)
-        ),
-        createExponentialModifier(
-            1.1,
-            "Prōficiō skill (flat)",
-            chargeSpell.treeNodes.betterChargeMulti.bought
-        )
-    );
+    const chargeMult = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: 1.25,
+            description: "Prōficiō skill (x1.25 when discharging)",
+            enabled: () =>
+                chargeSpell.treeNodes.spellEff.bought.value && Decimal.gt(chargeAmount.value, 0)
+        })),
+        createExponentialModifier(() => ({
+            exponent: 1.1,
+            description: "Prōficiō skill (flat)",
+            enabled: chargeSpell.treeNodes.betterChargeMulti.bought
+        }))
+    ]);
     const computedChargeMult = computed(() =>
         chargeMult.apply(Decimal.log10(Decimal.add(chargeAmount.value, 1)).add(1))
     );
 
-    const allSpellPotency = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Harvesting Flowers level (x1.1 each)"),
-        createMultiplicativeModifier(
-            morePotencyPerJobLevelEffect,
-            "Téchnasma skill (x1.1 per Harvesting Flowers level)",
-            xpSpell.treeNodes.morePotencyPerJobLevel.bought
-        ),
-        createMultiplicativeModifier(
-            flowersEffect,
-            jsx(() => <>Flowers Effect ({flowersEffectDescription})</>)
-        ),
-        createMultiplicativeModifier(
-            flowersEffect,
-            "Therizó skill (Re-apply flowers effect)",
-            flowerSpell.treeNodes.morePotencyPerFlower.bought
-        )
-    );
+    const allSpellPotency = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: jobLevelEffect,
+            description: "Harvesting Flowers level (x1.1 each)"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: morePotencyPerJobLevelEffect,
+            description: "Téchnasma skill (x1.1 per Harvesting Flowers level)",
+            enabled: xpSpell.treeNodes.morePotencyPerJobLevel.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: flowersEffect,
+            description: jsx(() => <>Flowers Effect ({flowersEffectDescription})</>)
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: flowersEffect,
+            description: "Therizó skill (Re-apply flowers effect)",
+            enabled: flowerSpell.treeNodes.morePotencyPerFlower.bought
+        }))
+    ]);
     const computedAllSpellPotency = computed(() => allSpellPotency.apply(1));
 
-    const allSpellXpGain = createSequentialModifier(
-        createMultiplicativeModifier(
-            moreSpellXpPerJobLevelEffect,
-            "Téchnasma skill (x1.1 per Harvesting Flowers level)",
-            xpSpell.treeNodes.moreSpellXpPerJobLevel.bought
-        ),
-        createMultiplicativeModifier(
-            flowersEffect,
-            jsx(() => <>Therizó skill ({flowersEffectDescription})</>),
-            flowerSpell.treeNodes.moreSpellXpPerFlower.bought
-        ),
-        createMultiplicativeModifier(
-            2,
-            "Scholē skill (flat)",
-            massXpSpell.treeNodes.moreSpellXp.bought
-        )
-    );
+    const allSpellXpGain = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: moreSpellXpPerJobLevelEffect,
+            description: "Téchnasma skill (x1.1 per Harvesting Flowers level)",
+            enabled: xpSpell.treeNodes.moreSpellXpPerJobLevel.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: flowersEffect,
+            description: jsx(() => <>Therizó skill ({flowersEffectDescription})</>),
+            enabled: flowerSpell.treeNodes.moreSpellXpPerFlower.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Scholē skill (flat)",
+            enabled: massXpSpell.treeNodes.moreSpellXp.bought
+        }))
+    ]);
     const computedAllSpellXpGain = computed(() => allSpellXpGain.apply(1));
 
-    const xpSpellPotency = createSequentialModifier(
-        createMultiplicativeModifier(computedAllSpellPotency, "All Spell Potency"),
-        createMultiplicativeModifier(2, "Spell EXP milestone (flat)", spellExpMilestone.earned),
-        createMultiplicativeModifier(2, "Therizó milestone (flat)", flowerSpellMilestone.earned),
-        createMultiplicativeModifier(2, "Prōficiō milestone (flat)", chargeSpellMilestone.earned),
-        createMultiplicativeModifier(2, "Scholē milestone (flat)", expSpellMilestone.earned),
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.1, xpSpell.level.value),
-            "Téchnasma level (x1.1 each)",
-            spellExpMilestone.earned
-        ),
-        createMultiplicativeModifier(
-            () => Decimal.log2(Decimal.add(xpSpell.castingTime.value, 1)).div(10).add(1),
-            jsx(() => (
+    const xpSpellPotency = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellPotency,
+            description: "All Spell Potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Spell EXP milestone (flat)",
+            enabled: spellExpMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Therizó milestone (flat)",
+            enabled: flowerSpellMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Prōficiō milestone (flat)",
+            enabled: chargeSpellMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Scholē milestone (flat)",
+            enabled: expSpellMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1.1, xpSpell.level.value),
+            description: "Téchnasma level (x1.1 each)",
+            enabled: spellExpMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () =>
+                Decimal.log2(Decimal.add(xpSpell.castingTime.value, 1)).div(10).add(1),
+            description: jsx(() => (
                 <>
                     Téchnasma skill (log<sub>2</sub>(casting time)/10)
                 </>
             )),
-            xpSpell.treeNodes.morePotencyOverTime.bought
-        ),
-        createMultiplicativeModifier(
-            computedChargeMult,
-            "Charge Multiplier",
-            chargeSpellMilestone.earned
-        )
-    );
+            enabled: xpSpell.treeNodes.morePotencyOverTime.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedChargeMult,
+            description: "Charge Multiplier",
+            enabled: chargeSpellMilestone.earned
+        }))
+    ]);
     const computedXpSpellPotency = computed(() => xpSpellPotency.apply(1));
 
-    const xpSpellXp = createSequentialModifier(
-        createAdditiveModifier(
-            () => Decimal.div(massXpSpell.level.value, 10),
-            "Scholē skill (+.1 per Scholē level)",
-            massXpSpell.treeNodes.moreXpPerLevel.bought
-        ),
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
-        createMultiplicativeModifier(computedXpSpellPotency, "Téchnasma potency"),
-        createMultiplicativeModifier(
-            2,
-            "Scholē skill (flat)",
-            massXpSpell.treeNodes.moreXpSpellXp.bought
-        )
-    );
+    const xpSpellXp = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: () => Decimal.div(massXpSpell.level.value, 10),
+            description: "Scholē skill (+.1 per Scholē level)",
+            enabled: massXpSpell.treeNodes.moreXpPerLevel.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellXpGain,
+            description: "All Spell EXP Gain"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedXpSpellPotency,
+            description: "Téchnasma potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Scholē skill (flat)",
+            enabled: massXpSpell.treeNodes.moreXpSpellXp.bought
+        }))
+    ]);
 
-    const jobXpGain = createSequentialModifier(
-        createAdditiveModifier(computedXpSpellPotency, "Téchnasma potency"),
-        createMultiplicativeModifier(jobLevelEffect, "Harvesting Flowers level (x1.1 each)"),
-        createMultiplicativeModifier(
-            4,
-            "Téchnasma skill (flat)",
-            xpSpell.treeNodes.moreJobXpFlat.bought
-        ),
-        createMultiplicativeModifier(
-            moreJobXpPerSpellEffect,
-            "Téchnasma skill (x1.25 per known spell)",
-            xpSpell.treeNodes.moreJobXpPerSpell.bought
-        ),
-        createMultiplicativeModifier(
-            moreJobXpPerJobLevelEffect,
-            "Téchnasma skill (x1.1 per Harvesting Flowers level)",
-            xpSpell.treeNodes.moreJobXpPerJobLevel.bought
-        ),
-        createMultiplicativeModifier(
-            moreJobXpPerSpellLevelEffect,
-            "Téchnasma skill (x1.1 per Téchnasma level)",
-            xpSpell.treeNodes.moreJobXpPerSpellLevel.bought
-        ),
-        createMultiplicativeModifier(
-            flowersEffect,
-            jsx(() => <>Flowers Effect ({flowersEffectDescription})</>),
-            flowerSpell.treeNodes.moreJobXpPerFlower.bought
-        )
-    );
+    const jobXpGain = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: computedXpSpellPotency,
+            description: "Téchnasma potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: jobLevelEffect,
+            description: "Harvesting Flowers level (x1.1 each)"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 4,
+            description: "Téchnasma skill (flat)",
+            enabled: xpSpell.treeNodes.moreJobXpFlat.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: moreJobXpPerSpellEffect,
+            description: "Téchnasma skill (x1.25 per known spell)",
+            enabled: xpSpell.treeNodes.moreJobXpPerSpell.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: moreJobXpPerJobLevelEffect,
+            description: "Téchnasma skill (x1.1 per Harvesting Flowers level)",
+            enabled: xpSpell.treeNodes.moreJobXpPerJobLevel.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: moreJobXpPerSpellLevelEffect,
+            description: "Téchnasma skill (x1.1 per Téchnasma level)",
+            enabled: xpSpell.treeNodes.moreJobXpPerSpellLevel.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: flowersEffect,
+            description: jsx(() => <>Flowers Effect ({flowersEffectDescription})</>),
+            enabled: flowerSpell.treeNodes.moreJobXpPerFlower.bought
+        }))
+    ]);
 
-    const jobXpDischargeRate = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => Decimal.pow(1 / 1.05, xpSpell.level.value ?? 0),
-            "Therizó skill (/1.05 per Téchnasma level)",
-            chargeSpell.treeNodes.slowerDischargeByLevel.bought
-        )
-    );
+    const jobXpDischargeRate = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1 / 1.05, xpSpell.level.value ?? 0),
+            description: "Therizó skill (/1.05 per Téchnasma level)",
+            enabled: chargeSpell.treeNodes.slowerDischargeByLevel.bought
+        }))
+    ]);
     const computedJobXpDischargeRate = computed(() =>
         jobXpDischargeRate.apply(computedBaseDischargeRate.value)
     );
 
-    const flowerSpellPotency = createSequentialModifier(
-        createAdditiveModifier(
-            moreFlowersPerSpellEffect,
-            "Therizó skill (+.25 per known spell)",
-            flowerSpell.treeNodes.moreFlowersPerSpell.bought
-        ),
-        createMultiplicativeModifier(computedAllSpellPotency, "All Spell Potency"),
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.1, flowerSpell.level.value),
-            "Therizó level (x1.1 each)",
-            spellExpMilestone.earned
-        ),
-        createMultiplicativeModifier(
-            () => Decimal.log2(Decimal.add(flowerSpell.castingTime.value, 1)).div(10).add(1),
-            jsx(() => (
+    const flowerSpellPotency = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: moreFlowersPerSpellEffect,
+            description: "Therizó skill (+.25 per known spell)",
+            enabled: flowerSpell.treeNodes.moreFlowersPerSpell.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellPotency,
+            description: "All Spell Potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1.1, flowerSpell.level.value),
+            description: "Therizó level (x1.1 each)",
+            enabled: spellExpMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () =>
+                Decimal.log2(Decimal.add(flowerSpell.castingTime.value, 1)).div(10).add(1),
+            description: jsx(() => (
                 <>
                     Téchnasma skill (log<sub>2</sub>(casting time)/10)
                 </>
             )),
-            xpSpell.treeNodes.morePotencyOverTime.bought
-        ),
-        createMultiplicativeModifier(
-            computedChargeMult,
-            "Charge Multiplier",
-            chargeSpellMilestone.earned
-        )
-    );
+            enabled: xpSpell.treeNodes.morePotencyOverTime.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedChargeMult,
+            description: "Charge Multiplier",
+            enabled: chargeSpellMilestone.earned
+        }))
+    ]);
     const computedFlowerSpellPotency = computed(() => flowerSpellPotency.apply(1));
 
-    const flowerSpellXp = createSequentialModifier(
-        createAdditiveModifier(
-            moreXpPerLevelEffect,
-            "Scholē skill (+.1 per Scholē level)",
-            massXpSpell.treeNodes.moreXpPerLevel.bought
-        ),
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
-        createMultiplicativeModifier(computedFlowerSpellPotency, "Therizó potency"),
-        createMultiplicativeModifier(
-            2,
-            "Scholē skill (flat)",
-            massXpSpell.treeNodes.moreFlowerSpellXp.bought
-        )
-    );
+    const flowerSpellXp = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: moreXpPerLevelEffect,
+            description: "Scholē skill (+.1 per Scholē level)",
+            enabled: massXpSpell.treeNodes.moreXpPerLevel.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellXpGain,
+            description: "All Spell EXP Gain"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedFlowerSpellPotency,
+            description: "Therizó potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Scholē skill (flat)",
+            enabled: massXpSpell.treeNodes.moreFlowerSpellXp.bought
+        }))
+    ]);
 
-    const flowerGain = createSequentialModifier(
-        createAdditiveModifier(computedFlowerSpellPotency, "Therizó potency"),
-        createMultiplicativeModifier(
-            2,
-            "Therizó skill (flat)",
-            flowerSpell.treeNodes.moreFlowersFlat.bought
-        ),
-        createMultiplicativeModifier(
-            moreFlowersPerLevelEffect,
-            "Therizó skill (x1.1 per Therizó level)",
-            flowerSpell.treeNodes.moreFlowersPerLevel.bought
-        )
-    );
+    const flowerGain = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: computedFlowerSpellPotency,
+            description: "Therizó potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Therizó skill (flat)",
+            enabled: flowerSpell.treeNodes.moreFlowersFlat.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: moreFlowersPerLevelEffect,
+            description: "Therizó skill (x1.1 per Therizó level)",
+            enabled: flowerSpell.treeNodes.moreFlowersPerLevel.bought
+        }))
+    ]);
     const computedFlowerGain = computed(() => flowerGain.apply(0));
 
-    const flowerPassiveGain = createSequentialModifier(
-        createAdditiveModifier(
-            0.01,
-            "Therizó skill (flat)",
-            flowerSpell.treeNodes.passiveFlowerGain.bought
-        ),
-        createMultiplicativeModifier(computedFlowerGain, "Flower gain")
-    );
+    const flowerPassiveGain = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: 0.01,
+            description: "Therizó skill (flat)",
+            enabled: flowerSpell.treeNodes.passiveFlowerGain.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedFlowerGain,
+            description: "Flower gain"
+        }))
+    ]);
 
-    const flowerDischargeRate = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => Decimal.pow(1 / 1.05, flowerSpell.level.value ?? 0),
-            "Therizó skill (/1.05 per Therizó level)",
-            chargeSpell.treeNodes.slowerDischargeByLevel.bought
-        )
-    );
+    const flowerDischargeRate = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1 / 1.05, flowerSpell.level.value ?? 0),
+            description: "Therizó skill (/1.05 per Therizó level)",
+            enabled: chargeSpell.treeNodes.slowerDischargeByLevel.bought
+        }))
+    ]);
     const computedFlowerDischargeRate = computed(() =>
         flowerDischargeRate.apply(computedBaseDischargeRate.value)
     );
 
-    const chargeSpellPotency = createSequentialModifier(
-        createMultiplicativeModifier(computedAllSpellPotency, "All Spell Potency"),
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.1, chargeSpell.level.value),
-            "Prōficiō level (x1.1 each)"
-        ),
-        createMultiplicativeModifier(
-            () => Decimal.log2(Decimal.add(chargeSpell.castingTime.value, 1)).div(10).add(1),
-            jsx(() => (
+    const chargeSpellPotency = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellPotency,
+            description: "All Spell Potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1.1, chargeSpell.level.value),
+            description: "Prōficiō level (x1.1 each)"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () =>
+                Decimal.log2(Decimal.add(chargeSpell.castingTime.value, 1)).div(10).add(1),
+            description: jsx(() => (
                 <>
                     Téchnasma skill (log<sub>2</sub>(casting time)/10)
                 </>
             )),
-            xpSpell.treeNodes.morePotencyOverTime.bought
-        )
-    );
+            enabled: xpSpell.treeNodes.morePotencyOverTime.bought
+        }))
+    ]);
     const computedChargeSpellPotency = computed(() => chargeSpellPotency.apply(1));
 
-    const chargeSpellXp = createSequentialModifier(
-        createAdditiveModifier(
-            () => Decimal.div(massXpSpell.level.value, 10),
-            "Scholē skill (+.1 per Scholē level)",
-            massXpSpell.treeNodes.moreXpPerLevel.bought
-        ),
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
-        createMultiplicativeModifier(computedChargeSpellPotency, "Prōficiō potency"),
-        createMultiplicativeModifier(
-            2,
-            "Scholē skill (flat)",
-            massXpSpell.treeNodes.moreChargeSpellXp.bought
-        )
-    );
+    const chargeSpellXp = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: () => Decimal.div(massXpSpell.level.value, 10),
+            description: "Scholē skill (+.1 per Scholē level)",
+            enabled: massXpSpell.treeNodes.moreXpPerLevel.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellXpGain,
+            description: "All Spell EXP Gain"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedChargeSpellPotency,
+            description: "Prōficiō potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Scholē skill (flat)",
+            enabled: massXpSpell.treeNodes.moreChargeSpellXp.bought
+        }))
+    ]);
 
-    const chargeCap = createSequentialModifier(
-        createAdditiveModifier(computedChargeSpellPotency, "Prōficiō potency"),
-        createMultiplicativeModifier(
-            1.5,
-            "Prōficiō skill (flat)",
-            chargeSpell.treeNodes.largerChargeFlat.bought
-        ),
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.2, chargeSpell.level.value),
-            "Prōficiō skill (x1.2 per Prōficiō level)",
-            chargeSpell.treeNodes.largerChargeByLevel.bought
-        )
-    );
+    const chargeCap = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: computedChargeSpellPotency,
+            description: "Prōficiō potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 1.5,
+            description: "Prōficiō skill (flat)",
+            enabled: chargeSpell.treeNodes.largerChargeFlat.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1.2, chargeSpell.level.value),
+            description: "Prōficiō skill (x1.2 per Prōficiō level)",
+            enabled: chargeSpell.treeNodes.largerChargeByLevel.bought
+        }))
+    ]);
     const computedChargeCap = computed(() => chargeCap.apply(0));
 
-    const chargeRate = createSequentialModifier(
-        createAdditiveModifier(
-            () => Decimal.div(computedChargeSpellPotency.value, 10),
-            "Prōficiō potency (/10)"
-        ),
-        createMultiplicativeModifier(
-            1.5,
-            "Prōficiō skill (flat)",
-            chargeSpell.treeNodes.fasterChargeFlat.bought
-        ),
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.1, chargeSpell.level.value),
-            "Prōficiō skill (x1.1 per Prōficiō level)",
-            chargeSpell.treeNodes.fasterChargeFlat.bought
-        )
-    );
+    const chargeRate = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: () => Decimal.div(computedChargeSpellPotency.value, 10),
+            description: "Prōficiō potency (/10)"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 1.5,
+            description: "Prōficiō skill (flat)",
+            enabled: chargeSpell.treeNodes.fasterChargeFlat.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1.1, chargeSpell.level.value),
+            description: "Prōficiō skill (x1.1 per Prōficiō level)",
+            enabled: chargeSpell.treeNodes.fasterChargeFlat.bought
+        }))
+    ]);
     const computedChargeRate = computed(() => chargeRate.apply(0));
 
-    const baseDischargeRate = createSequentialModifier(
-        createAdditiveModifier(
-            () => Decimal.div(computedChargeSpellPotency.value, 10),
-            "Prōficiō potency (/10)"
-        )
-    );
+    const baseDischargeRate = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: () => Decimal.div(computedChargeSpellPotency.value, 10),
+            description: "Prōficiō potency (/10)"
+        }))
+    ]);
     const computedBaseDischargeRate = computed(() => baseDischargeRate.apply(0));
 
-    const massXpSpellPotency = createSequentialModifier(
-        createMultiplicativeModifier(computedAllSpellPotency, "All Spell Potency"),
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.1, massXpSpell.level.value),
-            "Scholē level (x1.1 each)"
-        ),
-        createMultiplicativeModifier(
-            () => Decimal.log2(Decimal.add(massXpSpell.castingTime.value, 1)).div(10).add(1),
-            jsx(() => (
+    const massXpSpellPotency = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellPotency,
+            description: "All Spell Potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1.1, massXpSpell.level.value),
+            description: "Scholē level (x1.1 each)"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () =>
+                Decimal.log2(Decimal.add(massXpSpell.castingTime.value, 1)).div(10).add(1),
+            description: jsx(() => (
                 <>
                     Téchnasma skill (log<sub>2</sub>(casting time)/10)
                 </>
             )),
-            xpSpell.treeNodes.morePotencyOverTime.bought
-        ),
-        createMultiplicativeModifier(
-            computedChargeMult,
-            "Charge Multiplier",
-            chargeSpellMilestone.earned
-        ),
-        createMultiplicativeModifier(
-            2,
-            "Scholē skill (flat)",
-            massXpSpell.treeNodes.morePotency.bought
-        )
-    );
+            enabled: xpSpell.treeNodes.morePotencyOverTime.bought
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedChargeMult,
+            description: "Charge Multiplier",
+            enabled: chargeSpellMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Scholē skill (flat)",
+            enabled: massXpSpell.treeNodes.morePotency.bought
+        }))
+    ]);
     const computedMassXpSpellPotency = computed(() => massXpSpellPotency.apply(1));
 
-    const massXpSpellXp = createSequentialModifier(
-        createMultiplicativeModifier(computedAllSpellXpGain, "All Spell EXP Gain"),
-        createMultiplicativeModifier(computedMassXpSpellPotency, "Scholē potency"),
-        createMultiplicativeModifier(
-            2,
-            "Scholē skill (flat)",
-            massXpSpell.treeNodes.moreMassXpSpellXp.bought
-        )
-    );
+    const massXpSpellXp = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: computedAllSpellXpGain,
+            description: "All Spell EXP Gain"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: computedMassXpSpellPotency,
+            description: "Scholē potency"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 2,
+            description: "Scholē skill (flat)",
+            enabled: massXpSpell.treeNodes.moreMassXpSpellXp.bought
+        }))
+    ]);
 
-    const massXpGain = createSequentialModifier(
-        createAdditiveModifier(
-            () => Decimal.times(computedMassXpSpellPotency.value, 1),
-            "Scholē potency"
-        ),
-        createExponentialModifier(0.9, "(softcapped)")
-    );
+    const massXpGain = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: () => Decimal.times(computedMassXpSpellPotency.value, 1),
+            description: "Scholē potency"
+        })),
+        createExponentialModifier(() => ({
+            exponent: 0.9,
+            description: "(softcapped)"
+        }))
+    ]);
 
-    const massXpDischargeRate = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => Decimal.pow(1 / 1.05, massXpSpell.level.value ?? 0),
-            "Prōficiō skill (/1.05 per Scholē level)",
-            chargeSpell.treeNodes.slowerDischargeByLevel.bought
-        )
-    );
+    const massXpDischargeRate = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1 / 1.05, massXpSpell.level.value ?? 0),
+            description: "Prōficiō skill (/1.05 per Scholē level)",
+            enabled: chargeSpell.treeNodes.slowerDischargeByLevel.bought
+        }))
+    ]);
     const computedMassXpDischargeRate = computed(() =>
         massXpDischargeRate.apply(computedBaseDischargeRate.value)
     );
@@ -1070,12 +1148,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
         massXpDischargeRate
     };
 
-    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Time Passing",
             modifier: timePassing,
             base: 1,
-            visible: () => experiments.milestones.appliedTimeMilestone.earned.value
+            visible: experiments.milestones.appliedTimeMilestone.earned
         },
         {
             title: "Harvesting Flowers EXP Gain",
@@ -1112,7 +1190,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 flowerSpellMilestone.earned.value && Decimal.neq(flowerPassiveGain.apply(0), 0)
         }
     ]);
-    const [xpSpellTab, xpSpellTabCollapsed] = createCollapsibleModifierSections([
+    const [xpSpellTab, xpSpellTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Téchnasma Potency",
             modifier: xpSpellPotency
@@ -1132,7 +1210,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             visible: chargeSpellMilestone.earned
         }
     ]);
-    const [flowerSpellTab, flowerSpellTabCollapsed] = createCollapsibleModifierSections([
+    const [flowerSpellTab, flowerSpellTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Therizó Potency",
             modifier: flowerSpellPotency
@@ -1153,7 +1231,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             visible: chargeSpellMilestone.earned
         }
     ]);
-    const [chargeSpellTab, chargeSpellTabCollapsed] = createCollapsibleModifierSections([
+    const [chargeSpellTab, chargeSpellTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Prōficiō Potency",
             modifier: chargeSpellPotency
@@ -1197,7 +1275,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             base: 0
         }
     ]);
-    const [massXpSpellTab, massXpSpellTabCollapsed] = createCollapsibleModifierSections([
+    const [massXpSpellTab, massXpSpellTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Scholē Potency",
             modifier: massXpSpellPotency

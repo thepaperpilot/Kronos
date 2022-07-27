@@ -265,26 +265,31 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 }
             }));
         }
-        const cost = createSequentialModifier();
+        const cost = createSequentialModifier(() => []);
         const computedCost = computed(() =>
             cost.apply(
                 Decimal.times(flowers.flowers.value, conversionAmount.value).div(100).floor()
             )
         );
-        const gain = createSequentialModifier(
-            createMultiplicativeModifier(() => Decimal.div(conversionAmount.value, 100)),
-            createMultiplicativeModifier(jobLevelEffect, "Purifying Flowers level (x1.1 each)")
-        );
-        const passiveEssenceGain = createSequentialModifier(
-            createAdditiveModifier(
-                computed(() => Decimal.times(principleClickable?.amount.value ?? 0, 5)),
-                jsx(() => (
+        const gain = createSequentialModifier(() => [
+            createMultiplicativeModifier(() => ({
+                multiplier: () => Decimal.div(conversionAmount.value, 100)
+            })),
+            createMultiplicativeModifier(() => ({
+                multiplier: jobLevelEffect,
+                description: "Purifying Flowers level (x1.1 each)"
+            }))
+        ]);
+        const passiveEssenceGain = createSequentialModifier(() => [
+            createAdditiveModifier(() => ({
+                addend: () => Decimal.times(principleClickable?.amount.value ?? 0, 5),
+                description: jsx(() => (
                     <>
                         {camelToTitle(principle)} effect (5 x {principle} amount)
                     </>
                 ))
-            )
-        );
+            }))
+        ]);
         const actualGain = computed(() =>
             Decimal.add(
                 gain.apply(
@@ -331,7 +336,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 unit: "%"
             });
         }
-        const [tab, tabCollapsed] = createCollapsibleModifierSections(modifierSections);
+        const [tab, tabCollapsed] = createCollapsibleModifierSections(() => modifierSections);
 
         const display = jsx(() =>
             unref(processedVisible) ? (
@@ -507,30 +512,54 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const bainMarie = createInstrument(fire, "bainMarie", "🝫");
     const instruments = { retort, alembic, crucible, bainMarie };
 
-    const timePassing = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => experiments.appliedTimeEffect.value,
-            "Applied time",
-            () =>
+    const timePassing = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: experiments.appliedTimeEffect,
+            description: "Applied time",
+            enabled: () =>
                 experiments.milestones.appliedTimeMilestone.earned.value &&
                 experiments.selectedJob.value === id
-        )
-    ) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+        }))
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
-    const jobXp = createSequentialModifier(
-        createMultiplicativeModifier(() => Decimal.max(1, earth.resource.value), "Earth Essence"),
-        createMultiplicativeModifier(() => Decimal.max(1, water.resource.value), "Water Essence"),
-        createMultiplicativeModifier(() => Decimal.max(1, air.resource.value), "Air Essence"),
-        createMultiplicativeModifier(() => Decimal.max(1, fire.resource.value), "Fire Essence")
-    );
+    const jobXp = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.max(1, earth.resource.value),
+            description: "Earth Essence"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.max(1, water.resource.value),
+            description: "Water Essence"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.max(1, air.resource.value),
+            description: "Air Essence"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.max(1, fire.resource.value),
+            description: "Fire Essence"
+        }))
+    ]);
 
-    const totalFlowerLoss = createSequentialModifier(
-        createAdditiveModifier(() => earth.computedCost.value, "Alembic"),
-        createAdditiveModifier(() => water.computedCost.value, "Retort"),
-        createAdditiveModifier(() => air.computedCost.value, "Crucible"),
-        createAdditiveModifier(() => fire.computedCost.value, "Bain-Marie")
-    );
+    const totalFlowerLoss = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: earth.computedCost,
+            description: "Alembic"
+        })),
+        createAdditiveModifier(() => ({
+            addend: water.computedCost,
+            description: "Retort"
+        })),
+        createAdditiveModifier(() => ({
+            addend: air.computedCost,
+            description: "Crucible"
+        })),
+        createAdditiveModifier(() => ({
+            addend: fire.computedCost,
+            description: "Bain-Marie"
+        }))
+    ]);
 
     const modifiers = {
         timePassing,
@@ -538,12 +567,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
         totalFlowerLoss
     };
 
-    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Time Passing",
             modifier: timePassing,
             base: 1,
-            visible: () => experiments.milestones.appliedTimeMilestone.earned.value
+            visible: experiments.milestones.appliedTimeMilestone.earned
         },
         {
             title: "Essentia",

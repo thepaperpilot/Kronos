@@ -300,52 +300,62 @@ const layer = createLayer(id, function (this: BaseLayer) {
         Decimal.pow(1.1, job.level.value)
     );
 
-    const timePassing = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => experiments.appliedTimeEffect.value,
-            "Applied time",
-            () =>
+    const timePassing = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: experiments.appliedTimeEffect,
+            description: "Applied time",
+            enabled: () =>
                 experiments.milestones.appliedTimeMilestone.earned.value &&
                 experiments.selectedJob.value === id
-        )
-    ) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+        }))
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
-    const propertiesGain = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Studying level (x1.1 each)"),
-        createMultiplicativeModifier(
-            studyingOptimization,
-            "Studying optimization",
-            optimizationsMilestone.earned
-        )
-    );
+    const propertiesGain = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: jobLevelEffect,
+            description: "Studying level (x1.1 each)"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: studyingOptimization,
+            description: "Studying optimization",
+            enabled: optimizationsMilestone.earned
+        }))
+    ]);
     const computedPropertiesGain = computed(() => propertiesGain.apply(10));
 
-    const jobXpGain = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => Decimal.times(0.01, totalCardsDrawn.value).add(1),
-            "Drawn cards (+.01x each)"
-        ),
-        createMultiplicativeModifier(
-            expOptimization,
-            "Experience optimization",
-            optimizationsMilestone.earned
-        )
-    );
+    const jobXpGain = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.times(0.01, totalCardsDrawn.value).add(1),
+            description: "Drawn cards (+.01x each)"
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: expOptimization,
+            description: "Experience optimization",
+            enabled: optimizationsMilestone.earned
+        }))
+    ]);
 
-    const drawTime = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => Decimal.div(1, drawTimeOptimizaton.value),
-            "Draw speed optimization",
-            optimizationsMilestone.earned
-        ),
-        createMultiplicativeModifier(0.5, "Faster draw card", () => fasterDrawTime.value > 0)
-    );
+    const drawTime = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.div(1, drawTimeOptimizaton.value),
+            description: "Draw speed optimization",
+            enabled: optimizationsMilestone.earned
+        })),
+        createMultiplicativeModifier(() => ({
+            multiplier: 0.5,
+            description: "Faster draw card",
+            enabled: () => fasterDrawTime.value > 0
+        }))
+    ]);
     const computedDrawTime = computed(() => drawTime.apply(10));
 
-    const manualDrawTime = createSequentialModifier(
-        createMultiplicativeModifier(0.5, "Manual bonus")
-    );
+    const manualDrawTime = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: 0.5,
+            description: "Manual bonus"
+        }))
+    ]);
     const computedManualDrawTime = computed(() => manualDrawTime.apply(computedDrawTime.value));
 
     const modifiers = {
@@ -356,12 +366,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
         manualDrawTime
     };
 
-    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Time Passing",
             modifier: timePassing,
             base: 1,
-            visible: () => experiments.milestones.appliedTimeMilestone.earned.value
+            visible: experiments.milestones.appliedTimeMilestone.earned
         },
         {
             title: "Properties Gain",

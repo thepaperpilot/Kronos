@@ -61,7 +61,7 @@ export interface PotentialOptions {
     baseBoostCost: Computable<DecimalSource>;
     boostCostRatio: Computable<DecimalSource>;
     boostCostResource: Computable<Resource>;
-    modifierType?: keyof typeof modifierTypes;
+    modifierType?: keyof typeof modifierSymbols;
     isAdvanced?: boolean;
 }
 
@@ -82,11 +82,6 @@ export interface Potential {
     display: JSXFunction;
 }
 
-const modifierTypes = {
-    additive: createAdditiveModifier,
-    multiplicative: createMultiplicativeModifier,
-    exponential: createExponentialModifier
-};
 const modifierSymbols = {
     additive: "+",
     multiplicative: "x",
@@ -270,11 +265,32 @@ const layer = createLayer(id, function (this: BaseLayer) {
             computedEffectRatio,
             level
         );
-        const modifier = modifierTypes[modifierType ?? "multiplicative"](
-            effect,
-            name + " potential",
-            isAdvanced ? advancedPotentialsMilestone.earned : potentialsMilestone.earned
-        );
+        let modifier;
+        if (modifierType === "exponential") {
+            modifier = createExponentialModifier(() => ({
+                exponent: effect,
+                description: name + " potential",
+                enabled: isAdvanced
+                    ? advancedPotentialsMilestone.earned
+                    : potentialsMilestone.earned
+            }));
+        } else if (modifierType === "additive") {
+            modifier = createAdditiveModifier(() => ({
+                addend: effect,
+                description: name + " potential",
+                enabled: isAdvanced
+                    ? advancedPotentialsMilestone.earned
+                    : potentialsMilestone.earned
+            }));
+        } else {
+            modifier = createMultiplicativeModifier(() => ({
+                multiplier: effect,
+                description: name + " potential",
+                enabled: isAdvanced
+                    ? advancedPotentialsMilestone.earned
+                    : potentialsMilestone.earned
+            }));
+        }
 
         const boosts = persistent<number>(0);
         const cost = computed(() =>
@@ -461,48 +477,51 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const grainSizeLevel = computed(() => new Decimal(baseTotalGrains.value).log2().floor());
     const appliedTimeEffect = computed(() => Decimal.pow(1.1, job.level.value));
 
-    const timePassing = createSequentialModifier(
-        createMultiplicativeModifier(
-            appliedTimeEffect,
-            "Applied time",
-            () => appliedTimeMilestone.earned.value && selectedJob.value === id
-        )
-    );
+    const timePassing = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: appliedTimeEffect,
+            description: "Applied time",
+            enabled: () => appliedTimeMilestone.earned.value && selectedJob.value === id
+        }))
+    ]);
     const computedTimePassing = computed(() => timePassing.apply(1));
 
-    const jobXpGain = createSequentialModifier(jobXPPotential.modifier);
+    const jobXpGain = createSequentialModifier(() => [jobXPPotential.modifier]);
 
-    const totalGrains = createSequentialModifier(effectiveGrainsPotential.modifier);
+    const totalGrains = createSequentialModifier(() => [effectiveGrainsPotential.modifier]);
     const computedTotalGrains = computed(() => totalGrains.apply(baseTotalGrains.value));
 
-    const grainsFallRate = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => Decimal.pow(1.1, grainSizeLevel.value),
-            "Grain size (x1.1 each split)",
-            chippingMilestone.earned
-        ),
+    const grainsFallRate = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(1.1, grainSizeLevel.value),
+            description: "Grain size (x1.1 each split)",
+            enabled: chippingMilestone.earned
+        })),
         fallSpeedPotential.modifier
-    );
+    ]);
     const computedGrainsFallRate = computed(() => grainsFallRate.apply(1));
 
-    const chippingDuration = createSequentialModifier(
-        createMultiplicativeModifier(
-            () => Decimal.pow(2, grainSizeLevel.value),
-            "Grain size (x2 each split)"
-        ),
+    const chippingDuration = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: () => Decimal.pow(2, grainSizeLevel.value),
+            description: "Grain size (x2 each split)"
+        })),
         grindingSpeedPotential.modifier
-    );
+    ]);
     const computedChippingDuration = computed(() => chippingDuration.apply(1));
 
-    const passiveGrinding = createSequentialModifier(passiveGrindingPotential.modifier);
+    const passiveGrinding = createSequentialModifier(() => [passiveGrindingPotential.modifier]);
     const computedPassiveGrinding = computed(() => passiveGrinding.apply(0));
 
-    const potentiaGain = createSequentialModifier(
-        createMultiplicativeModifier(jobLevelEffect, "Measuring level (x1.1 each)"),
+    const potentiaGain = createSequentialModifier(() => [
+        createMultiplicativeModifier(() => ({
+            multiplier: jobLevelEffect,
+            description: "Measuring level (x1.1 each)"
+        })),
         potentiaGainPotential.modifier
-    );
+    ]);
 
-    const potentialsSpeed = createSequentialModifier(potentialsSpeedPotential.modifier);
+    const potentialsSpeed = createSequentialModifier(() => [potentialsSpeedPotential.modifier]);
 
     const modifiers = {
         timePassing,
@@ -515,7 +534,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         passiveGrinding
     };
 
-    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections([
+    const [generalTab, generalTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Time Passing",
             modifier: timePassing,
@@ -540,7 +559,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     ]);
 
-    const [grainsTab, grainsTabCollapsed] = createCollapsibleModifierSections([
+    const [grainsTab, grainsTabCollapsed] = createCollapsibleModifierSections(() => [
         {
             title: "Total Grains",
             modifier: totalGrains,
