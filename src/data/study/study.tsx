@@ -570,7 +570,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         description: level =>
             jsx(() => (
                 <h3>
-                    Gain xp equal to {colorText(format(Decimal.div(Decimal.add(level, 1), 10)))}x
+                    Gain xp equal to {colorText(format(Decimal.div(Decimal.add(level, 1), 10), 1))}x
                     times your number of properties.
                 </h3>
             )),
@@ -695,35 +695,24 @@ const layer = createLayer(id, function (this: BaseLayer) {
         description: level =>
             jsx(() => (
                 <h3>
-                    Gain{" "}
-                    {colorText(
-                        formatWhole(
-                            Decimal.sqrt(distill.essentia.value)
-                                .times(Decimal.add(1, level))
-                                .floor()
-                        )
-                    )}{" "}
-                    moly (unaffected by Therizó)
+                    Gain {colorText(formatWhole(Decimal.add(level, 1).times(5)))}s of moly
+                    production
                 </h3>
             )),
         metal: "lead",
         sign: "aquarius",
         actions: {
             onPlay: level => {
-                const amount = Decimal.sqrt(distill.essentia.value)
-                    .times(Decimal.add(1, level))
-                    .floor();
-                flowers.flowers.value = Decimal.add(flowers.flowers.value, amount);
+                flowers.flowers.value = Decimal.add(
+                    flowers.flowers.value,
+                    Decimal.times(
+                        flowers.modifiers.flowerGain.apply(0),
+                        Decimal.add(1, level).times(5)
+                    )
+                );
             }
         },
-        formula: jsx(() => (
-            <span style="color: var(--accent2)">
-                <Floor>
-                    <Sqrt>essentia</Sqrt>
-                </Floor>{" "}
-                x level
-            </span>
-        )),
+        formula: jsx(() => colorText("5 x level")),
         price: 9,
         onSelect: () => (selectedCard.value = "gainMolyFromEssentia")
     }));

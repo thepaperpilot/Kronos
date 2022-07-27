@@ -448,7 +448,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         effectRatio: 1.1,
         precision: 1,
         xpReqRatio: 1.25,
-        baseBoostCost: 1e10,
+        baseBoostCost: 1e6,
         boostCostRatio: 8,
         boostCostResource: flowers.flowers,
         isAdvanced: true
