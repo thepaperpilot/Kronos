@@ -28,7 +28,7 @@
             class="single-grain"
         />
         <div class="single-grain-label">
-            {{ formatWhole(currentlyChipping + 1) }}/{{ formatWhole(visibleGrains) }}
+            {{ formatWhole(currentlyChipping) }}/{{ formatWhole(visibleGrains) }}
         </div>
     </template>
     <svg style="display: none">

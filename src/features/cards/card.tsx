@@ -14,6 +14,7 @@ import {
     StyleValue,
     Visibility
 } from "features/feature";
+import { createDismissableNotify } from "game/notifications";
 import { DefaultValue, persistent, Persistent } from "game/persistence";
 import Decimal, { DecimalSource } from "util/bignum";
 import {
@@ -23,7 +24,7 @@ import {
     ProcessedComputable
 } from "util/computed";
 import { createLazyProxy } from "util/proxies";
-import { coerceComponent } from "util/vue";
+import { coerceComponent, VueFeature } from "util/vue";
 import { ref, Ref, unref } from "vue";
 import "./card.css";
 
@@ -71,6 +72,7 @@ export interface CardOptions {
     startingAmount?: number;
     price?: DecimalSource;
     onSelect: VoidFunction;
+    shouldNotify: () => boolean;
 }
 
 export interface BaseCard {
@@ -79,11 +81,12 @@ export interface BaseCard {
     level: Persistent<DecimalSource>;
     display: JSXFunction;
     renderForUpgrade: (showUpgrade: boolean) => JSX.Element;
-    renderForDeck: (canUpgrade: boolean) => JSX.Element;
+    renderForDeck: VueFeature;
     renderForShop: JSXFunction;
     renderForPlay: (drawnCards: Ref<number>) => JSX.Element;
     classes: Record<string, boolean>;
     style: StyleValue;
+    showNotif: Ref<boolean>;
     type: typeof CardType;
     [ComponentKey]: typeof ClickableComponent;
     [GatherProps]: () => Record<string, unknown>;
@@ -182,20 +185,23 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                 canClick={false}
             />
         );
-        card.renderForDeck = canUpgrade => (
-            <Component
-                id={`${card.id}-deck`}
-                {...(card as GenericCard)[GatherProps]()}
-                display={jsx(() => (
+        card.renderForDeck = {
+            [ComponentKey]: Component,
+            [GatherProps]: () => ({
+                id: `${card.id}-deck`,
+                ...(card as GenericCard)[GatherProps](),
+                display: jsx(() => (
                     <>
                         <Display />
                         <div class="badge amount">{(card as GenericCard).amount.value}</div>
-                        {canUpgrade ? <Notif style="left: 20px; top: -20px" /> : null}
+                        {(card as GenericCard).showNotif.value ? (
+                            <Notif style="left: 20px; top: -20px" />
+                        ) : null}
                     </>
-                ))}
-                onClick={(card as GenericCard).onSelect}
-            />
-        );
+                )),
+                onClick: (card as GenericCard).onSelect
+            })
+        };
         const displayWithNew = jsx(() => (
             <>
                 <Display />
@@ -252,6 +258,11 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
         processComputable(card as T, "description");
         setDefault(card, "actions", {});
         processComputable(card as T, "formula");
+
+        card.showNotif = createDismissableNotify(
+            (card as GenericCard).renderForDeck,
+            card.shouldNotify.bind(card)
+        );
 
         card[GatherProps] = function (this: GenericCard) {
             const { id, display, sign } = this;

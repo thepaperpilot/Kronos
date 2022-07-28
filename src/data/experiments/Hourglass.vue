@@ -4,7 +4,7 @@
         :class="{ flipping: flippingProgress < 1 }"
         @click="emit('flip')"
     >
-        <Notif v-if="Decimal.sub(totalGrains, grainsFallen).lte(0)" />
+        <Notif v-if="showHourglassNotif" />
         <svg
             width="240"
             height="312"
@@ -112,6 +112,7 @@ const _props = defineProps<{
     totalGrains: DecimalSource;
     grainsFallen: DecimalSource;
     flippingProgress: number;
+    showHourglassNotif: boolean;
 }>();
 const { totalGrains, grainsFallen } = toRefs(_props);
 

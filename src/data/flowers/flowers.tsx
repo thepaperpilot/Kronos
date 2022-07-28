@@ -34,6 +34,7 @@ import {
     createMultiplicativeModifier,
     createSequentialModifier
 } from "game/modifiers";
+import { createDismissableNotify } from "game/notifications";
 import { persistent } from "game/persistence";
 import player from "game/player";
 import settings from "game/settings";
@@ -65,6 +66,7 @@ export interface Spell<T extends string> {
     treeNodes: Record<T, GenericSpellTreeNode>;
     tree: GenericTree;
     selector: GenericClickable;
+    showNotif: Ref<boolean>;
     visibility: Ref<Visibility>;
     notif?: ToastID;
 }
@@ -100,10 +102,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         modifierModalAttrs: {
             class: "flowers-modal"
         },
-        showNotif: () =>
-            Object.values(spells).some(s =>
-                unref(s.tree.nodes).some(r => r.some(s => s !== blank && unref(s.canClick)))
-            )
+        showNotif: () => Object.values(spells).some(s => s.showNotif.value)
     }));
 
     const activeSpells = computed(() => Object.values(spells).filter(s => s.active.value).length);
@@ -282,11 +281,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                     </span>
                                 </div>
                             ) : null}
-                            {rows.some(r =>
-                                r.some(s => s !== blank && unref(treeNodes[s as T].canClick))
-                            ) ? (
-                                <Notif />
-                            ) : null}
+                            {showNotif.value ? <Notif /> : null}
                         </>
                     ))
                 };
@@ -305,6 +300,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             },
             visibility
         })) as Spell<T>["selector"];
+
+        const showNotif = createDismissableNotify(selector, () =>
+            rows.some(r => r.some(s => s !== blank && unref(treeNodes[s as T].canClick)))
+        );
 
         const spell = {
             treeNodes,
@@ -332,6 +331,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             })),
             visibility,
             selector,
+            showNotif,
             particleEffectConfig: spellParticles,
             active: persistent<boolean>(false),
             xp,

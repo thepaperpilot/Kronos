@@ -33,7 +33,7 @@ import player from "game/player";
 import settings from "game/settings";
 import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
 import { Direction, WithRequired } from "util/common";
-import { getFirstFeature, render, renderColJSX, renderJSX, renderRow } from "util/vue";
+import { getFirstFeature, render, renderColJSX, renderJSX, renderRow, VueFeature } from "util/vue";
 import { computed, ComputedRef, nextTick, ref, unref, watch } from "vue";
 import { useToast } from "vue-toastification";
 import type { ToastID } from "vue-toastification/dist/types/types";
@@ -58,9 +58,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const totalCardsDrawn = persistent<number>(0);
 
     const upgradeNotif = computed(
-        () =>
-            shopMilestone.earned.value &&
-            Object.values(cards).some(c => canUpgrade(c as GenericCard))
+        () => shopMilestone.earned.value && Object.values(cards).some(c => c.showNotif.value)
     );
 
     const job = createJob(name, () => ({
@@ -428,7 +426,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         metal: "mercury",
         sign: "gemini",
         startingAmount: 4,
-        onSelect: () => (selectedCard.value = "nothing")
+        onSelect: () => (selectedCard.value = "nothing"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainPoints = createCard(() => ({
         description: level =>
@@ -455,7 +456,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         formula: jsx(() => colorText("properties gain x level")),
         price: 1,
         startingAmount: 4,
-        onSelect: () => (selectedCard.value = "gainPoints")
+        onSelect: () => (selectedCard.value = "gainPoints"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainBigPoints = createCard(() => ({
         description: level =>
@@ -495,7 +499,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             </span>
         )),
         price: 8,
-        onSelect: () => (selectedCard.value = "gainBigPoints")
+        onSelect: () => (selectedCard.value = "gainBigPoints"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainInsight = createCard(() => ({
         description: level =>
@@ -514,7 +521,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         formula: jsx(() => colorText("level")),
         price: 0,
         startingAmount: 2,
-        onSelect: () => (selectedCard.value = "gainInsight")
+        onSelect: () => (selectedCard.value = "gainInsight"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainBigInsight = createCard(() => ({
         description: level =>
@@ -535,7 +545,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         formula: jsx(() => <span style="color: var(--accent2)">cards x level</span>),
         price: 13,
-        onSelect: () => (selectedCard.value = "gainBigInsight")
+        onSelect: () => (selectedCard.value = "gainBigInsight"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const playTwice = createCard(() => ({
         description: level =>
@@ -564,7 +577,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         formula: jsx(() => colorText("(level - 1) / 4")),
         price: 32,
-        onSelect: () => (selectedCard.value = "playTwice")
+        onSelect: () => (selectedCard.value = "playTwice"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainXp = createCard(() => ({
         description: level =>
@@ -586,7 +602,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         formula: jsx(() => colorText("properties x level / 10")),
         price: 25,
-        onSelect: () => (selectedCard.value = "gainXp")
+        onSelect: () => (selectedCard.value = "gainXp"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const fasterDrawTime = persistent<number>(0);
     const fasterDraws = createCard(() => ({
@@ -609,7 +628,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         formula: jsx(() => colorText("number of jobs x level")),
         price: 48,
-        onSelect: () => (selectedCard.value = "fasterDraws")
+        onSelect: () => (selectedCard.value = "fasterDraws"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainElementalEssence = createCard(() => ({
         description: level =>
@@ -652,7 +674,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             </span>
         )),
         price: 16,
-        onSelect: () => (selectedCard.value = "gainElementalEssence")
+        onSelect: () => (selectedCard.value = "gainElementalEssence"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainInsightFromJobs = createCard(() => ({
         description: level =>
@@ -689,7 +714,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         formula: jsx(() => <span style="color: var(--accent2)">sum job levels x level</span>),
         price: 14,
-        onSelect: () => (selectedCard.value = "gainInsightFromJobs")
+        onSelect: () => (selectedCard.value = "gainInsightFromJobs"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainMolyFromEssentia = createCard(() => ({
         description: level =>
@@ -714,7 +742,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         formula: jsx(() => colorText("5 x level")),
         price: 9,
-        onSelect: () => (selectedCard.value = "gainMolyFromEssentia")
+        onSelect: () => (selectedCard.value = "gainMolyFromEssentia"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const gainPropertiesFromFlowers = createCard(() => ({
         description: level =>
@@ -755,7 +786,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             </span>
         )),
         price: 8,
-        onSelect: () => (selectedCard.value = "gainPropertiesFromFlowers")
+        onSelect: () => (selectedCard.value = "gainPropertiesFromFlowers"),
+        shouldNotify: function (this: GenericCard) {
+            return canUpgrade(this);
+        }
     }));
     const cards = {
         nothing,
@@ -1110,17 +1144,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                     <Node id="deck" />
                                     {...new Array(deckRows)
                                         .fill(0)
-                                        .map((_, i) => (
-                                            <Row>
-                                                {...ownedCards
+                                        .map((_, i) =>
+                                            renderRow(
+                                                ...ownedCards
                                                     .slice(
                                                         i * Math.ceil(ownedCards.length / deckRows),
                                                         (i + 1) *
                                                             Math.ceil(ownedCards.length / deckRows)
                                                     )
-                                                    .map(c => c.renderForDeck(canUpgrade(c)))}
-                                            </Row>
-                                        ))}
+                                                    .map(c => c.renderForDeck)
+                                            )
+                                        )}
                                 </div>
                                 <Spacer />
                                 {selectedCard.value ? (

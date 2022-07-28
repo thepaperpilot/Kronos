@@ -8,6 +8,7 @@ import Slider from "components/fields/Slider.vue";
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
 import Node from "components/Node.vue";
+import Notif from "components/Notif.vue";
 import { createCollapsibleModifierSections, Section } from "data/common";
 import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
@@ -27,6 +28,7 @@ import {
     createSequentialModifier,
     Modifier
 } from "game/modifiers";
+import { createDismissableNotify } from "game/notifications";
 import { Persistent, persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource, formatWhole } from "util/bignum";
@@ -56,6 +58,7 @@ export interface Element {
     display: JSXFunction;
     visible: ProcessedComputable<boolean>;
     principleClickable: GenericBuyable | null;
+    showNotif: Ref<boolean> | null;
     particlesEmitter: Ref<Promise<Emitter>>;
     refreshParticleEffect: VoidFunction;
 }
@@ -110,7 +113,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: isPastChapter1,
-        showNotif: () => Object.values(elements).some(e => unref(e.principleClickable?.canClick))
+        showNotif: () => Object.values(elements).some(e => unref(e.showNotif?.value))
     }));
 
     const waterMilestone = createMilestone(() => ({
@@ -242,6 +245,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         const resource = createResource<DecimalSource>(0, name + " essence", 2);
         const conversionAmount = persistent<number>(0);
         let principleClickable: GenericBuyable | null = null;
+        let showNotif: Ref<boolean> | null = null;
         if (principle) {
             principleClickable = createBuyable(() => ({
                 display: jsx(() => (
@@ -255,6 +259,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
                         Cost: {displayResource(resource, unref(principleClickable!.cost))}{" "}
                         {resource.displayName}
+                        {showNotif?.value ? <Notif style="top: -25px" /> : null}
                     </div>
                 )),
                 visibility: () => showIf(principlesMilestone.earned.value),
@@ -264,6 +269,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     return Decimal.pow(10, principleClickable!.amount.value);
                 }
             }));
+            showNotif = createDismissableNotify(principleClickable, principleClickable.canAfford);
         }
         const cost = createSequentialModifier(() => []);
         const computedCost = computed(() =>
@@ -408,6 +414,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             tab,
             tabCollapsed,
             display,
+            showNotif,
             visible: processedVisible,
             principleClickable,
             particlesEmitter,

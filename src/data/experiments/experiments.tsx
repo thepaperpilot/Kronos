@@ -11,7 +11,14 @@ import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
 import study from "data/study/study";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { jsx, JSXFunction, showIf } from "features/feature";
+import {
+    Component,
+    GatherProps,
+    GenericComponent,
+    jsx,
+    JSXFunction,
+    showIf
+} from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
@@ -32,6 +39,7 @@ import {
     createSequentialModifier,
     Modifier
 } from "game/modifiers";
+import { createDismissableNotify } from "game/notifications";
 import type { Persistent } from "game/persistence";
 import { persistent } from "game/persistence";
 import player from "game/player";
@@ -73,6 +81,7 @@ export interface Potential {
     boosts: Persistent<number>;
     cost: Ref<Decimal>;
     clickable: GenericClickable;
+    showNotif: Ref<boolean>;
     effectRatio: ProcessedComputable<DecimalSource>;
     xpReqRatio: ProcessedComputable<DecimalSource>;
     baseBoostCost: ProcessedComputable<DecimalSource>;
@@ -112,13 +121,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
         if (!potentialsMilestone.earned.value) {
             return false;
         }
-        if (Object.values(basicPotentials).some(p => unref(p.clickable.canClick))) {
+        if (Object.values(basicPotentials).some(p => p.showNotif.value)) {
             return true;
         }
         if (!advancedPotentialsMilestone.earned.value) {
             return false;
         }
-        if (Object.values(advancedPotentials).some(p => unref(p.clickable.canClick))) {
+        if (Object.values(advancedPotentials).some(p => p.showNotif.value)) {
             return true;
         }
         return false;
@@ -139,9 +148,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: () => showIf(distill.milestones.experimentsMilestone.earned.value),
-        showNotif: () =>
-            Decimal.sub(computedTotalGrains.value, grainsFallen.value).lte(0) ||
-            potentialsNotif.value
+        showNotif: () => showHourglassNotif.value || potentialsNotif.value
     }));
 
     const chippingMilestone = createMilestone(() => ({
@@ -299,6 +306,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 Decimal.pow(unref(computedBoostCostRatio), boosts.value)
             )
         );
+        const canAfford = computed(() =>
+            Decimal.gte(unwrapResource(computedBoostCostResource).value, cost.value)
+        );
         const clickable = createClickable(() => ({
             display: jsx(() => (
                 <>
@@ -307,13 +317,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     {formatWhole(cost.value)}
                     <br />
                     {unwrapResource(computedBoostCostResource).displayName}
-                    {Decimal.gte(unwrapResource(computedBoostCostResource).value, cost.value) ? (
-                        <Notif style="top: -15px" />
-                    ) : null}
+                    {showNotif.value ? <Notif style="top: -15px" /> : null}
                 </>
             )),
-            canClick: () =>
-                Decimal.gte(unwrapResource(computedBoostCostResource).value, cost.value),
+            canClick: canAfford,
             onClick() {
                 const resource = unwrapResource(computedBoostCostResource);
                 resource.value = Decimal.sub(resource.value, cost.value);
@@ -346,6 +353,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             );
         });
 
+        const showNotif = createDismissableNotify(clickable, canAfford);
+
         return {
             level,
             xp,
@@ -354,6 +363,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             boosts,
             cost,
             clickable,
+            showNotif,
             effectRatio: computedEffectRatio,
             xpReqRatio: computedXPReqRatio,
             baseBoostCost: computedBaseBoostCost,
@@ -765,6 +775,23 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })
     );
 
+    const hourglass = {
+        [Component]: Hourglass as GenericComponent,
+        [GatherProps]: () => ({
+            totalGrains: computedTotalGrains.value,
+            grainsFallen: grainsFallen.value,
+            flippingProgress: flippingProgress.value,
+            onFlip: () => {
+                flippingProgress.value = flippingProgress.value >= 1 ? 0 : flippingProgress.value;
+                grainsFallen.value = 0;
+            },
+            showHourglassNotif: showHourglassNotif.value
+        })
+    };
+    const showHourglassNotif = createDismissableNotify(hourglass, () =>
+        Decimal.sub(computedTotalGrains.value, grainsFallen.value).lte(0)
+    );
+
     // TODO add particle effects to hourglass sands falling, and grains being ground
     return {
         name,
@@ -809,16 +836,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         ))
                     )}
                     <Spacer />
-                    <Hourglass
-                        totalGrains={computedTotalGrains.value}
-                        grainsFallen={grainsFallen.value}
-                        flippingProgress={flippingProgress.value}
-                        onFlip={() => {
-                            flippingProgress.value =
-                                flippingProgress.value >= 1 ? 0 : flippingProgress.value;
-                            grainsFallen.value = 0;
-                        }}
-                    />
+                    {render(hourglass)}
                     <Spacer height="50px" />
                     {chippingMilestone.earned.value ? render(tabs) : null}
                 </>
