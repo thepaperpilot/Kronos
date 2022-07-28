@@ -54,7 +54,7 @@ export interface Element {
     gain: WithRequired<Modifier, "revert" | "description">;
     actualGain: Ref<DecimalSource>;
     tab: JSXFunction;
-    tabCollapsed: Persistent<boolean>[];
+    tabCollapsed: Persistent<Record<number, boolean>>;
     display: JSXFunction;
     visible: ProcessedComputable<boolean>;
     principleClickable: GenericBuyable | null;

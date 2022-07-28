@@ -4,7 +4,6 @@
  */
 
 import Collapsible from "components/layout/Collapsible.vue";
-import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
 import Sticky from "components/layout/Sticky.vue";
 import Floor from "components/math/Floor.vue";
@@ -33,7 +32,7 @@ import player from "game/player";
 import settings from "game/settings";
 import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
 import { Direction, WithRequired } from "util/common";
-import { getFirstFeature, render, renderColJSX, renderJSX, renderRow, VueFeature } from "util/vue";
+import { getFirstFeature, render, renderColJSX, renderJSX, renderRow } from "util/vue";
 import { computed, ComputedRef, nextTick, ref, unref, watch } from "vue";
 import { useToast } from "vue-toastification";
 import type { ToastID } from "vue-toastification/dist/types/types";
