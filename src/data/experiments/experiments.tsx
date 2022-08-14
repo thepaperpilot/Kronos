@@ -8,7 +8,8 @@ import Spacer from "components/layout/Spacer.vue";
 import Notif from "components/Notif.vue";
 import { createCollapsibleModifierSections } from "data/common";
 import flowers from "data/flowers/flowers";
-import { main } from "data/projEntry";
+import generators from "data/generators/generators";
+import { JobKeys, main } from "data/projEntry";
 import study from "data/study/study";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
 import {
@@ -20,7 +21,7 @@ import {
     showIf
 } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone } from "features/milestones/milestone";
+import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import {
     createResource,
@@ -31,7 +32,7 @@ import {
 import { createTab } from "features/tabs/tab";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { addTooltip } from "features/tooltips/tooltip";
-import { BaseLayer, createLayer } from "game/layers";
+import { addLayer, BaseLayer, createLayer } from "game/layers";
 import {
     createAdditiveModifier,
     createExponentialModifier,
@@ -46,6 +47,7 @@ import player from "game/player";
 import settings from "game/settings";
 import Decimal, { DecimalSource, format } from "util/bignum";
 import { formatWhole } from "util/break_eternity";
+import { WithRequired } from "util/common";
 import { Computable, convertComputable, ProcessedComputable } from "util/computed";
 import { getFirstFeature, render, renderCol, renderColJSX, renderJSX, trackHover } from "util/vue";
 import { computed, ComputedRef, Ref, unref, watch } from "vue";
@@ -115,7 +117,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const grainsFallen = persistent<DecimalSource>(0);
     const flippingProgress = persistent<number>(1);
     const chippingProgress = persistent<number>(0);
-    const selectedJob = persistent<keyof typeof main["jobs"]>("experiments");
+    const selectedJob = persistent<JobKeys>("experiments");
 
     const potentialsNotif = computed(() => {
         if (!potentialsMilestone.earned.value) {
@@ -156,7 +158,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Measuring Level 2",
+            requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlocking grinding grains"
         }
     }));
@@ -165,7 +167,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Measuring Level 4",
+            requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock potentials"
         },
         visibility() {
@@ -177,7 +179,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 5);
         },
         display: {
-            requirement: "Achieve Measuring Level 5",
+            requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
         visibility() {
@@ -189,7 +191,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Measuring Level 6",
+            requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock advanced potentials"
         },
         visibility() {
@@ -201,7 +203,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Measuring Level 8",
+            requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock applied time"
         },
         visibility() {
@@ -213,13 +215,16 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 10);
         },
         display: {
-            requirement: "Achieve Measuring Level 10",
-            effectDisplay: `Unlock "???" Job`
+            requirement: `Achieve ${job.name} Level 10`,
+            effectDisplay: `Unlock "${generators.job.name}" Job`
         },
         visibility() {
             return showIf(appliedTimeMilestone.earned.value);
+        },
+        onComplete() {
+            addLayer(generators, player);
         }
-    }));
+    })) as GenericMilestone;
     const milestones = {
         chippingMilestone,
         potentialsMilestone,
@@ -491,12 +496,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createMultiplicativeModifier(() => ({
             multiplier: appliedTimeEffect,
             description: "Applied time",
-            enabled: () => appliedTimeMilestone.earned.value && selectedJob.value === id
-        }))
-    ]);
+            enabled: () =>
+                job.active.value && appliedTimeMilestone.earned.value && selectedJob.value === id
+        })),
+        generators.batteries.experiments.timePassing.modifier
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
-    const jobXpGain = createSequentialModifier(() => [jobXPPotential.modifier]);
+    const jobXpGain = createSequentialModifier(() => [
+        jobXPPotential.modifier,
+        generators.batteries.experiments.xpGain.modifier
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
 
     const totalGrains = createSequentialModifier(() => [effectiveGrainsPotential.modifier]);
     const computedTotalGrains = computed(() => totalGrains.apply(baseTotalGrains.value));
@@ -526,10 +536,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const potentiaGain = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
             multiplier: jobLevelEffect,
-            description: "Measuring level (x1.1 each)"
+            description: `${job.name} level (x1.1 each)`
         })),
-        potentiaGainPotential.modifier
-    ]);
+        potentiaGainPotential.modifier,
+        generators.batteries.experiments.resourceGain.modifier
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
 
     const potentialsSpeed = createSequentialModifier(() => [potentialsSpeedPotential.modifier]);
 
@@ -549,10 +560,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
             title: "Time Passing",
             modifier: timePassing,
             base: 1,
-            visible: appliedTimeMilestone.earned
+            visible: () =>
+                appliedTimeMilestone.earned.value ||
+                generators.milestones.timeBatteriesMilestone.earned.value
         },
         {
-            title: "Measuring EXP Gain",
+            title: `${job.name} EXP Gain`,
             modifier: jobXpGain,
             base: 1
         },
@@ -629,7 +642,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const isGrinding = trackHover(grindingClickable);
 
     this.on("preUpdate", diff => {
-        if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+        if (!job.active.value) return;
 
         diff = Decimal.times(diff, computedTimePassing.value).toNumber();
 
@@ -743,16 +756,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             <div>
                                 Focus your potential towards speeding up an entire job's time loop.
                                 <br />
-                                Strength increases with Measuring level.
+                                Strength increases with {job.name} level.
                             </div>
                             <Spacer />
                             <AppliedTimeSelectors
                                 effect={appliedTimeEffect.value}
                                 jobs={main.jobs}
                                 selectedJob={selectedJob.value}
-                                onSelectJob={job =>
-                                    (selectedJob.value = job as keyof typeof main["jobs"])
-                                }
+                                onSelectJob={job => (selectedJob.value = job as JobKeys)}
                             />
                         </>
                     ))

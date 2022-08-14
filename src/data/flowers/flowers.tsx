@@ -13,7 +13,7 @@ import { createBar } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
 import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone } from "features/milestones/milestone";
+import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource, trackBest } from "features/resources/resource";
@@ -47,6 +47,7 @@ import { computed, ComputedRef, ref, Ref, unref, watch, WatchStopHandle } from "
 import { useToast } from "vue-toastification";
 import type { ToastID } from "vue-toastification/dist/types/types";
 import { createCollapsibleModifierSections } from "../common";
+import generators from "../generators/generators";
 import globalQuips from "../quips.json";
 import "./flowers.css";
 import alwaysQuips from "./quips.json";
@@ -129,7 +130,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Harvesting Flowers Level 2",
+            requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Double Téchnasma potency and unlock experience for spells"
         }
     }));
@@ -138,37 +139,37 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Harvesting Flowers Level 4",
+            requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Therizó"
         },
         visibility() {
             return showIf(spellExpMilestone.earned.value);
         }
-    }));
+    })) as GenericMilestone;
     const chargeSpellMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Harvesting Flowers Level 6",
+            requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Prōficiō"
         },
         visibility() {
             return showIf(flowerSpellMilestone.earned.value);
         }
-    }));
+    })) as GenericMilestone;
     const expSpellMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Harvesting Flowers Level 8",
+            requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Scholē"
         },
         visibility() {
             return showIf(chargeSpellMilestone.earned.value);
         }
-    }));
+    })) as GenericMilestone;
     const milestones = {
         spellExpMilestone,
         flowerSpellMilestone,
@@ -691,9 +692,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
             multiplier: experiments.appliedTimeEffect,
             description: "Applied time",
             enabled: () =>
+                experiments.job.active.value &&
                 experiments.milestones.appliedTimeMilestone.earned.value &&
                 experiments.selectedJob.value === id
-        }))
+        })),
+        generators.batteries.flowers.timePassing.modifier
     ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
@@ -717,11 +720,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const allSpellPotency = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
             multiplier: jobLevelEffect,
-            description: "Harvesting Flowers level (x1.1 each)"
+            description: `${job.name} level (x1.1 each)`
         })),
         createMultiplicativeModifier(() => ({
             multiplier: morePotencyPerJobLevelEffect,
-            description: "Téchnasma skill (x1.1 per Harvesting Flowers level)",
+            description: `Téchnasma skill (x1.1 per ${job.name} level)`,
             enabled: xpSpell.treeNodes.morePotencyPerJobLevel.bought
         })),
         createMultiplicativeModifier(() => ({
@@ -739,7 +742,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const allSpellXpGain = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
             multiplier: moreSpellXpPerJobLevelEffect,
-            description: "Téchnasma skill (x1.1 per Harvesting Flowers level)",
+            description: `Téchnasma skill (x1.1 per ${job.name} level)`,
             enabled: xpSpell.treeNodes.moreSpellXpPerJobLevel.bought
         })),
         createMultiplicativeModifier(() => ({
@@ -831,7 +834,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })),
         createMultiplicativeModifier(() => ({
             multiplier: jobLevelEffect,
-            description: "Harvesting Flowers level (x1.1 each)"
+            description: `${job.name} level (x1.1 each)`
         })),
         createMultiplicativeModifier(() => ({
             multiplier: 4,
@@ -845,7 +848,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })),
         createMultiplicativeModifier(() => ({
             multiplier: moreJobXpPerJobLevelEffect,
-            description: "Téchnasma skill (x1.1 per Harvesting Flowers level)",
+            description: `Téchnasma skill (x1.1 per ${job.name} level)`,
             enabled: xpSpell.treeNodes.moreJobXpPerJobLevel.bought
         })),
         createMultiplicativeModifier(() => ({
@@ -857,8 +860,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
             multiplier: flowersEffect,
             description: jsx(() => <>Flowers Effect ({flowersEffectDescription})</>),
             enabled: flowerSpell.treeNodes.moreJobXpPerFlower.bought
-        }))
-    ]);
+        })),
+        generators.batteries.study.xpGain.modifier
+    ]) as WithRequired<Modifier, "description" | "revert">;
 
     const jobXpDischargeRate = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
@@ -939,8 +943,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
             multiplier: moreFlowersPerLevelEffect,
             description: "Therizó skill (x1.1 per Therizó level)",
             enabled: flowerSpell.treeNodes.moreFlowersPerLevel.bought
-        }))
-    ]);
+        })),
+        generators.batteries.study.resourceGain.modifier
+    ]) as WithRequired<Modifier, "description" | "revert">;
     const computedFlowerGain = computed(() => flowerGain.apply(0));
 
     const flowerPassiveGain = createSequentialModifier(() => [
@@ -1153,7 +1158,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
             title: "Time Passing",
             modifier: timePassing,
             base: 1,
-            visible: experiments.milestones.appliedTimeMilestone.earned
+            visible: () =>
+                experiments.milestones.appliedTimeMilestone.earned.value ||
+                generators.milestones.timeBatteriesMilestone.earned.value
         },
         {
             title: "Harvesting Flowers EXP Gain",
@@ -1355,7 +1362,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     this.on("update", diff => {
-        if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+        if (!job.active.value) return;
 
         diff = Decimal.times(diff, computedTimePassing.value).toNumber();
 

@@ -38,6 +38,7 @@ import { useToast } from "vue-toastification";
 import type { ToastID } from "vue-toastification/dist/types/types";
 import distill from "../distill/distill";
 import flowers from "../flowers/flowers";
+import generators from "../generators/generators";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import sellParticles from "./sell.json";
@@ -58,7 +59,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const upgradeNotif = computed(
         () => shopMilestone.earned.value && Object.values(cards).some(c => c.showNotif.value)
-    );
+    ) as ComputedRef<boolean>;
 
     const job = createJob(name, () => ({
         color,
@@ -83,7 +84,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Studying Level 2",
+            requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlock drawing cards manually"
         }
     }));
@@ -92,7 +93,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Studying Level 4",
+            requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock purchasing and selling cards"
         },
         visibility() {
@@ -104,7 +105,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 5);
         },
         display: {
-            requirement: "Achieve Studying Level 5",
+            requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
         visibility() {
@@ -116,7 +117,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Studying Level 6",
+            requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock optimizations"
         },
         visibility() {
@@ -128,7 +129,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Studying Level 8",
+            requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock upgrading cards"
         },
         visibility() {
@@ -140,11 +141,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 10);
         },
         display: {
-            requirement: "Achieve Studying Level 10",
+            requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock "???" Job`
         },
         visibility() {
             return showIf(upgradingMilestone.earned.value);
+        },
+        onComplete() {
+            // addLayer(generators, player);
         }
     }));
     const milestones = {
@@ -186,7 +190,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             expOptimizationNotif = toast.info(
                 <>
                     <h3>Experience Optimized!</h3>
-                    <div>Experience optimization is now ${currLevel}%</div>
+                    <div>Experience optimization is now {currLevel}%</div>
                 </>
             );
         }
@@ -225,8 +229,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
             studyingOptimizationNotif = toast.info(
                 <>
-                    <h3>Studying Optimized!</h3>
-                    <div>Studying optimization is now ${currLevel}%</div>
+                    <h3>{job.name} Optimized!</h3>
+                    <div>
+                        {job.name} optimization is now {currLevel}%
+                    </div>
                 </>
             );
         }
@@ -266,7 +272,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             drawTimeOptimizationNotif = toast.info(
                 <>
                     <h3>Draw Time Optimized!</h3>
-                    <div>Draw time optimization is now ${currLevel}%</div>
+                    <div>Draw time optimization is now {currLevel}%</div>
                 </>
             );
         }
@@ -302,22 +308,25 @@ const layer = createLayer(id, function (this: BaseLayer) {
             multiplier: experiments.appliedTimeEffect,
             description: "Applied time",
             enabled: () =>
+                experiments.job.active.value &&
                 experiments.milestones.appliedTimeMilestone.earned.value &&
                 experiments.selectedJob.value === id
-        }))
+        })),
+        generators.batteries.study.timePassing.modifier
     ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
     const propertiesGain = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
             multiplier: jobLevelEffect,
-            description: "Studying level (x1.1 each)"
+            description: `${job.name} level (x1.1 each)`
         })),
         createMultiplicativeModifier(() => ({
             multiplier: studyingOptimization,
-            description: "Studying optimization",
+            description: `${job.name} optimization`,
             enabled: optimizationsMilestone.earned
-        }))
+        })),
+        generators.batteries.study.resourceGain.modifier
     ]);
     const computedPropertiesGain = computed(() => propertiesGain.apply(10));
 
@@ -330,7 +339,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             multiplier: expOptimization,
             description: "Experience optimization",
             enabled: optimizationsMilestone.earned
-        }))
+        })),
+        generators.batteries.study.xpGain.modifier
     ]);
 
     const drawTime = createSequentialModifier(() => [
@@ -368,7 +378,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
             title: "Time Passing",
             modifier: timePassing,
             base: 1,
-            visible: experiments.milestones.appliedTimeMilestone.earned
+            visible: () =>
+                experiments.milestones.appliedTimeMilestone.earned.value ||
+                generators.milestones.timeBatteriesMilestone.earned.value
         },
         {
             title: "Properties Gain",
@@ -376,7 +388,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             base: 10
         },
         {
-            title: "Studying EXP Gain",
+            title: `${job.name} EXP Gain`,
             modifier: jobXpGain,
             base: 1,
             baseText: "Base (per property gained)"
@@ -1064,7 +1076,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     }
 
     this.on("preUpdate", diff => {
-        if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+        if (!job.active.value) return;
 
         diff = Decimal.times(diff, computedTimePassing.value).toNumber();
 
@@ -1208,7 +1220,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             </div>
                             {render(expOptimizationBar)}
                             <Spacer height="50px" />
-                            <h2>Studying Optimization</h2>
+                            <h2>{job.name} Optimization</h2>
                             <div style="margin: 20px">
                                 The magnitude of your best essentia amount has allowed you to
                                 optimize your properties gain by{" "}

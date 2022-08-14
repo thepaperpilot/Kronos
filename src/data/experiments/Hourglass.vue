@@ -103,18 +103,16 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs } from "vue";
 import type { DecimalSource } from "util/bignum";
 import Decimal, { formatWhole } from "util/bignum";
 import Notif from "components/Notif.vue";
 
-const _props = defineProps<{
+defineProps<{
     totalGrains: DecimalSource;
     grainsFallen: DecimalSource;
     flippingProgress: number;
     showHourglassNotif: boolean;
 }>();
-const { totalGrains, grainsFallen } = toRefs(_props);
 
 const emit = defineEmits<{
     (event: "flip"): void;

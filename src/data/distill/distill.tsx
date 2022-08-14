@@ -14,8 +14,8 @@ import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
 import { createBuyable, GenericBuyable } from "features/buyable";
 import { jsx, JSXFunction, showIf, Visibility } from "features/feature";
-import { createJob } from "features/job/job";
-import { createMilestone } from "features/milestones/milestone";
+import { createJob, GenericJob } from "features/job/job";
+import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource, displayResource, Resource, trackBest } from "features/resources/resource";
@@ -39,6 +39,7 @@ import { computed, ComputedRef, nextTick, Ref, ref, unref, watch } from "vue";
 import experiments from "../experiments/experiments";
 import globalQuips from "../quips.json";
 import study from "../study/study";
+import generators from "../generators/generators";
 import "./distill.css";
 import elementParticles from "./elementParticles.json";
 import alwaysQuips from "./quips.json";
@@ -98,6 +99,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const essentia = createResource<DecimalSource>(0, "essentia");
     const bestEssentia = trackBest(essentia);
 
+    const elementsNotif: ComputedRef<boolean> = computed(() =>
+        Object.values(elements).some(e => unref(e.showNotif?.value))
+    ) as ComputedRef<boolean>;
+
     const job = createJob(name, () => ({
         color,
         image: "https://dummyimage.com/512x288/000/fff.png",
@@ -113,15 +118,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: isPastChapter1,
-        showNotif: () => Object.values(elements).some(e => unref(e.showNotif?.value))
-    }));
+        showNotif: elementsNotif
+    })) as GenericJob;
 
     const waterMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
-            requirement: "Achieve Purifying Flowers Level 2",
+            requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlock Water"
         }
     }));
@@ -130,7 +135,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
-            requirement: "Achieve Purifying Flowers Level 4",
+            requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock Principles"
         },
         visibility() {
@@ -142,8 +147,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 5);
         },
         display: {
-            requirement: "Achieve Purifying Flowers Level 5",
-            effectDisplay: 'Unlock "Studying" Job'
+            requirement: `Achieve ${job.name} Level 5`,
+            effectDisplay: `Unlock "${study.job.name}" Job`
         },
         visibility() {
             return showIf(principlesMilestone.earned.value);
@@ -151,13 +156,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
         onComplete() {
             addLayer(study, player);
         }
-    }));
+    })) as GenericMilestone;
     const airMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
-            requirement: "Achieve Purifying Flowers Level 6",
+            requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock Air"
         },
         visibility() {
@@ -169,7 +174,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
-            requirement: "Achieve Purifying Flowers Level 8",
+            requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock Fire"
         },
         visibility() {
@@ -181,8 +186,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return Decimal.gte(job.rawLevel.value, 10);
         },
         display: {
-            requirement: "Achieve Purifying Flowers Level 10",
-            effectDisplay: `Unlock "Measuring" Job`
+            requirement: `Achieve ${job.name} Level 10`,
+            effectDisplay: `Unlock "${experiments.job.name}" Job`
         },
         visibility() {
             return showIf(fireMilestone.earned.value);
@@ -190,7 +195,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         onComplete() {
             addLayer(experiments, player);
         }
-    }));
+    })) as GenericMilestone;
     const milestones = {
         waterMilestone,
         principlesMilestone,
@@ -283,9 +288,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             })),
             createMultiplicativeModifier(() => ({
                 multiplier: jobLevelEffect,
-                description: "Purifying Flowers level (x1.1 each)"
-            }))
-        ]);
+                description: `${job.name} level (x1.1 each)`
+            })),
+            generators.batteries.distill.resourceGain.modifier
+        ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
         const passiveEssenceGain = createSequentialModifier(() => [
             createAdditiveModifier(() => ({
                 addend: () => Decimal.times(principleClickable?.amount.value ?? 0, 5),
@@ -524,9 +530,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
             multiplier: experiments.appliedTimeEffect,
             description: "Applied time",
             enabled: () =>
+                experiments.job.active.value &&
                 experiments.milestones.appliedTimeMilestone.earned.value &&
                 experiments.selectedJob.value === id
-        }))
+        })),
+        generators.batteries.distill.timePassing.modifier
     ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
@@ -546,8 +554,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createMultiplicativeModifier(() => ({
             multiplier: () => Decimal.max(1, fire.resource.value),
             description: "Fire Essence"
-        }))
-    ]);
+        })),
+        generators.batteries.distill.xpGain.modifier
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
 
     const totalFlowerLoss = createSequentialModifier(() => [
         createAdditiveModifier(() => ({
@@ -579,11 +588,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
             title: "Time Passing",
             modifier: timePassing,
             base: 1,
-            visible: experiments.milestones.appliedTimeMilestone.earned
+            visible: () =>
+                experiments.milestones.appliedTimeMilestone.earned.value ||
+                generators.milestones.timeBatteriesMilestone.earned.value
         },
         {
             title: "Essentia",
-            subtitle: "Also Purifying Flowers EXP Amount",
+            subtitle: `Also ${job.name} EXP Amount`,
             modifier: jobXp,
             base: 1
         },
@@ -627,7 +638,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             job.xp.value = essentia.value;
         }
 
-        if (job.timeLoopActive.value === false && player.tabs[1] !== id) return;
+        if (!job.active.value) return;
 
         diff = Decimal.times(diff, computedTimePassing.value).toNumber();
 

@@ -13,14 +13,16 @@ import type { LayerData, PlayerData } from "game/player";
 import player from "game/player";
 import settings from "game/settings";
 import Decimal, { format, formatTime, formatWhole } from "util/bignum";
+import type { ArrayElements } from "util/common";
 import { render, renderCol } from "util/vue";
-import { computed, ref, unref, watch, watchEffect } from "vue";
+import { computed, ComputedRef, ref, unref, watch, watchEffect } from "vue";
 import { useToast } from "vue-toastification";
 import confetti from "./confetti.json";
 import Cutscene from "./Cutscene.vue";
 import distill from "./distill/distill";
 import experiments from "./experiments/experiments";
 import flowers from "./flowers/flowers";
+import generators from "./generators/generators";
 import study from "./study/study";
 
 interface Cutscene {
@@ -36,6 +38,9 @@ interface CutscenePage {
 
 const toast = useToast();
 
+export const jobKeys = ["flowers", "distill", "study", "experiments", "generators"] as const;
+export type JobKeys = ArrayElements<typeof jobKeys>;
+
 const id = "main";
 /**
  * @hidden
@@ -47,8 +52,9 @@ export const main = createLayer(id, function (this: BaseLayer) {
         flowers: flowers.job as GenericJob,
         distill: distill.job as GenericJob,
         study: study.job as GenericJob,
-        experiments: experiments.job as GenericJob
-    } as Record<"flowers" | "distill" | "study" | "experiments", GenericJob>;
+        experiments: experiments.job as GenericJob,
+        generators: generators.job as GenericJob
+    } as Record<JobKeys, GenericJob>;
 
     const timeSlots = computed(() => {
         let slots = 0;
@@ -64,8 +70,10 @@ export const main = createLayer(id, function (this: BaseLayer) {
         return slots;
     });
     const usedTimeSlots = computed(
-        () => Object.values(jobs).filter(j => j.timeLoopActive.value).length
-    );
+        () =>
+            Object.values(jobs).filter(j => j.timeLoopActive.value).length +
+            generators.extraTimeSlotsAllocated.value
+    ) as ComputedRef<number>;
     const hasTimeSlotAvailable = computed(() => timeSlots.value > usedTimeSlots.value);
 
     const resetTimes = persistent<number[]>([0, 0, 0, 0, 0]);
@@ -350,6 +358,12 @@ export const getInitialLayers = (
                 ?.earned === true
         ) {
             layers.push(experiments);
+        }
+        if (
+            (player.layers?.experiments as LayerData<typeof experiments>)?.milestones?.jobMilestone
+                ?.earned === true
+        ) {
+            layers.push(generators);
         }
         return layers;
     }

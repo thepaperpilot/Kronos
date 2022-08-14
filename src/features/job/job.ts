@@ -12,6 +12,7 @@ import {
 import JobComponent from "features/job/Job.vue";
 import { createResource, Resource } from "features/resources/resource";
 import { Persistent, persistent } from "game/persistence";
+import player from "game/player";
 import Decimal, { DecimalSource } from "util/bignum";
 import {
     Computable,
@@ -59,6 +60,7 @@ export interface BaseJob {
     level: Resource;
     levelProgress: Ref<number>;
     timeLoopActive: Persistent<boolean>;
+    active: Ref<boolean>;
     currentQuip: Ref<string | null>;
     setQuip: (quip?: string) => void;
     notif?: ToastID;
@@ -139,6 +141,11 @@ export function createJob<T extends JobOptions>(
             }
             return progress;
         });
+        job.active = computed(
+            () =>
+                unref((job as GenericJob).visibility) === Visibility.Visible &&
+                ((job as GenericJob).timeLoopActive.value || player.tabs[1] === job.name)
+        );
         job.currentQuip = ref(null);
 
         job.setQuip = function (quip?: string) {
