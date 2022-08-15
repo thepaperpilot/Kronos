@@ -31,7 +31,12 @@ export default defineConfig({
         }),
         tsconfigPaths(),
         VitePWA({
-            includeAssets: ["Logo.svg", "favicon.ico", "robots.txt", "apple-touch-icon.png"],
+            includeAssets: [
+                "safari-pinned-tab.svg",
+                "favicon.ico",
+                "robots.txt",
+                "apple-touch-icon.png"
+            ],
             manifest: {
                 name: projInfo.title,
                 short_name: projInfo.title,
