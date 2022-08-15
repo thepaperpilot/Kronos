@@ -98,7 +98,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: () => showIf(experiments.milestones.jobMilestone.earned.value)
-        // showNotif: () => showHourglassNotif.value || potentialsNotif.value
     }));
 
     const multiLoopMilestone = createMilestone(() => ({

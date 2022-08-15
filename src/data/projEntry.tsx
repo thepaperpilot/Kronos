@@ -1,5 +1,5 @@
 import Spacer from "components/layout/Spacer.vue";
-import type { CoercableComponent } from "features/feature";
+import { CoercableComponent, Visibility } from "features/feature";
 import { jsx, showIf } from "features/feature";
 import { GenericJob } from "features/job/job";
 import { createParticles } from "features/particles/particles";
@@ -17,6 +17,7 @@ import type { ArrayElements } from "util/common";
 import { render, renderCol } from "util/vue";
 import { computed, ComputedRef, ref, unref, watch, watchEffect } from "vue";
 import { useToast } from "vue-toastification";
+import breeding from "./breeding/breeding";
 import confetti from "./confetti.json";
 import Cutscene from "./Cutscene.vue";
 import distill from "./distill/distill";
@@ -38,7 +39,14 @@ interface CutscenePage {
 
 const toast = useToast();
 
-export const jobKeys = ["flowers", "distill", "study", "experiments", "generators"] as const;
+export const jobKeys = [
+    "flowers",
+    "distill",
+    "study",
+    "experiments",
+    "generators",
+    "breeding"
+] as const;
 export type JobKeys = ArrayElements<typeof jobKeys>;
 
 const id = "main";
@@ -53,7 +61,8 @@ export const main = createLayer(id, function (this: BaseLayer) {
         distill: distill.job as GenericJob,
         study: study.job as GenericJob,
         experiments: experiments.job as GenericJob,
-        generators: generators.job as GenericJob
+        generators: generators.job as GenericJob,
+        breeding: breeding.job as GenericJob
     } as Record<JobKeys, GenericJob>;
 
     const timeSlots = computed(() => {
@@ -142,13 +151,6 @@ export const main = createLayer(id, function (this: BaseLayer) {
         },
         style: "z-index: -1"
     }));
-
-    // Preload images
-    [
-        "https://upload.wikimedia.org/wikipedia/commons/7/71/Serpiente_alquimica.jpg",
-        "https://dummyimage.com/720x320/000/fff.png",
-        "https://dummyimage.com/386x320/000/fff.png"
-    ].forEach(image => (new Image().src = image));
 
     const activeCutscene = ref<null | Cutscene>(null);
     watchEffect(() => {
@@ -312,25 +314,10 @@ globalBus.on("update", diff => {
     }
 });
 
-export const numJobs = computed(() => {
-    let jobs = 1;
-    if ((player.layers?.main as LayerData<typeof main>)?.chapter ?? 0 > 1) {
-        jobs++;
-    }
-    if (
-        (player.layers.distill as LayerData<typeof distill>)?.milestones?.experimentsMilestone
-            ?.earned === true
-    ) {
-        jobs++;
-    }
-    if (
-        (player.layers?.distill as LayerData<typeof distill>)?.milestones?.studyMilestone
-            ?.earned === true
-    ) {
-        jobs++;
-    }
-    return jobs;
-});
+export const numJobs = computed(
+    () =>
+        jobKeys.filter(jobKey => unref(main.jobs[jobKey].visibility) === Visibility.Visible).length
+);
 
 /**
  * Given a player save data object being loaded, return a list of layers that should currently be enabled.
@@ -364,6 +351,12 @@ export const getInitialLayers = (
                 ?.earned === true
         ) {
             layers.push(generators);
+        }
+        if (
+            (player.layers?.study as LayerData<typeof study>)?.milestones?.jobMilestone?.earned ===
+            true
+        ) {
+            layers.push(breeding);
         }
         return layers;
     }

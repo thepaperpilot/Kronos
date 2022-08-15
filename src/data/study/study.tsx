@@ -18,14 +18,14 @@ import { CardActions, createCard, GenericCard, signElements } from "features/car
 import { createClickable } from "features/clickables/clickable";
 import { jsx, showIf } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone } from "features/milestones/milestone";
+import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
 import { createResource, displayResource, trackBest } from "features/resources/resource";
 import Resource from "features/resources/Resource.vue";
 import { createTab } from "features/tabs/tab";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { addTooltip } from "features/tooltips/tooltip";
-import { BaseLayer, createLayer } from "game/layers";
+import { addLayer, BaseLayer, createLayer } from "game/layers";
 import { createMultiplicativeModifier, createSequentialModifier, Modifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
@@ -143,15 +143,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock "???" Job`
+            effectDisplay: `Unlock "${breeding.job.name}" Job`
         },
         visibility() {
             return showIf(upgradingMilestone.earned.value);
         },
         onComplete() {
-            // addLayer(generators, player);
+            addLayer(breeding, player);
         }
-    }));
+    })) as GenericMilestone;
     const milestones = {
         manualMilestone,
         shopMilestone,
