@@ -356,6 +356,8 @@ export default defineComponent({
     bottom: 0;
     overflow: hidden;
     border-radius: inherit;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
 }
 
 .job-progress-container {
