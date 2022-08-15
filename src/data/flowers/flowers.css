@@ -35,7 +35,7 @@
 }
 
 .spellSelector.activeSpell::after {
-    opacity: 1;
+    opacity: 0.2;
 }
 
 .spellSelector > span > * {

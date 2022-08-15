@@ -49,9 +49,9 @@ onBeforeUnmount(() => watcher?.());
 
 <style scoped>
 .modifier-info-toggle button {
-    color: var(--outline);
+    color: var(--feature-foreground);
     background: var(--foreground);
-    border: solid 2px var(--outline);
+    border: solid 2px var(--feature-foreground);
     border-radius: 50%;
     font-size: 24px;
     line-height: 1;

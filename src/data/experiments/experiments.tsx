@@ -110,7 +110,7 @@ const modifierEffects = {
 const id = "experiments";
 const layer = createLayer(id, function (this: BaseLayer) {
     const name = "Measuring";
-    const color = "#C2B280";
+    const color = "#D1C926";
 
     const potentia = createResource<DecimalSource>(0, "potentia");
     const baseTotalGrains = persistent<DecimalSource>(1);

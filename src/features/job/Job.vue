@@ -280,18 +280,18 @@ export default defineComponent({
 }
 
 .job-loop-toggle button {
-    color: var(--outline);
+    color: var(--feature-foreground);
     border: none;
     padding: 0;
     margin: 10px;
     background: var(--foreground);
     border-radius: 50%;
-    border: solid 2px var(--outline);
+    border: solid 2px var(--feature-foreground);
 }
 
 .job-loop-toggle button.active {
-    color: var(--link);
-    box-shadow: 0 0 8px 4px var(--link);
+    color: var(--points);
+    box-shadow: 0 0 8px 4px var(--feature-foreground);
 }
 
 .job-loop-toggle button:not([disabled]):hover {
@@ -333,10 +333,16 @@ export default defineComponent({
 .job.selected .job-resource,
 .job.selected .job-title h2,
 .job.selected .job-title > span:nth-child(2) {
-    background: var(--locked);
+    background: var(--background);
     padding-left: 4px;
     padding-right: 4px;
-    opacity: 0.9;
+    opacity: 1;
+}
+
+.job.selected:hover .job-resource,
+.job.selected:hover .job-title h2,
+.job.selected:hover .job-title > span:nth-child(2) {
+    opacity: 0;
 }
 
 .job-title > span:nth-child(2) {

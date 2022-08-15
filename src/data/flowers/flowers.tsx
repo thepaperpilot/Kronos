@@ -81,7 +81,7 @@ const toast = useToast();
 const id = "flowers";
 const layer = createLayer(id, function (this: BaseLayer) {
     const name = "Harvesting Flowers";
-    const color = "#F1EBD9";
+    const color = "#A626D1";
 
     const flowers = createResource<DecimalSource>(0, "moly");
     const bestMoly = trackBest(flowers);

@@ -94,7 +94,7 @@ function getElementParticlesConfig(startColor: string, endColor: string) {
 const id = "distill";
 const layer = createLayer(id, function (this: BaseLayer) {
     const name = "Purifying Flowers";
-    const color = "#8AFFC1";
+    const color = "#267BD1";
 
     const essentia = createResource<DecimalSource>(0, "essentia");
     const bestEssentia = trackBest(essentia);

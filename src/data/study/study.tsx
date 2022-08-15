@@ -39,6 +39,7 @@ import type { ToastID } from "vue-toastification/dist/types/types";
 import distill from "../distill/distill";
 import flowers from "../flowers/flowers";
 import generators from "../generators/generators";
+import breeding from "../breeding/breeding";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import sellParticles from "./sell.json";
@@ -49,7 +50,7 @@ const toast = useToast();
 const id = "study";
 const layer = createLayer(id, function (this: BaseLayer) {
     const name = "Studying";
-    const color = "#9b6734";
+    const color = "#D16726";
 
     const properties = createResource<DecimalSource>(0, "properties");
     const insights = createResource<DecimalSource>(0, "insights");
@@ -210,7 +211,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         display: jsx(() => <>{format(flowers.bestMoly.value)} best moly</>),
         borderStyle: {
             borderColor: flowers.color,
-            color: "#888"
+            color: "#FFF"
         },
         fillStyle: {
             backgroundColor: flowers.color
@@ -252,7 +253,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         display: jsx(() => <>{format(distill.bestEssentia.value)} best essentia</>),
         borderStyle: {
             borderColor: distill.color,
-            color: "#888"
+            color: "#FFF"
         },
         fillStyle: {
             backgroundColor: distill.color
@@ -292,7 +293,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         display: jsx(() => <>{format(bestInsights.value)} best insights</>),
         borderStyle: {
             borderColor: color,
-            color: "#888"
+            color: "#FFF"
         },
         fillStyle: {
             backgroundColor: color
@@ -1095,15 +1096,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 tab: createTab(() => ({
                     display: jsx(() => (
                         <>
+                            <Spacer />
                             {cards[drawnCard.value].renderForPlay(drawnCards)}
+                            <Spacer />
                             {manualMilestone.earned.value ? renderRow(drawButton) : null}
+                            <Spacer />
                             {shopMilestone.earned.value ? (
                                 <div>
                                     Shop will refresh in{" "}
                                     {cardsDrawnPerRefresh.value - cardsDrawnToShop.value} draws
                                 </div>
                             ) : null}
-                            <Spacer />
                             <div>
                                 Card will be drawn automatically in{" "}
                                 {formatTime(Decimal.sub(computedDrawTime.value, timeDrawing.value))}

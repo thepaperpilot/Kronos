@@ -78,7 +78,7 @@ export type Batteries = Record<
 const id = "generators";
 const layer = createLayer(id, function (this: BaseLayer) {
     const name = "Harnessing Power";
-    const color = "#89C6FF";
+    const color = "#26D1CE";
 
     const energeia = createResource<DecimalSource>(0, "energeia");
     const extraTimeSlotsAllocated = persistent<number>(0);
@@ -547,7 +547,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })
     );
 
-    // TODO add particle effects to hourglass sands falling, and grains being ground
     return {
         name,
         color,
