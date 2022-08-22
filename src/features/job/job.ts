@@ -144,7 +144,7 @@ export function createJob<T extends JobOptions>(
         job.active = computed(
             () =>
                 unref((job as GenericJob).visibility) === Visibility.Visible &&
-                ((job as GenericJob).timeLoopActive.value || player.tabs[1] === job.name)
+                ((job as GenericJob).timeLoopActive.value || player.tabs[1] === job.layerID)
         );
         job.currentQuip = ref(null);
 
