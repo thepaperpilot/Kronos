@@ -178,7 +178,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const expOptimization = computed(() =>
-        Decimal.pow(1.1, Decimal.max(flowers.bestMoly.value, 1).log10().floor())
+        optimizationsMilestone.earned.value
+            ? Decimal.pow(1.1, Decimal.max(flowers.bestMoly.value, 1).log10().floor())
+            : 1
     );
     let expOptimizationNotif: ToastID | null = null;
     watch(
@@ -218,7 +220,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
     const studyingOptimization = computed(() =>
-        Decimal.pow(1.1, Decimal.max(distill.bestEssentia.value, 1).log10().floor())
+        optimizationsMilestone.earned.value
+            ? Decimal.pow(1.1, Decimal.max(distill.bestEssentia.value, 1).log10().floor())
+            : 1
     );
     let studyingOptimizationNotif: ToastID | null = null;
     watch(
@@ -260,7 +264,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
     const drawTimeOptimizaton = computed(() =>
-        Decimal.pow(1.1, Decimal.max(bestInsights.value, 1).log10().floor())
+        optimizationsMilestone.earned.value
+            ? Decimal.pow(1.1, Decimal.max(bestInsights.value, 1).log10().floor())
+            : 1
     );
     let drawTimeOptimizationNotif: ToastID | null = null;
     watch(
