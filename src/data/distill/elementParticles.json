@@ -21,6 +21,10 @@
                     "list": [
                         {
                             "time": 0,
+                            "value": 0
+                        },
+                        {
+                            "time": 0.2,
                             "value": 0.4
                         },
                         {
@@ -45,11 +49,11 @@
                     "list": [
                         {
                             "time": 0,
-                            "value": 1
+                            "value": 0.5
                         },
                         {
                             "time": 1,
-                            "value": 0.2
+                            "value": 0.1
                         }
                     ]
                 },
@@ -84,7 +88,7 @@
                 "type": "torus",
                 "data": {
                     "x": 0,
-                    "y": 0,
+                    "y": 12.5,
                     "radius": 25,
                     "innerRadius": 0,
                     "affectRotation": false
