@@ -40,7 +40,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             x: "75%",
             y: "60%"
         },
-        symbol: "🌱",
+        symbol: "emoji_nature",
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },

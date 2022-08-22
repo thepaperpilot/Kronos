@@ -12,7 +12,10 @@
             }"
             @click="emit('selectJob', id)"
         >
-            <div class="applied-time-symbol">{{ job.symbol }}</div>
+            <div class="applied-time-symbol" v-if="unref(job.symbol).length <= 2">
+                {{ job.symbol }}
+            </div>
+            <span class="applied-time-symbol material-icons" v-else>{{ job.symbol }}</span>
         </div>
         <div class="applied-time-effect">{{ format(effect) }}x</div>
     </div>

@@ -3,6 +3,13 @@
     border-color: transparent;
     transform: unset !important;
     position: relative;
+    z-index: 2 !important;
+    width: 150px !important;
+    height: 150px !important;
+}
+
+.spellSelector:hover {
+    z-index: 3 !important;
 }
 
 .spellSelector::before {

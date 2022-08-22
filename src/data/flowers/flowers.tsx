@@ -287,7 +287,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     ))
                 };
             },
-            style: "width: 150px; height: 150px; z-index: 2",
             classes(): Record<string, boolean> {
                 return {
                     spellSelector: true,
