@@ -159,7 +159,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         display: {
             requirement: `Achieve ${job.name} Level 2`,
-            effectDisplay: "Unlocking grinding grains"
+            effectDisplay: "Unlock grinding grains"
         }
     }));
     const potentialsMilestone = createMilestone(() => ({

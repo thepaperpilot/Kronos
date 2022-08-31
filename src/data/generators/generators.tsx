@@ -4,8 +4,11 @@
  */
 
 import Collapsible from "components/layout/Collapsible.vue";
+import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
 import { createCollapsibleModifierSections } from "data/common";
+import experiments from "data/experiments/experiments";
+import { jobKeys, JobKeys, main } from "data/projEntry";
 import {
     Component,
     GatherProps,
@@ -20,9 +23,10 @@ import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
 import { createTab } from "features/tabs/tab";
 import { createTabFamily, TabButtonOptions } from "features/tabs/tabFamily";
-import { BaseLayer, createLayer } from "game/layers";
+import { addLayer, BaseLayer, createLayer } from "game/layers";
 import {
     createAdditiveModifier,
+    createExponentialModifier,
     createMultiplicativeModifier,
     createSequentialModifier,
     Modifier
@@ -30,6 +34,10 @@ import {
 import { Persistent, persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource } from "util/bignum";
+import type { WithRequired } from "util/common";
+import { camelToTitle } from "util/common";
+import { Computable, convertComputable, ProcessedComputable } from "util/computed";
+import { createLazyProxy } from "util/proxies";
 import {
     getFirstFeature,
     joinJSX,
@@ -40,18 +48,12 @@ import {
     VueFeature
 } from "util/vue";
 import { computed, ComputedRef, Ref, unref } from "vue";
+import breeding from "../breeding/breeding";
 import globalQuips from "../quips.json";
-import alwaysQuips from "./quips.json";
-import experiments from "data/experiments/experiments";
+import rituals from "../rituals/rituals";
 import Atom from "./Atom.vue";
-import Row from "components/layout/Row.vue";
-import { jobKeys, JobKeys, main } from "data/projEntry";
 import Battery from "./Battery.vue";
-import { Computable, convertComputable, ProcessedComputable } from "util/computed";
-import { createLazyProxy } from "util/proxies";
-import { createExponentialModifier } from "game/modifiers";
-import type { WithRequired } from "util/common";
-import { camelToTitle } from "util/common";
+import alwaysQuips from "./quips.json";
 
 export type BatteryType = "timePassing" | "resourceGain" | "xpGain";
 
@@ -106,7 +108,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         display: {
             requirement: `Achieve ${job.name} Level 2`,
-            effectDisplay: "Unlocking multiple generators"
+            effectDisplay: "Unlock multiple generators"
         }
     }));
     const timeBatteriesMilestone = createMilestone(() => ({
@@ -163,13 +165,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock 1/2 of "???" Job`
+            effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
         },
         visibility() {
             return showIf(xpBatteriesMilestone.earned.value);
         },
         onComplete() {
-            // addLayer(generators, player);
+            if (breeding.milestones.jobMilestone.earned.value) {
+                addLayer(rituals, player);
+            }
         }
     })) as GenericMilestone;
     const milestones = {
@@ -513,16 +517,22 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             <div>Batteries discharge over time.</div>
                             <Spacer />
                             {joinJSX(
-                                Object.values(batteries).map(batteriesCategory => (
-                                    <>
-                                        <h2>{main.jobs[batteriesCategory.job].name}</h2>
-                                        {renderRow(
-                                            batteriesCategory.timePassing,
-                                            batteriesCategory.resourceGain,
-                                            batteriesCategory.xpGain
-                                        )}
-                                    </>
-                                )),
+                                Object.values(batteries)
+                                    .filter(
+                                        b =>
+                                            unref(main.jobs[b.job].visibility) ===
+                                            Visibility.Visible
+                                    )
+                                    .map(batteriesCategory => (
+                                        <>
+                                            <h2>{main.jobs[batteriesCategory.job].name}</h2>
+                                            {renderRow(
+                                                batteriesCategory.timePassing,
+                                                batteriesCategory.resourceGain,
+                                                batteriesCategory.xpGain
+                                            )}
+                                        </>
+                                    )),
                                 <Spacer height="50px" />
                             )}
                         </>

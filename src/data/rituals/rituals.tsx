@@ -7,32 +7,46 @@ import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
 import { createCollapsibleModifierSections } from "data/common";
 import experiments from "data/experiments/experiments";
-import { jsx, showIf } from "features/feature";
+import { JobKeys } from "data/projEntry";
+import { Component, GatherProps, jsx, showIf, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone, GenericMilestone } from "features/milestones/milestone";
-import MainDisplay from "features/resources/MainDisplay.vue";
+import { createResource } from "features/resources/resource";
 import { createTabFamily } from "features/tabs/tabFamily";
-import { addLayer, BaseLayer, createLayer } from "game/layers";
+import { BaseLayer, createLayer } from "game/layers";
 import { createMultiplicativeModifier, createSequentialModifier, Modifier } from "game/modifiers";
 import { persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource } from "util/bignum";
 import type { WithRequired } from "util/common";
-import { getFirstFeature, renderColJSX, renderJSX } from "util/vue";
+import { Computable, convertComputable, ProcessedComputable } from "util/computed";
+import { getFirstFeature, renderColJSX, renderJSX, VueFeature } from "util/vue";
 import { computed, ComputedRef, unref } from "vue";
+import breeding from "../breeding/breeding";
+import generators from "../generators/generators";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
-import study from "../study/study";
-import generators from "../generators/generators";
-import { createResource } from "features/resources/resource";
-import rituals from "data/rituals/rituals";
+import RitualComponent from "./Ritual.vue";
 
-const id = "breeding";
+export interface RitualOptions {
+    name: string;
+    visibility?: Computable<Visibility>;
+}
+
+export interface Ritual extends VueFeature {
+    name: string;
+    visibility: ProcessedComputable<Visibility>;
+}
+
+const id = "rituals";
 const layer = createLayer(id, function (this: BaseLayer) {
-    const name = "Breeding Plants";
-    const color = "#51D126";
+    const name = "Performing Rituals";
+    const color = "#D12626";
 
-    const mutations = createResource<DecimalSource>(0, "mutations");
+    const activeRituals = createResource<number>(
+        computed(() => 0),
+        "active rituals"
+    );
 
     const job = createJob(name, () => ({
         color,
@@ -41,35 +55,41 @@ const layer = createLayer(id, function (this: BaseLayer) {
             x: "75%",
             y: "60%"
         },
-        symbol: "emoji_nature",
+        symbol: "⎊",
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: mutations,
+        resource: activeRituals,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
-        visibility: () => showIf(study.milestones.jobMilestone.earned.value)
+        visibility: () =>
+            showIf(
+                generators.milestones.jobMilestone.earned.value &&
+                    breeding.milestones.jobMilestone.earned.value
+            )
     }));
 
-    const multiLoopMilestone = createMilestone(() => ({
+    const selectedRunes = persistent<(JobKeys | "")[][]>([]);
+
+    const fourthColMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 2);
         },
         display: {
             requirement: `Achieve ${job.name} Level 2`,
-            effectDisplay: "Unlock multiple generators"
+            effectDisplay: `Unlock fourth column of runes and ${emolumentum.name}`
         }
     }));
-    const timeBatteriesMilestone = createMilestone(() => ({
+    const fourthRowMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
             requirement: `Achieve ${job.name} Level 4`,
-            effectDisplay: "Unlock time passing batteries"
+            effectDisplay: `Unlock fourth row of runes and ${melius.name}`
         },
         visibility() {
-            return showIf(multiLoopMilestone.earned.value);
+            return showIf(fourthColMilestone.earned.value);
         }
     }));
     const timeSlotMilestone = createMilestone(() => ({
@@ -78,68 +98,63 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         display: {
             requirement: `Achieve ${job.name} Level 5`,
-            effectDisplay: "Unlock ??? in ??? job"
+            effectDisplay: "Unlock a time slot"
         },
         visibility() {
-            return showIf(timeBatteriesMilestone.earned.value);
+            return showIf(fourthRowMilestone.earned.value);
         }
     }));
-    const resourceBatteriesMilestone = createMilestone(() => ({
+    const fifthColMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
             requirement: `Achieve ${job.name} Level 6`,
-            effectDisplay: "Unlock resource gain batteries"
+            effectDisplay: `Unlock fifth column of runes and ${collegium.name}`
         },
         visibility() {
             return showIf(timeSlotMilestone.earned.value);
         }
     }));
-    const xpBatteriesMilestone = createMilestone(() => ({
+    const fifthRowMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
             requirement: `Achieve ${job.name} Level 8`,
-            effectDisplay: "Unlock xp gain batteries"
+            effectDisplay: `Unlock fifth row of runes and ${celeritas.name}`
         },
         visibility() {
-            return showIf(resourceBatteriesMilestone.earned.value);
+            return showIf(fifthColMilestone.earned.value);
         }
     }));
-    const jobMilestone = createMilestone(() => ({
+    const genesisMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 10);
         },
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
+            effectDisplay: `Unlock Ritual of Génesis`
         },
         visibility() {
-            return showIf(xpBatteriesMilestone.earned.value);
-        },
-        onComplete() {
-            if (generators.milestones.jobMilestone.earned.value) {
-                addLayer(rituals, player);
-            }
+            return showIf(fifthRowMilestone.earned.value);
         }
     })) as GenericMilestone;
     const milestones = {
-        multiLoopMilestone,
-        timeBatteriesMilestone,
+        fourthColMilestone,
+        fourthRowMilestone,
         timeSlotMilestone,
-        resourceBatteriesMilestone,
-        xpBatteriesMilestone,
-        jobMilestone
+        fifthColMilestone,
+        fifthRowMilestone,
+        genesisMilestone
     };
     const orderedMilestones = [
-        jobMilestone,
-        xpBatteriesMilestone,
-        resourceBatteriesMilestone,
+        genesisMilestone,
+        fifthRowMilestone,
+        fifthColMilestone,
         timeSlotMilestone,
-        timeBatteriesMilestone,
-        multiLoopMilestone
+        fourthRowMilestone,
+        fourthColMilestone
     ];
     const collapseMilestones = persistent<boolean>(true);
     const lockedMilestones = computed(() =>
@@ -149,6 +164,76 @@ const layer = createLayer(id, function (this: BaseLayer) {
         orderedMilestones,
         m => m.earned.value
     );
+
+    const runeRows = computed(() => {
+        let rows = 3;
+
+        if (fourthRowMilestone.earned.value) {
+            rows++;
+        }
+        if (fifthRowMilestone.earned.value) {
+            rows++;
+        }
+
+        return rows;
+    });
+    const runeCols = computed(() => {
+        let cols = 3;
+
+        if (fourthColMilestone.earned.value) {
+            cols++;
+        }
+        if (fifthColMilestone.earned.value) {
+            cols++;
+        }
+
+        return cols;
+    });
+
+    function createRitual({ name, visibility }: RitualOptions): Ritual {
+        const computedVisibility = convertComputable(visibility ?? Visibility.Visible);
+
+        return {
+            name,
+            visibility: computedVisibility,
+            [Component]: RitualComponent,
+            [GatherProps]: function (this: Ritual) {
+                return {};
+            }
+        };
+    }
+
+    const doctrina = createRitual({
+        name: "Ritual of Doctrina"
+    });
+
+    const emolumentum = createRitual({
+        name: "Ritual of Emolumentum",
+        visibility: () => showIf(fourthColMilestone.earned.value)
+    });
+
+    const melius = createRitual({
+        name: "Ritual of Melius",
+        visibility: () => showIf(fourthRowMilestone.earned.value)
+    });
+
+    const collegium = createRitual({
+        name: "Ritual of Collegium",
+        visibility: () => showIf(fifthColMilestone.earned.value)
+    });
+
+    const celeritas = createRitual({
+        name: "Ritual of Celeritas",
+        visibility: () => showIf(fifthRowMilestone.earned.value)
+    });
+
+    const rituals = {
+        doctrina,
+        emolumentum,
+        melius,
+        collegium,
+        celeritas
+    };
 
     const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(1.1, job.level.value)
@@ -183,7 +268,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             base: 1,
             visible: () =>
                 experiments.milestones.appliedTimeMilestone.earned.value ||
-                timeBatteriesMilestone.earned.value
+                generators.milestones.timeBatteriesMilestone.earned.value
         },
         {
             title: `${job.name} EXP Gain`,
@@ -218,6 +303,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         color,
         minWidth: 670,
         job,
+        activeRituals,
+        runeRows,
+        runeCols,
+        rituals,
         modifiers,
         milestones,
         collapseMilestones,
@@ -229,7 +318,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
             return (
                 <>
-                    <MainDisplay resource={mutations} color={color} />
                     {renderColJSX(
                         ...milestonesToDisplay,
                         jsx(() => (

@@ -1,7 +1,7 @@
 import Spacer from "components/layout/Spacer.vue";
 import { CoercableComponent, Visibility } from "features/feature";
 import { jsx, showIf } from "features/feature";
-import { GenericJob } from "features/job/job";
+import { createJob, GenericJob } from "features/job/job";
 import { createParticles } from "features/particles/particles";
 import { createResource, trackBest, trackTotal } from "features/resources/resource";
 import { createUpgrade } from "features/upgrades/upgrade";
@@ -24,6 +24,7 @@ import distill from "./distill/distill";
 import experiments from "./experiments/experiments";
 import flowers from "./flowers/flowers";
 import generators from "./generators/generators";
+import rituals from "./rituals/rituals";
 import study from "./study/study";
 
 interface Cutscene {
@@ -45,7 +46,8 @@ export const jobKeys = [
     "study",
     "experiments",
     "generators",
-    "breeding"
+    "breeding",
+    "rituals"
 ] as const;
 export type JobKeys = ArrayElements<typeof jobKeys>;
 
@@ -62,7 +64,8 @@ export const main = createLayer(id, function (this: BaseLayer) {
         study: study.job as GenericJob,
         experiments: experiments.job as GenericJob,
         generators: generators.job as GenericJob,
-        breeding: breeding.job as GenericJob
+        breeding: breeding.job as GenericJob,
+        rituals: rituals.job as GenericJob
     } as Record<JobKeys, GenericJob>;
 
     const timeSlots = computed(() => {
@@ -73,6 +76,9 @@ export const main = createLayer(id, function (this: BaseLayer) {
                 slots++;
             }
             if (experiments.milestones.timeSlotMilestone.earned.value) {
+                slots++;
+            }
+            if (rituals.milestones.timeSlotMilestone.earned.value) {
                 slots++;
             }
         }
@@ -250,6 +256,30 @@ export const main = createLayer(id, function (this: BaseLayer) {
         return <></>;
     });
 
+    const partialJob = createJob("???", () => ({
+        color: "black",
+        image: "https://dummyimage.com/720x320/000/fff.png",
+        imageFocus: {
+            x: "50%",
+            y: "50%"
+        },
+        layerID: "unknown",
+        symbol: "",
+        loopable: false,
+        visibility: () => {
+            if (
+                generators.milestones.jobMilestone.earned.value !==
+                breeding.milestones.jobMilestone.earned.value
+            ) {
+                return Visibility.Visible;
+            }
+            return Visibility.None;
+        },
+        classes: { broken: true },
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        open: () => {}
+    }));
+
     return {
         name: "Jobs",
         chapter,
@@ -260,6 +290,7 @@ export const main = createLayer(id, function (this: BaseLayer) {
         activeCutscene,
         classes: { nigredo: true },
         jobs,
+        partialJob,
         sumJobLevels,
         bestJobLevelsSum,
         totalJobLevelsSum,
@@ -299,7 +330,7 @@ export const main = createLayer(id, function (this: BaseLayer) {
                             {timeSlots.value - usedTimeSlots.value === 1 ? "" : "s"} Available
                         </div>
                     ) : null}
-                    {renderCol(...Object.values(jobs))}
+                    {renderCol(...Object.values(jobs), partialJob)}
                     {render(closeTimeLoop)}
                     {render(particles)}
                 </>
@@ -357,6 +388,14 @@ export const getInitialLayers = (
             true
         ) {
             layers.push(breeding);
+        }
+        if (
+            (player.layers?.generators as LayerData<typeof generators>)?.milestones?.jobMilestone
+                ?.earned === true &&
+            (player.layers?.breeding as LayerData<typeof breeding>)?.milestones?.jobMilestone
+                ?.earned === true
+        ) {
+            layers.push(rituals);
         }
         return layers;
     }

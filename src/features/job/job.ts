@@ -50,6 +50,7 @@ export interface JobOptions {
     modifierInfo?: Computable<CoercableComponent>;
     modifierModalAttrs?: Record<string, unknown>;
     showNotif?: Computable<boolean>;
+    loopable?: Computable<boolean>;
 }
 
 export interface BaseJob {
@@ -64,6 +65,7 @@ export interface BaseJob {
     currentQuip: Ref<string | null>;
     setQuip: (quip?: string) => void;
     notif?: ToastID;
+    open: VoidFunction;
     type: typeof JobType;
     [Component]: typeof JobComponent;
     [GatherProps]: () => Record<string, unknown>;
@@ -148,6 +150,10 @@ export function createJob<T extends JobOptions>(
         );
         job.currentQuip = ref(null);
 
+        setDefault(job as GenericJob, "open", function () {
+            player.tabs.splice(1, 1, job.layerID);
+        });
+
         job.setQuip = function (quip?: string) {
             const genericJob = job as GenericJob;
             if (genericJob.currentQuip.value) {
@@ -175,6 +181,7 @@ export function createJob<T extends JobOptions>(
         processComputable(job as T, "randomQuips");
         processComputable(job as T, "modifierInfo");
         processComputable(job as T, "showNotif");
+        processComputable(job as T, "loopable");
 
         job[GatherProps] = function (this: GenericJob) {
             const {
@@ -196,7 +203,9 @@ export function createJob<T extends JobOptions>(
                 randomQuips,
                 modifierInfo,
                 modifierModalAttrs,
-                showNotif
+                showNotif,
+                loopable,
+                open
             } = this;
             return {
                 id,
@@ -217,7 +226,9 @@ export function createJob<T extends JobOptions>(
                 randomQuips,
                 modifierInfo,
                 modifierModalAttrs,
-                showNotif
+                showNotif,
+                loopable,
+                open
             };
         };
 

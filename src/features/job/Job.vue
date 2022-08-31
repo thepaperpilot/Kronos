@@ -12,12 +12,15 @@
             unref(style) ?? {}
         ]"
         class="feature dontMerge job"
-        :class="{
-            selected,
-            active: selected || unref(timeLoopActive),
-            animating
-        }"
-        @click="openJob"
+        :class="[
+            {
+                selected,
+                active: selected || unref(timeLoopActive),
+                animating
+            },
+            unref(classes) ?? {}
+        ]"
+        @click="open"
     >
         <img :src="unref(image)" />
         <div class="job-contents">
@@ -45,7 +48,12 @@
                 <div class="job-progress"></div>
             </div>
         </div>
-        <Tooltip :direction="Direction.Left" display="Toggle Time Loop" class="job-loop-toggle">
+        <Tooltip
+            v-if="unref(loopable) !== false"
+            :direction="Direction.Left"
+            display="Toggle Time Loop"
+            class="job-loop-toggle"
+        >
             <button
                 class="material-icons"
                 @click.stop="timeLoopActive.value = !unref(timeLoopActive)"
@@ -141,8 +149,7 @@ export default defineComponent({
             required: true
         },
         randomQuips: {
-            type: processedPropType<string[]>(Array),
-            required: true
+            type: processedPropType<string[]>(Array)
         },
         modifierInfo: processedPropType<CoercableComponent>(String, Object, Function),
         id: {
@@ -150,7 +157,12 @@ export default defineComponent({
             required: true
         },
         modifierModalAttrs: Object as PropType<Record<string, unknown>>,
-        showNotif: processedPropType<boolean>(Boolean)
+        showNotif: processedPropType<boolean>(Boolean),
+        loopable: processedPropType<boolean>(Boolean),
+        open: {
+            type: Function as PropType<VoidFunction>,
+            required: true
+        }
     },
     components: {
         Node,
@@ -165,14 +177,10 @@ export default defineComponent({
         const finishedFirstChapter: ComputedRef<boolean> = computed(() => main.chapter.value > 1);
         const hasTimeSlotAvailable: ComputedRef<boolean> = main.hasTimeSlotAvailable;
 
-        function openJob() {
-            player.tabs.splice(1, 1, layerID.value);
-        }
-
         let quipTimer: NodeJS.Timer | undefined = undefined;
         watchEffect(() => {
             clearInterval(quipTimer);
-            const quips = unwrapRef(randomQuips);
+            const quips = unwrapRef(randomQuips) ?? [];
             if (currentQuip.value) {
                 quipTimer = setTimeout(() => {
                     currentQuip.value = null;
@@ -208,7 +216,6 @@ export default defineComponent({
             finishedFirstChapter,
             hasTimeSlotAvailable,
             formatWhole,
-            openJob,
             unref,
             displayResource,
             resourceArray,
@@ -412,6 +419,10 @@ export default defineComponent({
     pointer-events: none;
     animation: quipAnimation 15s;
     animation-fill-mode: forwards;
+}
+
+.job.broken {
+    clip-path: polygon(45% 55%, 60% 40%, 100% 100%, 0 100%, 0 0);
 }
 
 @keyframes quipAnimation {
