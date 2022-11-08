@@ -195,6 +195,7 @@ export default defineComponent({
     border-radius: var(--border-radius);
     box-shadow: none !important;
     background: transparent;
+    touch-action: manipulation;
 }
 
 .challenge.canStart button {

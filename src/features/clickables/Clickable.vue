@@ -126,6 +126,7 @@ export default defineComponent({
     min-height: 120px;
     width: 120px;
     font-size: 10px;
+    touch-action: manipulation;
 }
 
 .clickable.small {
