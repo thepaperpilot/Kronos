@@ -111,13 +111,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: "Unlock multiple generators"
         }
     }));
-    const timeBatteriesMilestone = createMilestone(() => ({
+    const resourceBatteriesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 4);
         },
         display: {
             requirement: `Achieve ${job.name} Level 4`,
-            effectDisplay: "Unlock time passing batteries"
+            effectDisplay: "Unlock resource gain batteries"
         },
         visibility() {
             return showIf(multiLoopMilestone.earned.value);
@@ -132,31 +132,31 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: "Unlock ??? in ??? job"
         },
         visibility() {
-            return showIf(timeBatteriesMilestone.earned.value);
+            return showIf(resourceBatteriesMilestone.earned.value);
         }
     }));
-    const resourceBatteriesMilestone = createMilestone(() => ({
+    const xpBatteriesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
         },
         display: {
             requirement: `Achieve ${job.name} Level 6`,
-            effectDisplay: "Unlock resource gain batteries"
+            effectDisplay: "Unlock xp gain batteries"
         },
         visibility() {
             return showIf(timeSlotMilestone.earned.value);
         }
     }));
-    const xpBatteriesMilestone = createMilestone(() => ({
+    const timeBatteriesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 8);
         },
         display: {
             requirement: `Achieve ${job.name} Level 8`,
-            effectDisplay: "Unlock xp gain batteries"
+            effectDisplay: "Unlock time passing batteries"
         },
         visibility() {
-            return showIf(resourceBatteriesMilestone.earned.value);
+            return showIf(xpBatteriesMilestone.earned.value);
         }
     }));
     const jobMilestone = createMilestone(() => ({
@@ -168,7 +168,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
         },
         visibility() {
-            return showIf(xpBatteriesMilestone.earned.value);
+            return showIf(timeBatteriesMilestone.earned.value);
         },
         onComplete() {
             if (breeding.milestones.jobMilestone.earned.value) {
@@ -178,18 +178,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
     })) as GenericMilestone;
     const milestones = {
         multiLoopMilestone,
-        timeBatteriesMilestone,
-        timeSlotMilestone,
         resourceBatteriesMilestone,
+        timeSlotMilestone,
         xpBatteriesMilestone,
+        timeBatteriesMilestone,
         jobMilestone
     };
     const orderedMilestones = [
         jobMilestone,
-        xpBatteriesMilestone,
-        resourceBatteriesMilestone,
-        timeSlotMilestone,
         timeBatteriesMilestone,
+        xpBatteriesMilestone,
+        timeSlotMilestone,
+        resourceBatteriesMilestone,
         multiLoopMilestone
     ];
     const collapseMilestones = persistent<boolean>(true);
@@ -227,7 +227,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     description: "Battery charging"
                 })),
                 createExponentialModifier(() => ({
-                    exponent: 1.1,
+                    exponent: () => Decimal.div(feedAmount.value, 500).add(1),
                     description: "Battery charging bonus",
                     supportLowNumbers: true
                 })),
@@ -284,22 +284,35 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const batteries = jobKeys.reduce((acc, curr) => {
         acc[curr] = {
             job: curr,
-            timePassing: createBattery(() => ({
-                job: curr,
-                effectDescription: "time passing",
-                effectFormula: charge => Decimal.add(charge, 1).log10().sqrt().add(1)
-            })),
             resourceGain: createBattery(() => ({
                 job: curr,
                 effectDescription: "resource gain",
-                effectFormula: charge => Decimal.add(charge, 1).log2().sqrt().add(1),
-                visibility: () => showIf(resourceBatteriesMilestone.earned.value)
+                effectFormula: charge =>
+                    Decimal.div(charge, curr === id ? 10 : 100)
+                        .add(1)
+                        .log(1.3)
+                        .add(1)
+                        .pow(1)
             })),
             xpGain: createBattery(() => ({
                 job: curr,
                 effectDescription: "xp gain",
-                effectFormula: charge => Decimal.add(charge, 1).log2().sqrt().add(1),
+                effectFormula: charge =>
+                    Decimal.div(charge, curr === id ? 6 : 60)
+                        .add(1)
+                        .log(1.3)
+                        .add(1),
                 visibility: () => showIf(xpBatteriesMilestone.earned.value)
+            })),
+            timePassing: createBattery(() => ({
+                job: curr,
+                effectDescription: "time passing",
+                effectFormula: charge =>
+                    Decimal.div(charge, curr === id ? 10 : 100)
+                        .add(1)
+                        .log(10)
+                        .add(1),
+                visibility: () => showIf(resourceBatteriesMilestone.earned.value)
             }))
         };
         return acc;
@@ -333,13 +346,28 @@ const layer = createLayer(id, function (this: BaseLayer) {
     ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedTimePassing = computed(() => new Decimal(timePassing.apply(1)).toNumber());
 
+    const timeSlotsGenerating = createSequentialModifier(() => [
+        createAdditiveModifier(() => ({
+            addend: extraTimeSlotsAllocated,
+            description: "Allocated time slots"
+        })),
+        createAdditiveModifier(() => ({
+            addend: 1,
+            description: "Bonus generator",
+            enabled: (): boolean =>
+                breeding.job.active.value &&
+                breeding.milestones.bonusGeneratorMilestone.earned.value
+        }))
+    ]);
+    const computedTimeSlotsGenerating = computed(() => timeSlotsGenerating.apply(1));
+
     const energeiaGain = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
             multiplier: jobLevelEffect,
             description: `${job.name} level (x1.1 each)`
         })),
         createMultiplicativeModifier(() => ({
-            multiplier: () => Decimal.add(1, extraTimeSlotsAllocated.value),
+            multiplier: () => Decimal.pow(computedTimeSlotsGenerating.value, 2),
             description: "Allocated time slots",
             enabled: multiLoopMilestone.earned
         })),
@@ -350,6 +378,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const modifiers = {
         timePassing,
+        timeSlotsGenerating,
         energeiaGain,
         jobXpGain
     };
@@ -364,6 +393,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 timeBatteriesMilestone.earned.value
         },
         {
+            title: "Generators",
+            modifier: timeSlotsGenerating,
+            base: 1
+        },
+        {
             title: "Energeia Gain",
             modifier: energeiaGain,
             base: 1
@@ -375,7 +409,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             baseText: "Base (per energeia gained)"
         }
     ]);
-    const batteryCollapsibleModifierSections = ["timePassing", "resourceGain", "xpGain"].map(key =>
+    const batteryCollapsibleModifierSections = ["resourceGain", "xpGain", "timePassing"].map(key =>
         createCollapsibleModifierSections(() =>
             Object.values(batteries).map(battery => ({
                 title: camelToTitle(battery.job) + " Battery Charge Gain",
@@ -447,9 +481,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             Decimal.div(spentEnergeia, 100).times(energeia.value)
         );
 
-        const gain = Decimal.times(energeiaGain.apply(1), diff).times(
-            Decimal.add(1, extraTimeSlotsAllocated.value)
-        );
+        const gain = Decimal.times(energeiaGain.apply(1), diff);
         energeia.value = Decimal.add(energeia.value, gain);
         job.xp.value = Decimal.add(job.xp.value, jobXpGain.apply(gain));
     });
@@ -472,8 +504,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                     <Row>
                                         {Array(
                                             main.hasTimeSlotAvailable.value
-                                                ? extraTimeSlotsAllocated.value + 1
-                                                : extraTimeSlotsAllocated.value
+                                                ? new Decimal(
+                                                      computedTimeSlotsGenerating.value
+                                                  ).toNumber()
+                                                : Decimal.sub(
+                                                      computedTimeSlotsGenerating.value,
+                                                      1
+                                                  ).toNumber()
                                         )
                                             .fill(0)
                                             .map((_, i) => (
@@ -482,12 +519,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                                     width="100px"
                                                     height="100px"
                                                     style={
-                                                        i >= extraTimeSlotsAllocated.value
+                                                        Decimal.lt(
+                                                            computedTimeSlotsGenerating.value,
+                                                            i + 2
+                                                        )
                                                             ? "opacity: 0.25"
                                                             : ""
                                                     }
                                                     onClick={() =>
-                                                        i >= extraTimeSlotsAllocated.value
+                                                        Decimal.lt(
+                                                            computedTimeSlotsGenerating.value,
+                                                            i + 2
+                                                        )
                                                             ? extraTimeSlotsAllocated.value++
                                                             : extraTimeSlotsAllocated.value--
                                                     }
@@ -527,9 +570,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                         <>
                                             <h2>{main.jobs[batteriesCategory.job].name}</h2>
                                             {renderRow(
-                                                batteriesCategory.timePassing,
                                                 batteriesCategory.resourceGain,
-                                                batteriesCategory.xpGain
+                                                batteriesCategory.xpGain,
+                                                batteriesCategory.timePassing
                                             )}
                                         </>
                                     )),

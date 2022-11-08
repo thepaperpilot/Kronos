@@ -72,13 +72,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return showIf(multiLoopMilestone.earned.value);
         }
     }));
-    const timeSlotMilestone = createMilestone(() => ({
+    const bonusGeneratorMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 5);
         },
         display: {
             requirement: `Achieve ${job.name} Level 5`,
-            effectDisplay: "Unlock ??? in ??? job"
+            effectDisplay: `Unlock bonus generator in "${generators.job.name}" job`
         },
         visibility() {
             return showIf(timeBatteriesMilestone.earned.value);
@@ -93,7 +93,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: "Unlock resource gain batteries"
         },
         visibility() {
-            return showIf(timeSlotMilestone.earned.value);
+            return showIf(bonusGeneratorMilestone.earned.value);
         }
     }));
     const xpBatteriesMilestone = createMilestone(() => ({
@@ -128,7 +128,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const milestones = {
         multiLoopMilestone,
         timeBatteriesMilestone,
-        timeSlotMilestone,
+        bonusGeneratorMilestone,
         resourceBatteriesMilestone,
         xpBatteriesMilestone,
         jobMilestone
@@ -137,7 +137,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         jobMilestone,
         xpBatteriesMilestone,
         resourceBatteriesMilestone,
-        timeSlotMilestone,
+        bonusGeneratorMilestone,
         timeBatteriesMilestone,
         multiLoopMilestone
     ];

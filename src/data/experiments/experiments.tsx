@@ -79,6 +79,7 @@ export interface Potential {
     level: Persistent<number>;
     xp: Persistent<number>;
     xpRequired: Ref<Decimal>;
+    effect: () => Decimal;
     modifier: Modifier;
     boosts: Persistent<number>;
     cost: Ref<Decimal>;
@@ -364,6 +365,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             level,
             xp,
             xpRequired,
+            effect,
             modifier,
             boosts,
             cost,
