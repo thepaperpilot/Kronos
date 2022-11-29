@@ -333,8 +333,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
             description: `${job.name} optimization`,
             enabled: optimizationsMilestone.earned
         })),
-        generators.batteries.study.resourceGain.modifier
-    ]);
+        generators.batteries.study.resourceGain.modifier,
+        breeding.plants.properties.modifier
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
     const computedPropertiesGain = computed(() => propertiesGain.apply(10));
 
     const jobXpGain = createSequentialModifier(() => [

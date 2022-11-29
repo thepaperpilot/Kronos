@@ -7,6 +7,7 @@ import Collapsible from "components/layout/Collapsible.vue";
 import Row from "components/layout/Row.vue";
 import Spacer from "components/layout/Spacer.vue";
 import Notif from "components/Notif.vue";
+import breeding from "data/breeding/breeding";
 import experiments from "data/experiments/experiments";
 import { main } from "data/projEntry";
 import { createBar } from "features/bars/bar";
@@ -943,7 +944,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             description: "Therizó skill (x1.1 per Therizó level)",
             enabled: flowerSpell.treeNodes.moreFlowersPerLevel.bought
         })),
-        generators.batteries.study.resourceGain.modifier
+        generators.batteries.study.resourceGain.modifier,
+        breeding.plants.moly.modifier
     ]) as WithRequired<Modifier, "description" | "revert">;
     const computedFlowerGain = computed(() => flowerGain.apply(0));
 

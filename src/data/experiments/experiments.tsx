@@ -6,6 +6,7 @@
 import Collapsible from "components/layout/Collapsible.vue";
 import Spacer from "components/layout/Spacer.vue";
 import Notif from "components/Notif.vue";
+import breeding from "data/breeding/breeding";
 import { createCollapsibleModifierSections } from "data/common";
 import flowers from "data/flowers/flowers";
 import generators from "data/generators/generators";
@@ -541,7 +542,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             description: `${job.name} level (x1.1 each)`
         })),
         potentiaGainPotential.modifier,
-        generators.batteries.experiments.resourceGain.modifier
+        generators.batteries.experiments.resourceGain.modifier,
+        breeding.plants.potentia.modifier
     ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
 
     const potentialsSpeed = createSequentialModifier(() => [potentialsSpeedPotential.modifier]);

@@ -123,18 +123,18 @@ const layer = createLayer(id, function (this: BaseLayer) {
             return showIf(multiLoopMilestone.earned.value);
         }
     }));
-    const timeSlotMilestone = createMilestone(() => ({
+    const machinesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 5);
         },
         display: {
             requirement: `Achieve ${job.name} Level 5`,
-            effectDisplay: "Unlock ??? in ??? job"
+            effectDisplay: `Unlock buying machines in "${breeding.job.name}" Job`
         },
         visibility() {
             return showIf(resourceBatteriesMilestone.earned.value);
         }
-    }));
+    })) as GenericMilestone;
     const xpBatteriesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
             return Decimal.gte(job.rawLevel.value, 6);
@@ -144,7 +144,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             effectDisplay: "Unlock xp gain batteries"
         },
         visibility() {
-            return showIf(timeSlotMilestone.earned.value);
+            return showIf(machinesMilestone.earned.value);
         }
     }));
     const timeBatteriesMilestone = createMilestone(() => ({
@@ -179,7 +179,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const milestones = {
         multiLoopMilestone,
         resourceBatteriesMilestone,
-        timeSlotMilestone,
+        machinesMilestone,
         xpBatteriesMilestone,
         timeBatteriesMilestone,
         jobMilestone
@@ -188,7 +188,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         jobMilestone,
         timeBatteriesMilestone,
         xpBatteriesMilestone,
-        timeSlotMilestone,
+        machinesMilestone,
         resourceBatteriesMilestone,
         multiLoopMilestone
     ];
@@ -371,8 +371,9 @@ const layer = createLayer(id, function (this: BaseLayer) {
             description: "Allocated time slots",
             enabled: multiLoopMilestone.earned
         })),
-        batteries.generators.resourceGain.modifier
-    ]);
+        batteries.generators.resourceGain.modifier,
+        breeding.plants.energeia.modifier
+    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
 
     const jobXpGain = createSequentialModifier(() => [batteries.generators.xpGain.modifier]);
 
@@ -493,7 +494,12 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 tab: createTab(() => ({
                     display: jsx(() => (
                         <>
-                            <Atom speed={computedTimePassing.value} />
+                            <Row>
+                                <Atom speed={computedTimePassing.value} />
+                                {breeding.milestones.bonusGeneratorMilestone.earned.value ? (
+                                    <Atom speed={computedTimePassing.value} />
+                                ) : null}
+                            </Row>
                             {multiLoopMilestone.earned.value ? (
                                 <>
                                     <div>
@@ -504,13 +510,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                     <Row>
                                         {Array(
                                             main.hasTimeSlotAvailable.value
-                                                ? new Decimal(
-                                                      computedTimeSlotsGenerating.value
-                                                  ).toNumber()
-                                                : Decimal.sub(
-                                                      computedTimeSlotsGenerating.value,
-                                                      1
-                                                  ).toNumber()
+                                                ? extraTimeSlotsAllocated.value + 1
+                                                : extraTimeSlotsAllocated.value
                                         )
                                             .fill(0)
                                             .map((_, i) => (
@@ -520,16 +521,16 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                                     height="100px"
                                                     style={
                                                         Decimal.lt(
-                                                            computedTimeSlotsGenerating.value,
-                                                            i + 2
+                                                            extraTimeSlotsAllocated.value,
+                                                            i + 1
                                                         )
                                                             ? "opacity: 0.25"
                                                             : ""
                                                     }
                                                     onClick={() =>
                                                         Decimal.lt(
-                                                            computedTimeSlotsGenerating.value,
-                                                            i + 2
+                                                            extraTimeSlotsAllocated.value,
+                                                            i + 1
                                                         )
                                                             ? extraTimeSlotsAllocated.value++
                                                             : extraTimeSlotsAllocated.value--

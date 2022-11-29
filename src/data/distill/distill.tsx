@@ -43,6 +43,8 @@ import generators from "../generators/generators";
 import "./distill.css";
 import elementParticles from "./elementParticles.json";
 import alwaysQuips from "./quips.json";
+import breeding from "data/breeding/breeding";
+import { createLazyProxy } from "util/proxies";
 
 export interface Element {
     name: string;
@@ -239,18 +241,34 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     function createElement(
         name: string,
-        symbol: string,
-        color: string,
-        particlesConfig: EmitterConfigV3,
-        principle = "",
-        prevElement: Element | null = null,
-        visible: Computable<boolean> = true
-    ) {
-        const processedVisible = convertComputable(visible);
-        const resource = createResource<DecimalSource>(0, name + " essence", 2);
+        optionsFunc: () => {
+            symbol: string;
+            color: string;
+            particlesConfig: EmitterConfigV3;
+            modifiers: () => Modifier[];
+            prevElement?: Element | null;
+            visible?: Computable<boolean>;
+        },
+        principle = ""
+    ): Element {
         const conversionAmount = persistent<number>(0);
+        const resource = createResource<DecimalSource>(0, name + " essence", 2);
+        let modifierSections: Section[] = [];
+        const [tab, tabCollapsed] = createCollapsibleModifierSections(() => modifierSections);
         let principleClickable: GenericBuyable | null = null;
         let showNotif: Ref<boolean> | null = null;
+
+        const passiveEssenceGain = createSequentialModifier(() => [
+            createAdditiveModifier(() => ({
+                addend: () => Decimal.times(principleClickable?.amount.value ?? 0, 5),
+                description: jsx(() => (
+                    <>
+                        {camelToTitle(principle)} effect (5 x {principle} amount)
+                    </>
+                ))
+            }))
+        ]);
+
         if (principle) {
             principleClickable = createBuyable(() => ({
                 display: jsx(() => (
@@ -276,190 +294,210 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }));
             showNotif = createDismissableNotify(principleClickable, principleClickable.canAfford);
         }
-        const cost = createSequentialModifier(() => []);
-        const computedCost = computed(() =>
-            cost.apply(
-                Decimal.times(flowers.flowers.value, conversionAmount.value).div(100).floor()
-            )
-        );
-        const gain = createSequentialModifier(() => [
-            createMultiplicativeModifier(() => ({
-                multiplier: () => Decimal.div(conversionAmount.value, 100)
-            })),
-            createMultiplicativeModifier(() => ({
-                multiplier: jobLevelEffect,
-                description: `${job.name} level (x1.1 each)`
-            })),
-            generators.batteries.distill.resourceGain.modifier
-        ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
-        const passiveEssenceGain = createSequentialModifier(() => [
-            createAdditiveModifier(() => ({
-                addend: () => Decimal.times(principleClickable?.amount.value ?? 0, 5),
-                description: jsx(() => (
-                    <>
-                        {camelToTitle(principle)} effect (5 x {principle} amount)
-                    </>
-                ))
-            }))
-        ]);
-        const actualGain = computed(() =>
-            Decimal.add(
-                gain.apply(
-                    Decimal.gt(computedCost.value, 0)
-                        ? Decimal.div(computedCost.value, 100).ceil().log(10)
-                        : 0
-                ),
-                Decimal.times(prevElement?.actualGain.value ?? 0, passiveEssenceGain.apply(0)).div(
-                    100
+
+        return createLazyProxy(() => {
+            const element = Object.assign(
+                { principle: "", prevElement: null, visible: true },
+                optionsFunc()
+            ) as {
+                symbol: string;
+                color: string;
+                particlesConfig: EmitterConfigV3;
+                modifiers: () => Modifier[];
+                prevElement: Element | null;
+                visible: Computable<boolean>;
+            };
+
+            const processedVisible = convertComputable(element.visible);
+            const cost = createSequentialModifier(() => []);
+            const computedCost = computed(() =>
+                cost.apply(
+                    Decimal.times(flowers.flowers.value, conversionAmount.value).div(100).floor()
                 )
-            )
-        );
-        const modifierSections: Section[] = [
-            {
-                title: "Flowers Loss",
-                modifier: cost,
-                base: () =>
-                    Decimal.times(flowers.flowers.value, conversionAmount.value).div(100).floor(),
-                baseText: jsx(() => <>Base (⌊flowers x conversion amount⌋)</>),
-                unit: "/sec"
-            },
-            {
-                title: `${camelToTitle(name)} Essence Gain`,
-                subtitle: "When cost is non-zero",
-                modifier: gain,
-                base: () =>
-                    Decimal.gt(computedCost.value, 0)
-                        ? Decimal.div(computedCost.value, 100).ceil().log(10)
-                        : 0,
-                baseText: jsx(() => (
-                    <>
-                        Base (log<sub>10</sub>(flowers loss))
-                    </>
-                )),
-                unit: "/sec"
+            );
+            const gain = createSequentialModifier(() => [
+                createMultiplicativeModifier(() => ({
+                    multiplier: () => Decimal.div(conversionAmount.value, 100)
+                })),
+                createMultiplicativeModifier(() => ({
+                    multiplier: jobLevelEffect,
+                    description: `${job.name} level (x1.1 each)`
+                })),
+                generators.batteries.distill.resourceGain.modifier,
+                ...element.modifiers()
+            ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+            const actualGain = computed(() =>
+                Decimal.add(
+                    gain.apply(
+                        Decimal.gt(computedCost.value, 0)
+                            ? Decimal.div(computedCost.value, 100).ceil().log(10)
+                            : 0
+                    ),
+                    Decimal.times(
+                        element.prevElement?.actualGain.value ?? 0,
+                        passiveEssenceGain.apply(0)
+                    ).div(100)
+                )
+            );
+            modifierSections = [
+                {
+                    title: "Flowers Loss",
+                    modifier: cost,
+                    base: () =>
+                        Decimal.times(flowers.flowers.value, conversionAmount.value)
+                            .div(100)
+                            .floor(),
+                    baseText: jsx(() => <>Base (⌊flowers x conversion amount⌋)</>),
+                    unit: "/sec"
+                },
+                {
+                    title: `${camelToTitle(name)} Essence Gain`,
+                    subtitle: "When cost is non-zero",
+                    modifier: gain,
+                    base: () =>
+                        Decimal.gt(computedCost.value, 0)
+                            ? Decimal.div(computedCost.value, 100).ceil().log(10)
+                            : 0,
+                    baseText: jsx(() => (
+                        <>
+                            Base (log<sub>10</sub>(flowers loss))
+                        </>
+                    )),
+                    unit: "/sec"
+                }
+            ];
+            if (principleClickable && element.prevElement) {
+                modifierSections.push({
+                    title: `${camelToTitle(name)} Essence Gain`,
+                    subtitle: `% of ${camelToTitle(element.prevElement.name)} essence gain`,
+                    modifier: passiveEssenceGain,
+                    base: 0,
+                    unit: "%"
+                });
             }
-        ];
-        if (principleClickable && prevElement) {
-            modifierSections.push({
-                title: `${camelToTitle(name)} Essence Gain`,
-                subtitle: `% of ${camelToTitle(prevElement.name)} essence gain`,
-                modifier: passiveEssenceGain,
-                base: 0,
-                unit: "%"
-            });
-        }
-        const [tab, tabCollapsed] = createCollapsibleModifierSections(() => modifierSections);
 
-        const display = jsx(() =>
-            unref(processedVisible) ? (
-                <div class="element-display" style={"color: " + color}>
-                    <Tooltip display={camelToTitle(name)}>
-                        <div class="element-logo">
-                            {symbol}
-                            <Node id={name} />
-                        </div>
-                    </Tooltip>
-                    <div class="element-amount">{formatWhole(resource.value)}</div>
-                </div>
-            ) : (
-                ""
-            )
-        );
-        const particlesEmitter = ref(particles.addEmitter(particlesConfig));
-        const updateParticleEffect = async ([isGaining, rect, boundingRect]: [
-            boolean,
-            DOMRect | undefined,
-            DOMRect | undefined
-        ]) => {
-            const particle = await particlesEmitter.value;
-            particle.emit = isGaining && rect != undefined && boundingRect != undefined;
-            if (isGaining && rect && boundingRect && !particle.destroyed) {
-                particle.cleanup();
-                particle.updateOwnerPos(
-                    rect.x + rect.width / 2 - boundingRect.x,
-                    rect.y + rect.height / 2 - boundingRect.y
-                );
-                particle.resetPositionTracking();
-            }
-        };
-        const refreshParticleEffect = () => {
-            particlesEmitter.value
-                .then(e => e.destroy())
-                .then(() => (particlesEmitter.value = particles.addEmitter(particlesConfig)))
-                .then(() =>
-                    updateParticleEffect([
-                        Decimal.gt(actualGain.value, 0),
-                        layer.nodes.value[name]?.rect,
-                        particles.boundingRect.value
-                    ])
-                );
-        };
+            const display = jsx(() =>
+                unref(processedVisible) ? (
+                    <div class="element-display" style={"color: " + element.color}>
+                        <Tooltip display={camelToTitle(name)}>
+                            <div class="element-logo">
+                                {element.symbol}
+                                <Node id={name} />
+                            </div>
+                        </Tooltip>
+                        <div class="element-amount">{formatWhole(resource.value)}</div>
+                    </div>
+                ) : (
+                    ""
+                )
+            );
+            const particlesEmitter = ref(particles.addEmitter(element.particlesConfig));
+            const updateParticleEffect = async ([isGaining, rect, boundingRect]: [
+                boolean,
+                DOMRect | undefined,
+                DOMRect | undefined
+            ]) => {
+                const particle = await particlesEmitter.value;
+                particle.emit = isGaining && rect != undefined && boundingRect != undefined;
+                if (isGaining && rect && boundingRect && !particle.destroyed) {
+                    particle.cleanup();
+                    particle.updateOwnerPos(
+                        rect.x + rect.width / 2 - boundingRect.x,
+                        rect.y + rect.height / 2 - boundingRect.y
+                    );
+                    particle.resetPositionTracking();
+                }
+            };
+            const refreshParticleEffect = () => {
+                particlesEmitter.value
+                    .then(e => e.destroy())
+                    .then(
+                        () =>
+                            (particlesEmitter.value = particles.addEmitter(element.particlesConfig))
+                    )
+                    .then(() =>
+                        updateParticleEffect([
+                            Decimal.gt(actualGain.value, 0),
+                            layer.nodes.value[name]?.rect,
+                            particles.boundingRect.value
+                        ])
+                    );
+            };
 
-        nextTick(() =>
-            watch(
-                [
-                    () => Decimal.gt(actualGain.value, 0),
+            nextTick(() =>
+                watch(
+                    [
+                        () => Decimal.gt(actualGain.value, 0),
 
-                    () => layer.nodes.value[name]?.rect,
-                    particles.boundingRect
-                ],
-                updateParticleEffect
-            )
-        );
+                        () => layer.nodes.value[name]?.rect,
+                        particles.boundingRect
+                    ],
+                    updateParticleEffect
+                )
+            );
 
-        return {
-            name,
-            symbol,
-            color,
-            resource,
-            conversionAmount,
-            cost,
-            computedCost,
-            gain,
-            actualGain,
-            tab,
-            tabCollapsed,
-            display,
-            showNotif,
-            visible: processedVisible,
-            principleClickable,
-            particlesEmitter,
-            refreshParticleEffect
-        };
+            return {
+                name,
+                ...element,
+                resource,
+                conversionAmount,
+                cost,
+                computedCost,
+                gain,
+                actualGain,
+                tab,
+                tabCollapsed,
+                display,
+                showNotif,
+                visible: processedVisible,
+                principleClickable,
+                particlesEmitter,
+                refreshParticleEffect
+            };
+        });
     }
 
-    const earth = createElement(
-        "earth",
-        "🜃",
-        "green",
-        getElementParticlesConfig("#B6FF0D", "#59E80C")
-    );
+    const earth = createElement("earth", () => ({
+        symbol: "🜃",
+        color: "green",
+        particlesConfig: getElementParticlesConfig("#B6FF0D", "#59E80C"),
+        modifiers: () => [breeding.plants.earthEssence.modifier]
+    }));
     const water = createElement(
         "water",
-        "🜄",
-        "blue",
-        getElementParticlesConfig("#0D8CFF", "#0C46E8"),
-        "salt",
-        earth,
-        waterMilestone.earned
+        () => ({
+            symbol: "🜄",
+            color: "blue",
+            particlesConfig: getElementParticlesConfig("#0D8CFF", "#0C46E8"),
+            modifiers: () => [breeding.plants.waterEssence.modifier],
+            prevElement: earth,
+            visible: waterMilestone.earned
+        }),
+        "salt"
     );
     const air = createElement(
         "air",
-        "🜁",
-        "yellow",
-        getElementParticlesConfig("#FFCE0D", "#E8D20C"),
-        "mercury",
-        water,
-        airMilestone.earned
+        () => ({
+            symbol: "🜁",
+            color: "yellow",
+            particlesConfig: getElementParticlesConfig("#FFCE0D", "#E8D20C"),
+            modifiers: () => [breeding.plants.airEssence.modifier],
+            prevElement: water,
+            visible: airMilestone.earned
+        }),
+        "mercury"
     );
     const fire = createElement(
         "fire",
-        "🜂",
-        "red",
-        getElementParticlesConfig("#FF530D", "#E82C0C"),
-        "sulfur",
-        air,
-        fireMilestone.earned
+        () => ({
+            symbol: "🜂",
+            color: "red",
+            particlesConfig: getElementParticlesConfig("#FF530D", "#E82C0C"),
+            modifiers: () => [breeding.plants.fireEssence.modifier],
+            prevElement: air,
+            visible: fireMilestone.earned
+        }),
+        "sulfur"
     );
     const elements = { earth, water, air, fire };
 
