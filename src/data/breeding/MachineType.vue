@@ -24,7 +24,10 @@
                 "
                 @setPoweredUp="() => setPoweredUpMachine(i - 1)"
             />
-            <component :is="machines[Component]" v-bind="machines[GatherProps]()" />
+            <component
+                :is="(machines as any)[Component]"
+                v-bind="(machines as any)[GatherProps]()"
+            />
         </Column>
     </div>
 </template>
