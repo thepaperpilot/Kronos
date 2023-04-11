@@ -145,7 +145,7 @@ export const main = createLayer(id, function (this: BaseLayer) {
             description:
                 "<br/><i>The flowers are collected, and I have just enough. It's time to get started.</i>"
         },
-        canAfford: true,
+        requirements: [],
         style: `width: 150px; height: 150px; --layer-color: ${flowers.color}`,
         visibility: () => chapter.value == 1 && Decimal.gte(flowers.flowers.value, 10000000)
     }));
