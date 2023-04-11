@@ -13,6 +13,7 @@ import {
     Component,
     GatherProps,
     GenericComponent,
+    isVisible,
     jsx,
     Visibility
 } from "features/feature";
@@ -66,7 +67,7 @@ export interface Battery extends VueFeature {
     effect: Ref<DecimalSource>;
     effectDescription: string;
     modifier: WithRequired<Modifier, "revert" | "description" | "enabled">;
-    visibility: ProcessedComputable<Visibility>;
+    visibility: ProcessedComputable<Visibility | boolean>;
     setFeedAmount: (value: number) => void;
 }
 
@@ -182,7 +183,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     function createBattery(
         optionsFunc: () => {
             job: JobKeys;
-            visibility?: Computable<Visibility>;
+            visibility?: Computable<Visibility | boolean>;
             effectDescription: string;
             effectFormula: (charge: DecimalSource) => DecimalSource;
         }
@@ -219,7 +220,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             const modifier = createMultiplicativeModifier(() => ({
                 multiplier: computedEffect,
                 description: camelToTitle(battery.effectDescription) + " battery",
-                enabled: () => unref(computedVisibility) === Visibility.Visible
+                enabled: () => isVisible(computedVisibility)
             }));
 
             return {
@@ -393,7 +394,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             Object.values(batteries).map(battery => ({
                 title: camelToTitle(battery.job) + " Battery Charge Gain",
                 modifier: battery[key as BatteryType].chargeGain,
-                enabled: unref(battery[key as BatteryType].visibility) === Visibility.Visible,
+                enabled: () => isVisible(battery[key as BatteryType].visibility),
                 base: 0
             }))
         )
@@ -417,12 +418,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     },
                     tab,
                     tabCollapsed,
-                    visibility: () =>
-                        [
-                            timeBatteriesMilestone,
-                            resourceBatteriesMilestone,
-                            xpBatteriesMilestone
-                        ][index].earned
+                    visibility: [
+                        timeBatteriesMilestone,
+                        resourceBatteriesMilestone,
+                        xpBatteriesMilestone
+                    ][index].earned
                 });
                 return acc;
             }, {} as Partial<Record<BatteryType, () => TabButtonOptions>>)

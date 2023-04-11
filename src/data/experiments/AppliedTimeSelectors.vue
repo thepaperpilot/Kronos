@@ -26,7 +26,7 @@ import { computed, toRefs, unref } from "vue";
 import type { DecimalSource } from "util/bignum";
 import { format } from "util/bignum";
 import { GenericJob } from "features/job/job";
-import { Visibility } from "features/feature";
+import { isVisible, Visibility } from "features/feature";
 import player from "game/player";
 
 const _props = defineProps<{
@@ -42,7 +42,7 @@ const emit = defineEmits<{
 
 const visibleJobs = computed(() =>
     Object.keys(jobs.value)
-        .filter(j => unref(jobs.value[j].visibility) === Visibility.Visible)
+        .filter(j => isVisible(jobs.value[j].visibility))
         .reduce(
             (acc, curr) => ({ ...acc, [curr]: jobs.value[curr] }),
             {} as Record<string, GenericJob>

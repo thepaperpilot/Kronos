@@ -1,9 +1,9 @@
 <template>
     <div
-        v-if="unref(visibility) !== Visibility.None"
+        v-if="isVisible(visibility)"
         class="battery-container feature dontMerge"
         :style="{
-            visibility: unref(visibility) === Visibility.Hidden ? 'hidden' : undefined
+            visibility: isHidden(visibility) ? 'hidden' : undefined
         }"
     >
         <div>{{ format(unref(effect)) }}x {{ effectDescription }}</div>
@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import Slider from "components/fields/Slider.vue";
-import { Visibility } from "features/feature";
+import { isHidden, isVisible, Visibility } from "features/feature";
 import type { DecimalSource } from "util/bignum";
 import { format } from "util/bignum";
 import type { ProcessedComputable } from "util/computed";

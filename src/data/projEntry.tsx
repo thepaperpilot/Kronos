@@ -1,5 +1,5 @@
 import Spacer from "components/layout/Spacer.vue";
-import { CoercableComponent, Visibility } from "features/feature";
+import { CoercableComponent, isVisible, Visibility } from "features/feature";
 import { jsx } from "features/feature";
 import { createJob, GenericJob } from "features/job/job";
 import { createParticles } from "features/particles/particles";
@@ -347,7 +347,7 @@ globalBus.on("update", diff => {
 
 export const numJobs = computed(
     () =>
-        jobKeys.filter(jobKey => unref(main.jobs[jobKey].visibility) === Visibility.Visible).length
+        jobKeys.filter(jobKey => isVisible(main.jobs[jobKey].visibility)).length
 );
 
 /**
@@ -356,7 +356,7 @@ export const numJobs = computed(
  */
 export const getInitialLayers = (
     /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-    player: Partial<PlayerData>
+    player: Partial<Player>
 ): Array<GenericLayer> => {
     const chapter = (player.layers?.main as LayerData<typeof main> | undefined)?.chapter ?? 0;
     if (chapter === 0) {

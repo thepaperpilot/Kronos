@@ -31,12 +31,12 @@ import { createBooleanRequirement } from "game/requirements";
 
 export interface RitualOptions {
     name: string;
-    visibility?: Computable<Visibility>;
+    visibility?: Computable<Visibility | boolean>;
 }
 
 export interface Ritual extends VueFeature {
     name: string;
-    visibility: ProcessedComputable<Visibility>;
+    visibility: ProcessedComputable<Visibility | boolean>;
 }
 
 const id = "rituals";

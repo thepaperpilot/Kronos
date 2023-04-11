@@ -7,7 +7,9 @@ import {
     setDefault,
     StyleValue,
     Visibility,
-    CoercableComponent
+    CoercableComponent,
+    isVisible,
+    GenericComponent
 } from "features/feature";
 import JobComponent from "features/job/Job.vue";
 import { createResource, Resource } from "features/resources/resource";
@@ -37,7 +39,7 @@ declare module "@vue/runtime-dom" {
 }
 
 export interface JobOptions {
-    visibility?: Computable<Visibility>;
+    visibility?: Computable<Visibility | boolean>;
     classes?: Computable<Record<string, boolean>>;
     style?: Computable<StyleValue>;
     color: Computable<string>;
@@ -67,7 +69,7 @@ export interface BaseJob {
     notif?: ToastID;
     open: VoidFunction;
     type: typeof JobType;
-    [Component]: typeof JobComponent;
+    [Component]: GenericComponent;
     [GatherProps]: () => Record<string, unknown>;
 }
 
@@ -87,7 +89,7 @@ export type Job<T extends JobOptions> = Replace<
 export type GenericJob = Replace<
     Job<JobOptions>,
     {
-        visibility: ProcessedComputable<Visibility>;
+        visibility: ProcessedComputable<Visibility | boolean>;
     }
 >;
 
@@ -101,7 +103,7 @@ export function createJob<T extends JobOptions>(
         const job = optionsFunc();
         job.id = getUniqueID("job-");
         job.type = JobType;
-        job[Component] = JobComponent;
+        job[Component] = JobComponent as GenericComponent;
 
         job.name = name;
         job.xp = xp;
@@ -145,7 +147,7 @@ export function createJob<T extends JobOptions>(
         });
         job.active = computed(
             () =>
-                unref((job as GenericJob).visibility) === Visibility.Visible &&
+                isVisible((job as GenericJob).visibility) &&
                 ((job as GenericJob).timeLoopActive.value || player.tabs[1] === job.layerID)
         );
         job.currentQuip = ref(null);

@@ -12,7 +12,7 @@ import experiments from "data/experiments/experiments";
 import { main } from "data/projEntry";
 import { createBar } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { CoercableComponent, jsx, Visibility } from "features/feature";
+import { CoercableComponent, isVisible, jsx, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import { createParticles } from "features/particles/particles";
@@ -394,7 +394,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         Decimal.pow(
             1.25,
             Object.values(spells).filter(
-                s => (s as Spell<string>).visibility.value === Visibility.Visible
+                s => isVisible((s as Spell<string>).visibility.value)
             ).length
         )
     );
@@ -484,7 +484,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const moreFlowersPerSpellEffect: ComputedRef<DecimalSource> = computed(
         () =>
             Object.values(spells).filter(
-                s => (s as Spell<string>).visibility.value === Visibility.Visible
+                s => isVisible((s as Spell<string>).visibility.value)
             ).length * 0.25
     );
     const moreFlowersPerLevelEffect: ComputedRef<DecimalSource> = computed(() =>

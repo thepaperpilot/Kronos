@@ -1,9 +1,9 @@
 <template>
     <span
-        v-if="unref(visibility) !== Visibility.None"
+        v-if="isVisible(visibility)"
         :style="[
             {
-                visibility: unref(visibility) === Visibility.Hidden ? 'hidden' : undefined,
+                visibility: isHidden(visibility) ? 'hidden' : undefined,
                 '--posx': unref(imageFocus).x,
                 '--posy': unref(imageFocus).y,
                 '--progress': `${(1 - unref(levelProgress)) * 100}%`,
@@ -76,7 +76,7 @@ import "components/common/features.css";
 import Node from "components/Node.vue";
 import Notif from "components/Notif.vue";
 import { main } from "data/projEntry";
-import { CoercableComponent, StyleValue, Visibility } from "features/feature";
+import { CoercableComponent, isHidden, isVisible, StyleValue, Visibility } from "features/feature";
 import ModifierInfo from "features/ModifierInfo.vue";
 import { displayResource, Resource } from "features/resources/resource";
 import Tooltip from "features/tooltips/Tooltip.vue";
@@ -220,7 +220,9 @@ export default defineComponent({
             displayResource,
             resourceArray,
             Visibility,
-            Direction
+            Direction,
+            isVisible,
+            isHidden
         };
     }
 });

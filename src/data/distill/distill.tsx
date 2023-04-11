@@ -13,7 +13,7 @@ import { createCollapsibleModifierSections, Section } from "data/common";
 import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
 import { createRepeatable, GenericRepeatable } from "features/repeatable";
-import { jsx, JSXFunction, Visibility } from "features/feature";
+import { isVisible, jsx, JSXFunction, Visibility } from "features/feature";
 import { createJob, GenericJob } from "features/job/job";
 import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import { createParticles } from "features/particles/particles";
@@ -492,7 +492,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             instrument: true,
                             principled:
                                 element.principleClickable &&
-                                unref(element.principleClickable.visibility) == Visibility.Visible
+                                isVisible(element.principleClickable.visibility)
                         }}
                         style={`--progress: ${
                             element.conversionAmount.value / 100

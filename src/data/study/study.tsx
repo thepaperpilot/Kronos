@@ -44,6 +44,7 @@ import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import sellParticles from "./sell.json";
 import "./study.css";
+import { createBooleanRequirement } from "game/requirements";
 
 const toast = useToast();
 
