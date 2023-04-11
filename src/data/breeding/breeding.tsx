@@ -150,7 +150,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         showNotif: () =>
             Object.values(machines).some(
                 machine =>
-                    unref(machine.machines.canPurchase) ||
+                    unref(machine.machines.canClick) ||
                     (seeds.value.length !== 0 &&
                         machine.inputs.value.some(
                             inputs =>
