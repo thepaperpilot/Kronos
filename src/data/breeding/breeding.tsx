@@ -48,8 +48,9 @@ import SeedSlot from "./SeedSlot.vue";
 import flowers from "data/flowers/flowers";
 import distill from "data/distill/distill";
 import { globalBus } from "game/events";
-import { createBuyable, GenericBuyable } from "features/buyable";
-import { createBooleanRequirement } from "game/requirements";
+import { createRepeatable, GenericRepeatable } from "features/repeatable";
+import { createBooleanRequirement, createCostRequirement } from "game/requirements";
+import Formula from "game/formulas/formulas";
 
 export type SeedTypes =
     | "moly"
@@ -94,7 +95,7 @@ export interface Machine extends VueFeature {
     collapsed: Ref<boolean>;
     duration: (inputs: OptionalSeed[]) => number;
     setInput: (machineIndex: number, index: number) => void;
-    machines: GenericBuyable;
+    machines: GenericRepeatable;
     setPoweredUpMachine: (index: number) => void;
 }
 
@@ -377,11 +378,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
         const timers = persistent<number[]>([]);
         const collapsed = persistent<boolean>(false);
 
-        const machines = createBuyable(() => ({
+        const machines = createRepeatable(() => ({
             initialValue: 1,
             visibility: generators.milestones.machinesMilestone.earned,
-            cost: () => Decimal.pow(priceRatio, unref(machines.amount)),
-            resource: generators.energeia,
+            requirements: createCostRequirement(() => ({
+                cost: Formula.variable(machines.amount).pow_base(priceRatio),
+                resource: generators.energeia,
+            })),
             display: {
                 description: `Additional ${name.slice(0, -1)}`,
                 showAmount: false
@@ -390,7 +393,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 width: "600px",
                 minHeight: "unset"
             }
-        })) as GenericBuyable;
+        })) as GenericRepeatable;
 
         return createLazyProxy(() => {
             const machine = optionsFunc();

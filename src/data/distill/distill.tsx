@@ -12,7 +12,7 @@ import Notif from "components/Notif.vue";
 import { createCollapsibleModifierSections, Section } from "data/common";
 import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
-import { createBuyable, GenericBuyable } from "features/buyable";
+import { createRepeatable, GenericRepeatable } from "features/repeatable";
 import { jsx, JSXFunction, Visibility } from "features/feature";
 import { createJob, GenericJob } from "features/job/job";
 import { createAchievement, GenericAchievement } from "features/achievements/achievement";
@@ -45,7 +45,8 @@ import elementParticles from "./elementParticles.json";
 import alwaysQuips from "./quips.json";
 import breeding from "data/breeding/breeding";
 import { createLazyProxy } from "util/proxies";
-import { createBooleanRequirement } from "game/requirements";
+import { createBooleanRequirement, createCostRequirement } from "game/requirements";
+import Formula from "game/formulas/formulas";
 
 export interface Element {
     name: string;
@@ -61,7 +62,7 @@ export interface Element {
     tabCollapsed: Persistent<Record<number, boolean>>;
     display: JSXFunction;
     visible: ProcessedComputable<boolean>;
-    principleClickable: GenericBuyable | null;
+    principleClickable: GenericRepeatable | null;
     showNotif: Ref<boolean> | null;
     particlesEmitter: Ref<Promise<Emitter>>;
     refreshParticleEffect: VoidFunction;
@@ -234,7 +235,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         const resource = createResource<DecimalSource>(0, name + " essence", 2);
         let modifierSections: Section[] = [];
         const [tab, tabCollapsed] = createCollapsibleModifierSections(() => modifierSections);
-        let principleClickable: GenericBuyable | null = null;
+        let principleClickable: GenericRepeatable | null = null;
         let showNotif: Ref<boolean> | null = null;
 
         const passiveEssenceGain = createSequentialModifier(() => [
@@ -249,29 +250,31 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ]);
 
         if (principle) {
-            principleClickable = createBuyable(() => ({
-                display: jsx(() => (
-                    <div>
-                        Prepare {principle} to gain a portion of {name} whenever the above
-                        instrument is active
-                        {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                        <br />({formatWhole(passiveEssenceGain.apply(0))}%)
-                        <br />
-                        <br />
-                        {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
-                        Cost: {displayResource(resource, unref(principleClickable!.cost))}{" "}
-                        {resource.displayName}
-                        {showNotif?.value ? <Notif style="top: -25px" /> : null}
-                    </div>
-                )),
-                visibility: principlesMilestone.earned,
-                resource,
-                cost() {
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    return Decimal.pow(10, principleClickable!.amount.value);
-                }
-            }));
-            showNotif = createDismissableNotify(principleClickable, principleClickable.canAfford);
+            principleClickable = createRepeatable(() => {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                const cost = Formula.variable(principleClickable!.amount).pow_base(10);
+                return ({
+                    display: jsx(() => (
+                        <div>
+                            Prepare {principle} to gain a portion of {name} whenever the above
+                            instrument is active
+                            {/* eslint-disable-next-line @typescript-eslint/no-non-null-assertion */}
+                            <br />({formatWhole(passiveEssenceGain.apply(0))}%)
+                            <br />
+                            <br />
+                            Cost: {displayResource(resource, unref(cost.evaluate()))}{" "}
+                            {resource.displayName}
+                            {showNotif?.value ? <Notif style="top: -25px" /> : null}
+                        </div>
+                    )),
+                    visibility: principlesMilestone.earned,
+                    requirements: createCostRequirement(() => ({
+                        resource,
+                        cost
+                    })),
+                });
+            });
+            showNotif = createDismissableNotify(principleClickable, principleClickable.canClick as Ref<boolean>);
         }
 
         return createLazyProxy(() => {

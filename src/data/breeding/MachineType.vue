@@ -39,7 +39,7 @@ import { MachineTypes, OptionalSeed } from "./breeding";
 import { Ref, unref } from "vue";
 import { ProcessedComputable } from "util/computed";
 import Column from "components/layout/Column.vue";
-import { GenericBuyable } from "features/buyable";
+import { GenericRepeatable } from "features/repeatable";
 import { Component, GatherProps } from "features/feature";
 import Decimal from "util/bignum";
 
@@ -51,7 +51,7 @@ defineProps<{
     inputs: Ref<OptionalSeed[][]>;
     timers: Ref<number[]>;
     collapsed: Ref<boolean>;
-    machines: GenericBuyable;
+    machines: GenericRepeatable;
     poweredUpMachine: Ref<{ type: MachineTypes; index: number }>;
     canPowerUp: Ref<boolean>;
     duration: (inputs: OptionalSeed[]) => number;
