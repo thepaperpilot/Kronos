@@ -1,10 +1,11 @@
+import type { Persistent } from "game/persistence";
+import { NonPersistent } from "game/persistence";
 import Decimal from "util/bignum";
 
 export const ProxyState = Symbol("ProxyState");
 export const ProxyPath = Symbol("ProxyPath");
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ProxiedWithState<T> = NonNullable<T> extends Record<PropertyKey, any>
+export type ProxiedWithState<T> = NonNullable<T> extends Record<PropertyKey, unknown>
     ? NonNullable<T> extends Decimal
         ? T
         : {
@@ -12,6 +13,18 @@ export type ProxiedWithState<T> = NonNullable<T> extends Record<PropertyKey, any
           } & {
               [ProxyState]: T;
               [ProxyPath]: string[];
+          }
+    : T;
+
+export type Proxied<T> = NonNullable<T> extends Record<PropertyKey, unknown>
+    ? NonNullable<T> extends Persistent<infer S>
+        ? NonPersistent<S>
+        : NonNullable<T> extends Decimal
+        ? T
+        : {
+              [K in keyof T]: Proxied<T[K]>;
+          } & {
+              [ProxyState]: T;
           }
     : T;
 
@@ -37,7 +50,11 @@ export function createLazyProxy<T extends object, S extends T>(
                 return calculateObj();
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return (calculateObj() as any)[key];
+            const val = (calculateObj() as any)[key];
+            if (val != null && typeof val === "object" && NonPersistent in val) {
+                return val[NonPersistent];
+            }
+            return val;
         },
         set(target, key, value) {
             // TODO give warning about this? It should only be done with caution

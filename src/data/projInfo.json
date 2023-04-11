@@ -1,4 +1,6 @@
 {
+	"$schema": "./projInfo-schema.json",
+
 	"title": "Kronos",
 	"description": "A game about flowers, time, and focus",
 	"id": "kronos",

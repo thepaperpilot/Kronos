@@ -31,7 +31,7 @@ const theme = computed(() => themes[settings.theme].variables as CSSProperties);
 const showTPS = toRef(settings, "showTPS");
 
 const gameComponent = computed(() => {
-    return coerceComponent(jsx(() => <>{gameComponents.map(render)}</>));
+    return coerceComponent(jsx(() => (<>{gameComponents.map(render)}</>)));
 });
 </script>
 
@@ -49,5 +49,6 @@ const gameComponent = computed(() => {
     position: absolute;
     min-height: 100%;
     height: 100%;
+    color: var(--foreground);
 }
 </style>

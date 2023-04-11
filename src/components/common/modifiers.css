@@ -1,5 +1,6 @@
 .modifier-container {
     display: flex;
+    padding: 1px 8px;
 }
 
 .modifier-container:nth-child(2n) {
@@ -7,8 +8,12 @@
 }
 
 .modifier-amount {
-    flex-basis: 100px;
     flex-shrink: 0;
+    text-align: right;
+}
+:not(:first-of-type, :last-of-type) > .modifier-amount::after {
+    content: var(--unit);
+    opacity: 0;
 }
 
 .modifier-description {

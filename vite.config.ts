@@ -37,6 +37,9 @@ export default defineConfig({
                 "robots.txt",
                 "apple-touch-icon.png"
             ],
+            workbox: {
+              globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+            },
             manifest: {
                 name: projInfo.title,
                 short_name: projInfo.title,
@@ -62,8 +65,5 @@ export default defineConfig({
                 ]
             }
         })
-    ],
-    test: {
-        environment: "jsdom"
-    }
+    ]
 });

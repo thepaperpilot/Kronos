@@ -9,7 +9,7 @@ import { globalBus } from "game/events";
 import type { BaseLayer, GenericLayer } from "game/layers";
 import { addLayer, createLayer } from "game/layers";
 import { persistent } from "game/persistence";
-import type { LayerData, PlayerData } from "game/player";
+import type { LayerData, Player } from "game/player";
 import player from "game/player";
 import settings from "game/settings";
 import Decimal, { format, formatTime, formatWhole } from "util/bignum";
@@ -417,7 +417,7 @@ export const hasWon = computed(() => {
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export function fixOldSave(
     oldVersion: string | undefined,
-    player: Partial<PlayerData>
+    player: Partial<Player>
     // eslint-disable-next-line @typescript-eslint/no-empty-function
 ): void {}
 /* eslint-enable @typescript-eslint/no-unused-vars */

@@ -26,7 +26,9 @@ declare global {
 document.title = projInfo.title;
 window.projInfo = projInfo;
 if (projInfo.id === "") {
-    throw "Project ID is empty! Please select a unique ID for this project in /src/data/projInfo.json";
+    throw new Error(
+        "Project ID is empty! Please select a unique ID for this project in /src/data/projInfo.json"
+    );
 }
 
 requestAnimationFrame(async () => {
@@ -36,7 +38,8 @@ requestAnimationFrame(async () => {
         "padding: 4px;"
     );
     await load();
-    const { globalBus, startGameLoop } = await import("./game/events");
+    const { globalBus } = await import("./game/events");
+    const { startGameLoop } = await import("./game/gameLoop");
 
     // Create Vue
     const vue = (window.vue = createApp(App));
@@ -48,7 +51,7 @@ requestAnimationFrame(async () => {
         const toast = useToast();
         const { updateServiceWorker } = useRegisterSW({
             onNeedRefresh() {
-                toast.info("New content available, click or reload to update.", {
+                toast.info("New content available, click here to update.", {
                     timeout: false,
                     closeOnClick: false,
                     draggable: false,
@@ -69,7 +72,8 @@ requestAnimationFrame(async () => {
             onRegisterError: console.warn,
             onRegistered(r) {
                 if (r) {
-                    setInterval(r.update, 60 * 60 * 1000);
+                    // https://stackoverflow.com/questions/65500916/typeerror-failed-to-execute-update-on-serviceworkerregistration-illegal-in
+                    setInterval(() => r.update(), 60 * 60 * 1000);
                 }
             }
         });

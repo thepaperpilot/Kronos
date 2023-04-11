@@ -13,21 +13,36 @@ import type {
 import { processComputable } from "util/computed";
 import { createLazyProxy } from "util/proxies";
 import { shallowReactive, unref } from "vue";
+import Hotkey from "components/Hotkey.vue";
 
+/** A dictionary of all hotkeys. */
 export const hotkeys: Record<string, GenericHotkey | undefined> = shallowReactive({});
+/** A symbol used to identify {@link Hotkey} features. */
 export const HotkeyType = Symbol("Hotkey");
 
+/**
+ * An object that configures a {@link Hotkey}.
+ */
 export interface HotkeyOptions {
+    /** Whether or not this hotkey is currently enabled. */
     enabled?: Computable<boolean>;
+    /** The key tied to this hotkey */
     key: string;
+    /** The description of this hotkey, to display in the settings. */
     description: Computable<string>;
+    /** What to do upon pressing the key. */
     onPress: VoidFunction;
 }
 
+/**
+ * The properties that are added onto a processed {@link HotkeyOptions} to create an {@link Hotkey}.
+ */
 export interface BaseHotkey {
+    /** A symbol that helps identify features of the same type. */
     type: typeof HotkeyType;
 }
 
+/** An object that represents a hotkey shortcut that performs an action upon a key sequence being pressed. */
 export type Hotkey<T extends HotkeyOptions> = Replace<
     T & BaseHotkey,
     {
@@ -36,6 +51,7 @@ export type Hotkey<T extends HotkeyOptions> = Replace<
     }
 >;
 
+/** A type that matches any valid {@link Hotkey} object. */
 export type GenericHotkey = Replace<
     Hotkey<HotkeyOptions>,
     {
@@ -43,6 +59,12 @@ export type GenericHotkey = Replace<
     }
 >;
 
+const uppercaseNumbers = [")", "!", "@", "#", "$", "%", "^", "&", "*", "("];
+
+/**
+ * Lazily creates a hotkey with the given options.
+ * @param optionsFunc Hotkey options.
+ */
 export function createHotkey<T extends HotkeyOptions>(
     optionsFunc: OptionsFunc<T, BaseHotkey, GenericHotkey>
 ): Hotkey<T> {
@@ -78,7 +100,9 @@ document.onkeydown = function (e) {
         return;
     }
     let key = e.key;
-    if (e.shiftKey) {
+    if (uppercaseNumbers.includes(key)) {
+        key = "shift+" + uppercaseNumbers.indexOf(key);
+    } else if (e.shiftKey) {
         key = "shift+" + key;
     }
     if (e.ctrlKey) {
@@ -101,11 +125,13 @@ registerInfoComponent(
             <div>
                 <br />
                 <h4>Hotkeys</h4>
-                {keys.map(hotkey => (
-                    <div>
-                        {hotkey?.key}: {hotkey?.description}
-                    </div>
-                ))}
+                <div style="column-count: 2">
+                    {keys.map(hotkey => (
+                        <div>
+                            <Hotkey hotkey={hotkey as GenericHotkey} /> {hotkey?.description}
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     })

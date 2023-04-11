@@ -1,12 +1,12 @@
 import projInfo from "data/projInfo.json";
 import { globalBus } from "game/events";
-import type { Player, PlayerData } from "game/player";
+import type { Player } from "game/player";
 import player, { stringifySave } from "game/player";
 import settings, { loadSettings } from "game/settings";
 import LZString from "lz-string";
-import { ProxyState } from "util/proxies";
+import { ref } from "vue";
 
-export function setupInitialStore(player: Partial<PlayerData> = {}): Player {
+export function setupInitialStore(player: Partial<Player> = {}): Player {
     return Object.assign(
         {
             id: `${projInfo.id}-0`,
@@ -26,11 +26,9 @@ export function setupInitialStore(player: Partial<PlayerData> = {}): Player {
     ) as Player;
 }
 
-export function save(playerData?: PlayerData): string {
-    const stringifiedSave = LZString.compressToUTF16(
-        stringifySave(playerData ?? player[ProxyState])
-    );
-    localStorage.setItem((playerData ?? player[ProxyState]).id, stringifiedSave);
+export function save(playerData?: Player): string {
+    const stringifiedSave = LZString.compressToUTF16(stringifySave(playerData ?? player));
+    localStorage.setItem((playerData ?? player).id, stringifiedSave);
     return stringifiedSave;
 }
 
@@ -69,7 +67,7 @@ export async function load(): Promise<void> {
     }
 }
 
-export function newSave(): PlayerData {
+export function newSave(): Player {
     const id = getUniqueID();
     const player = setupInitialStore({ id });
     save(player);
@@ -84,12 +82,15 @@ export function getUniqueID(): string {
         i = 0;
     do {
         id = `${projInfo.id}-${i++}`;
-    } while (localStorage.getItem(id));
+    } while (localStorage.getItem(id) != null);
     return id;
 }
 
-export async function loadSave(playerObj: Partial<PlayerData>): Promise<void> {
+export const loadingSave = ref(false);
+
+export async function loadSave(playerObj: Partial<Player>): Promise<void> {
     console.info("Loading save", playerObj);
+    loadingSave.value = true;
     const { layers, removeLayer, addLayer } = await import("game/layers");
     const { fixOldSave, getInitialLayers } = await import("data/projEntry");
 
@@ -102,13 +103,22 @@ export async function loadSave(playerObj: Partial<PlayerData>): Promise<void> {
     getInitialLayers(playerObj).forEach(layer => addLayer(layer, playerObj));
 
     playerObj = setupInitialStore(playerObj);
-    if (playerObj.offlineProd && playerObj.time) {
+    if (
+        playerObj.offlineProd &&
+        playerObj.time != null &&
+        playerObj.time &&
+        playerObj.devSpeed !== 0
+    ) {
         if (playerObj.offlineTime == undefined) playerObj.offlineTime = 0;
-        playerObj.offlineTime += (Date.now() - playerObj.time) / 1000;
+        playerObj.offlineTime += Math.min(
+            playerObj.offlineTime + (Date.now() - playerObj.time) / 1000,
+            projInfo.offlineLimit * 3600
+        );
     }
     playerObj.time = Date.now();
     if (playerObj.modVersion !== projInfo.versionNumber) {
         fixOldSave(playerObj.modVersion, playerObj);
+        playerObj.modVersion = projInfo.versionNumber;
     }
 
     Object.assign(player, playerObj);
@@ -130,14 +140,22 @@ window.onbeforeunload = () => {
 
 declare global {
     /**
-     * Augment the window object so the save function, and the hard reset function can be accessed from the console.
+     * Augment the window object so the save, hard reset, and deleteLowerSaves functions can be accessed from the console.
      */
     interface Window {
         save: VoidFunction;
         hardReset: VoidFunction;
+        deleteLowerSaves: VoidFunction;
     }
 }
 window.save = save;
 export const hardReset = (window.hardReset = async () => {
     await loadSave(newSave());
+});
+export const deleteLowerSaves = (window.deleteLowerSaves = () => {
+    const index = Object.values(settings.saves).indexOf(player.id) + 1;
+    Object.values(settings.saves)
+        .slice(index)
+        .forEach(id => localStorage.removeItem(id));
+    settings.saves = settings.saves.slice(0, index);
 });
