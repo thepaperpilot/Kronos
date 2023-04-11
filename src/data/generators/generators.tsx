@@ -17,7 +17,7 @@ import {
     Visibility
 } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource } from "features/resources/resource";
 import { createTab } from "features/tabs/tab";
@@ -53,6 +53,7 @@ import rituals from "../rituals/rituals";
 import Atom from "./Atom.vue";
 import Battery from "./Battery.vue";
 import alwaysQuips from "./quips.json";
+import { createBooleanRequirement } from "game/requirements";
 
 export type BatteryType = "timePassing" | "resourceGain" | "xpGain";
 
@@ -101,59 +102,47 @@ const layer = createLayer(id, function (this: BaseLayer) {
         visibility: experiments.milestones.jobMilestone.earned
     }));
 
-    const multiLoopMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
+    const multiLoopMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlock multiple generators"
         }
     }));
-    const resourceBatteriesMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
+    const resourceBatteriesMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock resource gain batteries"
         },
         visibility: multiLoopMilestone.earned
     }));
-    const machinesMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 5);
-        },
+    const machinesMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: `Unlock buying machines in "${breeding.job.name}" Job`
         },
         visibility: resourceBatteriesMilestone.earned
-    })) as GenericMilestone;
-    const xpBatteriesMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
+    })) as GenericAchievement;
+    const xpBatteriesMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock xp gain batteries"
         },
         visibility: machinesMilestone.earned
     }));
-    const timeBatteriesMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
+    const timeBatteriesMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock time passing batteries"
         },
         visibility: xpBatteriesMilestone.earned
     }));
-    const jobMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 10);
-        },
+    const jobMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
@@ -164,7 +153,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 addLayer(rituals, player);
             }
         }
-    })) as GenericMilestone;
+    })) as GenericAchievement;
     const milestones = {
         multiLoopMilestone,
         resourceBatteriesMilestone,

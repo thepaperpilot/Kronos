@@ -18,7 +18,7 @@ import { CardActions, createCard, GenericCard, signElements } from "features/car
 import { createClickable } from "features/clickables/clickable";
 import { jsx } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import { createParticles } from "features/particles/particles";
 import { createResource, displayResource, trackBest } from "features/resources/resource";
 import Resource from "features/resources/Resource.vue";
@@ -80,59 +80,47 @@ const layer = createLayer(id, function (this: BaseLayer) {
         showNotif: upgradeNotif
     }));
 
-    const manualMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
+    const manualMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlock drawing cards manually"
         }
     }));
-    const shopMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
+    const shopMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock purchasing and selling cards"
         },
         visibility: manualMilestone.earned
     }));
-    const timeSlotMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 5);
-        },
+    const timeSlotMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
         visibility: shopMilestone.earned
     }));
-    const optimizationsMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
+    const optimizationsMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock optimizations"
         },
         visibility: timeSlotMilestone.earned
     }));
-    const upgradingMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
+    const upgradingMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock upgrading cards"
         },
         visibility: optimizationsMilestone.earned
     }));
-    const jobMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 10);
-        },
+    const jobMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock "${breeding.job.name}" Job`
@@ -141,7 +129,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         onComplete() {
             addLayer(breeding, player);
         }
-    })) as GenericMilestone;
+    })) as GenericAchievement;
     const milestones = {
         manualMilestone,
         shopMilestone,

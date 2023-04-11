@@ -14,7 +14,7 @@ import { createBar } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
 import { CoercableComponent, jsx, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource, trackBest } from "features/resources/resource";
@@ -53,6 +53,7 @@ import globalQuips from "../quips.json";
 import "./flowers.css";
 import alwaysQuips from "./quips.json";
 import spellParticles from "./spellParticles.json";
+import { createBooleanRequirement } from "game/requirements";
 
 export interface Spell<T extends string> {
     active: Ref<boolean>;
@@ -126,45 +127,37 @@ const layer = createLayer(id, function (this: BaseLayer) {
         }
     }));
 
-    const spellExpMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
+    const spellExpMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Double Téchnasma potency and unlock experience for spells"
         }
     }));
-    const flowerSpellMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
+    const flowerSpellMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Therizó"
         },
         visibility: spellExpMilestone.earned
-    })) as GenericMilestone;
-    const chargeSpellMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
+    })) as GenericAchievement;
+    const chargeSpellMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Prōficiō"
         },
         visibility: flowerSpellMilestone.earned
-    })) as GenericMilestone;
-    const expSpellMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
+    })) as GenericAchievement;
+    const expSpellMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Scholē"
         },
         visibility: chargeSpellMilestone.earned
-    })) as GenericMilestone;
+    })) as GenericAchievement;
     const milestones = {
         spellExpMilestone,
         flowerSpellMilestone,

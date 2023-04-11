@@ -21,7 +21,7 @@ import {
     JSXFunction
 } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import {
     createResource,
@@ -60,6 +60,7 @@ import "./experiments.css";
 import Grains from "./Grains.vue";
 import Hourglass from "./Hourglass.vue";
 import alwaysQuips from "./quips.json";
+import { createBooleanRequirement } from "game/requirements";
 
 const toast = useToast();
 
@@ -154,59 +155,47 @@ const layer = createLayer(id, function (this: BaseLayer) {
         showNotif: () => showHourglassNotif.value || potentialsNotif.value
     }));
 
-    const chippingMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
+    const chippingMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlock grinding grains"
         }
     }));
-    const potentialsMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
+    const potentialsMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock potentials"
         },
         visibility: chippingMilestone.earned
     }));
-    const timeSlotMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 5);
-        },
+    const timeSlotMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
         visibility: potentialsMilestone.earned
     }));
-    const advancedPotentialsMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
+    const advancedPotentialsMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock advanced potentials"
         },
         visibility: timeSlotMilestone.earned
     }));
-    const appliedTimeMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
+    const appliedTimeMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock applied time"
         },
         visibility: advancedPotentialsMilestone.earned
     }));
-    const jobMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 10);
-        },
+    const jobMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock "${generators.job.name}" Job`
@@ -215,7 +204,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         onComplete() {
             addLayer(generators, player);
         }
-    })) as GenericMilestone;
+    })) as GenericAchievement;
     const milestones = {
         chippingMilestone,
         potentialsMilestone,

@@ -15,7 +15,7 @@ import {
     jsx
 } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { addLayer, BaseLayer, createLayer } from "game/layers";
@@ -49,6 +49,7 @@ import flowers from "data/flowers/flowers";
 import distill from "data/distill/distill";
 import { globalBus } from "game/events";
 import { createBuyable, GenericBuyable } from "features/buyable";
+import { createBooleanRequirement } from "game/requirements";
 
 export type SeedTypes =
     | "moly"
@@ -158,59 +159,47 @@ const layer = createLayer(id, function (this: BaseLayer) {
             )
     }));
 
-    const breedingAnalyzingMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
+    const breedingAnalyzingMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlock breeding and analyzing machines"
         }
     }));
-    const powerupMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
+    const powerupMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock powering up machines"
         },
         visibility: breedingAnalyzingMilestone.earned
     }));
-    const bonusGeneratorMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 5);
-        },
+    const bonusGeneratorMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: `Unlock bonus generator in "${generators.job.name}" job`
         },
         visibility: powerupMilestone.earned
     }));
-    const recyclingMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
+    const recyclingMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock recycling machine"
         },
         visibility: bonusGeneratorMilestone.earned
     }));
-    const mutatingMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
+    const mutatingMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock mutating machine"
         },
         visibility: recyclingMilestone.earned
     }));
-    const jobMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 10);
-        },
+    const jobMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
@@ -221,7 +210,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 addLayer(rituals, player);
             }
         }
-    })) as GenericMilestone;
+    })) as GenericAchievement;
     const milestones = {
         breedingAnalyzingMilestone,
         powerupMilestone,

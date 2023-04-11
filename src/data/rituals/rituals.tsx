@@ -10,7 +10,7 @@ import experiments from "data/experiments/experiments";
 import { JobKeys } from "data/projEntry";
 import { Component, GatherProps, jsx, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import { createResource } from "features/resources/resource";
 import { createTabFamily } from "features/tabs/tabFamily";
 import { BaseLayer, createLayer } from "game/layers";
@@ -27,6 +27,7 @@ import generators from "../generators/generators";
 import globalQuips from "../quips.json";
 import alwaysQuips from "./quips.json";
 import RitualComponent from "./Ritual.vue";
+import { createBooleanRequirement } from "game/requirements";
 
 export interface RitualOptions {
     name: string;
@@ -69,65 +70,53 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const selectedRunes = persistent<(JobKeys | "")[][]>([]);
 
-    const fourthColMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
+    const fourthColMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: `Unlock fourth column of runes and ${emolumentum.name}`
         }
     }));
-    const fourthRowMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
+    const fourthRowMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: `Unlock fourth row of runes and ${melius.name}`
         },
         visibility: fourthColMilestone.earned
     }));
-    const timeSlotMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 5);
-        },
+    const timeSlotMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
         visibility: fourthRowMilestone.earned
     }));
-    const fifthColMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
+    const fifthColMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: `Unlock fifth column of runes and ${collegium.name}`
         },
         visibility: timeSlotMilestone.earned
     }));
-    const fifthRowMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
+    const fifthRowMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: `Unlock fifth row of runes and ${celeritas.name}`
         },
         visibility: fifthColMilestone.earned
     }));
-    const genesisMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 10);
-        },
+    const genesisMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock Ritual of Génesis`
         },
         visibility: fifthRowMilestone.earned
-    })) as GenericMilestone;
+    })) as GenericAchievement;
     const milestones = {
         fourthColMilestone,
         fourthRowMilestone,

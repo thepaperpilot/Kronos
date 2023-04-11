@@ -15,7 +15,7 @@ import { main } from "data/projEntry";
 import { createBuyable, GenericBuyable } from "features/buyable";
 import { jsx, JSXFunction, Visibility } from "features/feature";
 import { createJob, GenericJob } from "features/job/job";
-import { createMilestone, GenericMilestone } from "features/milestones/milestone";
+import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import { createParticles } from "features/particles/particles";
 import MainDisplay from "features/resources/MainDisplay.vue";
 import { createResource, displayResource, Resource, trackBest } from "features/resources/resource";
@@ -45,6 +45,7 @@ import elementParticles from "./elementParticles.json";
 import alwaysQuips from "./quips.json";
 import breeding from "data/breeding/breeding";
 import { createLazyProxy } from "util/proxies";
+import { createBooleanRequirement } from "game/requirements";
 
 export interface Element {
     name: string;
@@ -123,29 +124,23 @@ const layer = createLayer(id, function (this: BaseLayer) {
         showNotif: elementsNotif
     })) as GenericJob;
 
-    const waterMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 2);
-        },
+    const waterMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
             effectDisplay: "Unlock Water"
         }
     }));
-    const principlesMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 4);
-        },
+    const principlesMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock Principles"
         },
         visibility: waterMilestone.earned
     }));
-    const studyMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 5);
-        },
+    const studyMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: `Unlock "${study.job.name}" Job`
@@ -154,31 +149,25 @@ const layer = createLayer(id, function (this: BaseLayer) {
         onComplete() {
             addLayer(study, player);
         }
-    })) as GenericMilestone;
-    const airMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 6);
-        },
+    })) as GenericAchievement;
+    const airMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock Air"
         },
         visibility: studyMilestone.earned
     }));
-    const fireMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 8);
-        },
+    const fireMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock Fire"
         },
         visibility: airMilestone.earned
     }));
-    const experimentsMilestone = createMilestone(() => ({
-        shouldEarn(): boolean {
-            return Decimal.gte(job.rawLevel.value, 10);
-        },
+    const experimentsMilestone = createAchievement(() => ({
+        requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock "${experiments.job.name}" Job`
@@ -187,7 +176,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         onComplete() {
             addLayer(experiments, player);
         }
-    })) as GenericMilestone;
+    })) as GenericAchievement;
     const milestones = {
         waterMilestone,
         principlesMilestone,
