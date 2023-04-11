@@ -8,7 +8,7 @@ import Spacer from "components/layout/Spacer.vue";
 import { createCollapsibleModifierSections } from "data/common";
 import experiments from "data/experiments/experiments";
 import { JobKeys } from "data/projEntry";
-import { Component, GatherProps, jsx, showIf, Visibility } from "features/feature";
+import { Component, GatherProps, jsx, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import { createResource } from "features/resources/resource";
@@ -63,10 +63,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: () =>
-            showIf(
-                generators.milestones.jobMilestone.earned.value &&
-                    breeding.milestones.jobMilestone.earned.value
-            )
+            generators.milestones.jobMilestone.earned.value &&
+                breeding.milestones.jobMilestone.earned.value
     }));
 
     const selectedRunes = persistent<(JobKeys | "")[][]>([]);
@@ -88,9 +86,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: `Unlock fourth row of runes and ${melius.name}`
         },
-        visibility() {
-            return showIf(fourthColMilestone.earned.value);
-        }
+        visibility: fourthColMilestone.earned
     }));
     const timeSlotMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -100,9 +96,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
-        visibility() {
-            return showIf(fourthRowMilestone.earned.value);
-        }
+        visibility: fourthRowMilestone.earned
     }));
     const fifthColMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -112,9 +106,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: `Unlock fifth column of runes and ${collegium.name}`
         },
-        visibility() {
-            return showIf(timeSlotMilestone.earned.value);
-        }
+        visibility: timeSlotMilestone.earned
     }));
     const fifthRowMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -124,9 +116,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: `Unlock fifth row of runes and ${celeritas.name}`
         },
-        visibility() {
-            return showIf(fifthColMilestone.earned.value);
-        }
+        visibility: fifthColMilestone.earned
     }));
     const genesisMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -136,9 +126,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock Ritual of Génesis`
         },
-        visibility() {
-            return showIf(fifthRowMilestone.earned.value);
-        }
+        visibility: fifthRowMilestone.earned
     })) as GenericMilestone;
     const milestones = {
         fourthColMilestone,
@@ -209,22 +197,22 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const emolumentum = createRitual({
         name: "Ritual of Emolumentum",
-        visibility: () => showIf(fourthColMilestone.earned.value)
+        visibility: fourthColMilestone.earned
     });
 
     const melius = createRitual({
         name: "Ritual of Melius",
-        visibility: () => showIf(fourthRowMilestone.earned.value)
+        visibility: fourthRowMilestone.earned
     });
 
     const collegium = createRitual({
         name: "Ritual of Collegium",
-        visibility: () => showIf(fifthColMilestone.earned.value)
+        visibility: fifthColMilestone.earned
     });
 
     const celeritas = createRitual({
         name: "Ritual of Celeritas",
-        visibility: () => showIf(fifthRowMilestone.earned.value)
+        visibility: fifthRowMilestone.earned
     });
 
     const rituals = {

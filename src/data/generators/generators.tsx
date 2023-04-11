@@ -14,7 +14,6 @@ import {
     GatherProps,
     GenericComponent,
     jsx,
-    showIf,
     Visibility
 } from "features/feature";
 import { createJob } from "features/job/job";
@@ -99,7 +98,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         resource: energeia,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
-        visibility: () => showIf(experiments.milestones.jobMilestone.earned.value)
+        visibility: experiments.milestones.jobMilestone.earned
     }));
 
     const multiLoopMilestone = createMilestone(() => ({
@@ -119,9 +118,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock resource gain batteries"
         },
-        visibility() {
-            return showIf(multiLoopMilestone.earned.value);
-        }
+        visibility: multiLoopMilestone.earned
     }));
     const machinesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -131,9 +128,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: `Unlock buying machines in "${breeding.job.name}" Job`
         },
-        visibility() {
-            return showIf(resourceBatteriesMilestone.earned.value);
-        }
+        visibility: resourceBatteriesMilestone.earned
     })) as GenericMilestone;
     const xpBatteriesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -143,9 +138,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock xp gain batteries"
         },
-        visibility() {
-            return showIf(machinesMilestone.earned.value);
-        }
+        visibility: machinesMilestone.earned
     }));
     const timeBatteriesMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -155,9 +148,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock time passing batteries"
         },
-        visibility() {
-            return showIf(xpBatteriesMilestone.earned.value);
-        }
+        visibility: xpBatteriesMilestone.earned
     }));
     const jobMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -167,9 +158,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
         },
-        visibility() {
-            return showIf(timeBatteriesMilestone.earned.value);
-        },
+        visibility: timeBatteriesMilestone.earned,
         onComplete() {
             if (breeding.milestones.jobMilestone.earned.value) {
                 addLayer(rituals, player);
@@ -302,7 +291,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         .add(1)
                         .log(1.3)
                         .add(1),
-                visibility: () => showIf(xpBatteriesMilestone.earned.value)
+                visibility: xpBatteriesMilestone.earned
             })),
             timePassing: createBattery(() => ({
                 job: curr,
@@ -312,7 +301,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         .add(1)
                         .log(10)
                         .add(1),
-                visibility: () => showIf(resourceBatteriesMilestone.earned.value)
+                visibility: resourceBatteriesMilestone.earned
             }))
         };
         return acc;
@@ -440,13 +429,11 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     tab,
                     tabCollapsed,
                     visibility: () =>
-                        showIf(
-                            [
-                                timeBatteriesMilestone,
-                                resourceBatteriesMilestone,
-                                xpBatteriesMilestone
-                            ][index].earned.value
-                        )
+                        [
+                            timeBatteriesMilestone,
+                            resourceBatteriesMilestone,
+                            xpBatteriesMilestone
+                        ][index].earned
                 });
                 return acc;
             }, {} as Partial<Record<BatteryType, () => TabButtonOptions>>)
@@ -582,7 +569,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         </>
                     ))
                 })),
-                visibility: computed(() => showIf(timeBatteriesMilestone.earned.value))
+                visibility: timeBatteriesMilestone.earned
             })
         },
         () => ({

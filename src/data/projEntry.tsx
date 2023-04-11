@@ -1,6 +1,6 @@
 import Spacer from "components/layout/Spacer.vue";
 import { CoercableComponent, Visibility } from "features/feature";
-import { jsx, showIf } from "features/feature";
+import { jsx } from "features/feature";
 import { createJob, GenericJob } from "features/job/job";
 import { createParticles } from "features/particles/particles";
 import { createResource, trackBest, trackTotal } from "features/resources/resource";
@@ -147,7 +147,7 @@ export const main = createLayer(id, function (this: BaseLayer) {
         },
         canAfford: true,
         style: `width: 150px; height: 150px; --layer-color: ${flowers.color}`,
-        visibility: () => showIf(chapter.value == 1 && Decimal.gte(flowers.flowers.value, 10000000))
+        visibility: () => chapter.value == 1 && Decimal.gte(flowers.flowers.value, 10000000)
     }));
 
     const particles = createParticles(() => ({

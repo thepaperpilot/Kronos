@@ -12,7 +12,7 @@ import experiments from "data/experiments/experiments";
 import { main } from "data/projEntry";
 import { createBar } from "features/bars/bar";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import { CoercableComponent, jsx, showIf, Visibility } from "features/feature";
+import { CoercableComponent, jsx, Visibility } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
@@ -143,9 +143,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Therizó"
         },
-        visibility() {
-            return showIf(spellExpMilestone.earned.value);
-        }
+        visibility: spellExpMilestone.earned
     })) as GenericMilestone;
     const chargeSpellMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -155,9 +153,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Prōficiō"
         },
-        visibility() {
-            return showIf(flowerSpellMilestone.earned.value);
-        }
+        visibility: flowerSpellMilestone.earned
     })) as GenericMilestone;
     const expSpellMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -167,9 +163,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Double Téchnasma potency and unlock a new spell - Scholē"
         },
-        visibility() {
-            return showIf(chargeSpellMilestone.earned.value);
-        }
+        visibility: chargeSpellMilestone.earned
     })) as GenericMilestone;
     const milestones = {
         spellExpMilestone,
@@ -199,7 +193,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         title: string,
         description: string,
         effect: string,
-        visibleCondition: ProcessedComputable<boolean>,
+        visibility: ProcessedComputable<Visibility | boolean>,
         nodes: Record<
             T,
             {
@@ -254,8 +248,6 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 .div(Decimal.sub(nextLevelReq, previousLevelReq))
                 .times(100);
         });
-
-        const visibility = computed(() => showIf(unref(visibleCondition)));
 
         const selector = createClickable(() => ({
             canClick(): boolean {
@@ -398,7 +390,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         progress() {
             return Decimal.div(chargeAmount.value, computedChargeCap.value);
         },
-        visibility: () => showIf(chargeSpellMilestone.earned.value)
+        visibility: chargeSpellMilestone.earned
     }));
 
     const jobLevelEffect: ComputedRef<DecimalSource> = computed(() =>
@@ -1331,7 +1323,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }),
             flowerSpell: () => ({
                 display: "Therizó",
-                visibility: () => showIf(flowerSpellMilestone.earned.value),
+                visibility: flowerSpellMilestone.earned,
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },
@@ -1340,7 +1332,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }),
             chargeSpell: () => ({
                 display: "Prōficiō",
-                visibility: () => showIf(chargeSpellMilestone.earned.value),
+                visibility: chargeSpellMilestone.earned,
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },
@@ -1349,7 +1341,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }),
             massXpSpell: () => ({
                 display: "Scholē",
-                visibility: () => showIf(expSpellMilestone.earned.value),
+                visibility: expSpellMilestone.earned,
                 glowColor(): string {
                     return modifierTabs.activeTab.value === this.tab ? color : "";
                 },

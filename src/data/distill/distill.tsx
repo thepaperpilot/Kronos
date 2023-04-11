@@ -13,7 +13,7 @@ import { createCollapsibleModifierSections, Section } from "data/common";
 import flowers from "data/flowers/flowers";
 import { main } from "data/projEntry";
 import { createBuyable, GenericBuyable } from "features/buyable";
-import { jsx, JSXFunction, showIf, Visibility } from "features/feature";
+import { jsx, JSXFunction, Visibility } from "features/feature";
 import { createJob, GenericJob } from "features/job/job";
 import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
@@ -66,7 +66,7 @@ export interface Element {
     refreshParticleEffect: VoidFunction;
 }
 
-const isPastChapter1: ComputedRef<Visibility> = computed(() => showIf(main.chapter.value > 1));
+const isPastChapter1 = computed(() => main.chapter.value > 1);
 
 function getElementParticlesConfig(startColor: string, endColor: string) {
     return Object.assign({}, elementParticles, {
@@ -140,9 +140,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock Principles"
         },
-        visibility() {
-            return showIf(waterMilestone.earned.value);
-        }
+        visibility: waterMilestone.earned
     }));
     const studyMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -152,9 +150,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: `Unlock "${study.job.name}" Job`
         },
-        visibility() {
-            return showIf(principlesMilestone.earned.value);
-        },
+        visibility: principlesMilestone.earned,
         onComplete() {
             addLayer(study, player);
         }
@@ -167,9 +163,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock Air"
         },
-        visibility() {
-            return showIf(studyMilestone.earned.value);
-        }
+        visibility: studyMilestone.earned
     }));
     const fireMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -179,9 +173,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock Fire"
         },
-        visibility() {
-            return showIf(airMilestone.earned.value);
-        }
+        visibility: airMilestone.earned
     }));
     const experimentsMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -191,9 +183,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock "${experiments.job.name}" Job`
         },
-        visibility() {
-            return showIf(fireMilestone.earned.value);
-        },
+        visibility: fireMilestone.earned,
         onComplete() {
             addLayer(experiments, player);
         }
@@ -285,7 +275,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         {showNotif?.value ? <Notif style="top: -25px" /> : null}
                     </div>
                 )),
-                visibility: () => showIf(principlesMilestone.earned.value),
+                visibility: principlesMilestone.earned,
                 resource,
                 cost() {
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

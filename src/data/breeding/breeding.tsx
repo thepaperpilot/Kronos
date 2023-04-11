@@ -12,8 +12,7 @@ import {
     Component,
     GatherProps,
     GenericComponent,
-    jsx,
-    showIf
+    jsx
 } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone, GenericMilestone } from "features/milestones/milestone";
@@ -145,7 +144,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         resource: mutations,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
-        visibility: () => showIf(study.milestones.jobMilestone.earned.value),
+        visibility: study.milestones.jobMilestone.earned,
         showNotif: () =>
             Object.values(machines).some(
                 machine =>
@@ -176,9 +175,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock powering up machines"
         },
-        visibility() {
-            return showIf(breedingAnalyzingMilestone.earned.value);
-        }
+        visibility: breedingAnalyzingMilestone.earned
     }));
     const bonusGeneratorMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -188,9 +185,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: `Unlock bonus generator in "${generators.job.name}" job`
         },
-        visibility() {
-            return showIf(powerupMilestone.earned.value);
-        }
+        visibility: powerupMilestone.earned
     }));
     const recyclingMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -200,9 +195,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock recycling machine"
         },
-        visibility() {
-            return showIf(bonusGeneratorMilestone.earned.value);
-        }
+        visibility: bonusGeneratorMilestone.earned
     }));
     const mutatingMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -212,9 +205,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock mutating machine"
         },
-        visibility() {
-            return showIf(recyclingMilestone.earned.value);
-        }
+        visibility: recyclingMilestone.earned
     }));
     const jobMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -224,9 +215,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
         },
-        visibility() {
-            return showIf(mutatingMilestone.earned.value);
-        },
+        visibility: mutatingMilestone.earned,
         onComplete() {
             if (generators.milestones.jobMilestone.earned.value) {
                 addLayer(rituals, player);
@@ -401,7 +390,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
         const machines = createBuyable(() => ({
             initialValue: 1,
-            visibility: () => showIf(generators.milestones.machinesMilestone.earned.value),
+            visibility: generators.milestones.machinesMilestone.earned,
             cost: () => Decimal.pow(priceRatio, unref(machines.amount)),
             resource: generators.energeia,
             display: {

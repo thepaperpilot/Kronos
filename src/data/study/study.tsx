@@ -16,7 +16,7 @@ import { main, numJobs } from "data/projEntry";
 import { createBar } from "features/bars/bar";
 import { CardActions, createCard, GenericCard, signElements } from "features/cards/card";
 import { createClickable } from "features/clickables/clickable";
-import { jsx, showIf } from "features/feature";
+import { jsx } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone, GenericMilestone } from "features/milestones/milestone";
 import { createParticles } from "features/particles/particles";
@@ -76,7 +76,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         resource: properties,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(generalTab)),
-        visibility: () => showIf(distill.milestones.studyMilestone.earned.value),
+        visibility: distill.milestones.studyMilestone.earned,
         showNotif: upgradeNotif
     }));
 
@@ -97,9 +97,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock purchasing and selling cards"
         },
-        visibility() {
-            return showIf(manualMilestone.earned.value);
-        }
+        visibility: manualMilestone.earned
     }));
     const timeSlotMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -109,9 +107,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
-        visibility() {
-            return showIf(shopMilestone.earned.value);
-        }
+        visibility: shopMilestone.earned
     }));
     const optimizationsMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -121,9 +117,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock optimizations"
         },
-        visibility() {
-            return showIf(timeSlotMilestone.earned.value);
-        }
+        visibility: timeSlotMilestone.earned
     }));
     const upgradingMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -133,9 +127,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock upgrading cards"
         },
-        visibility() {
-            return showIf(optimizationsMilestone.earned.value);
-        }
+        visibility: optimizationsMilestone.earned
     }));
     const jobMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -145,9 +137,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock "${breeding.job.name}" Job`
         },
-        visibility() {
-            return showIf(upgradingMilestone.earned.value);
-        },
+        visibility: upgradingMilestone.earned,
         onComplete() {
             addLayer(breeding, player);
         }
@@ -1213,7 +1203,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }),
             optimizations: () => ({
                 display: "Optimizations",
-                visibility: () => showIf(optimizationsMilestone.earned.value),
+                visibility: optimizationsMilestone.earned,
                 tab: createTab(() => ({
                     display: jsx(() => (
                         <>

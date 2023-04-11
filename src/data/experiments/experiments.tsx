@@ -18,8 +18,7 @@ import {
     GatherProps,
     GenericComponent,
     jsx,
-    JSXFunction,
-    showIf
+    JSXFunction
 } from "features/feature";
 import { createJob } from "features/job/job";
 import { createMilestone, GenericMilestone } from "features/milestones/milestone";
@@ -151,7 +150,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         resource: potentia,
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
-        visibility: () => showIf(distill.milestones.experimentsMilestone.earned.value),
+        visibility: distill.milestones.experimentsMilestone.earned,
         showNotif: () => showHourglassNotif.value || potentialsNotif.value
     }));
 
@@ -172,9 +171,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 4`,
             effectDisplay: "Unlock potentials"
         },
-        visibility() {
-            return showIf(chippingMilestone.earned.value);
-        }
+        visibility: chippingMilestone.earned
     }));
     const timeSlotMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -184,9 +181,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 5`,
             effectDisplay: "Unlock a time slot"
         },
-        visibility() {
-            return showIf(potentialsMilestone.earned.value);
-        }
+        visibility: potentialsMilestone.earned
     }));
     const advancedPotentialsMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -196,9 +191,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 6`,
             effectDisplay: "Unlock advanced potentials"
         },
-        visibility() {
-            return showIf(timeSlotMilestone.earned.value);
-        }
+        visibility: timeSlotMilestone.earned
     }));
     const appliedTimeMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -208,9 +201,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 8`,
             effectDisplay: "Unlock applied time"
         },
-        visibility() {
-            return showIf(advancedPotentialsMilestone.earned.value);
-        }
+        visibility: advancedPotentialsMilestone.earned
     }));
     const jobMilestone = createMilestone(() => ({
         shouldEarn(): boolean {
@@ -220,9 +211,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             requirement: `Achieve ${job.name} Level 10`,
             effectDisplay: `Unlock "${generators.job.name}" Job`
         },
-        visibility() {
-            return showIf(appliedTimeMilestone.earned.value);
-        },
+        visibility: appliedTimeMilestone.earned,
         onComplete() {
             addLayer(generators, player);
         }
@@ -749,7 +738,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         </>
                     ))
                 })),
-                visibility: computed(() => showIf(potentialsMilestone.earned.value))
+                visibility: potentialsMilestone.earned
             }),
             appliedTime: () => ({
                 display: "Applied Time",
@@ -772,7 +761,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         </>
                     ))
                 })),
-                visibility: computed(() => showIf(appliedTimeMilestone.earned.value))
+                visibility: appliedTimeMilestone.earned
             })
         },
         () => ({
