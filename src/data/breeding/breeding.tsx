@@ -523,7 +523,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                                 {formatWhole(plants[inputs[0].type].amount.value)}{" "}
                                 {plants[inputs[0].type].symbol}
                             </div>
-                            <div>+ mutations</div>
+                            <div>+ {mutations.displayName}</div>
                         </div>
                     );
                 }
@@ -719,7 +719,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                         </div>
                     ) : (
                         <div>
-                            + mutations
+                            + {mutations.displayName}
                             <br />
                             x10 exp gained
                         </div>
