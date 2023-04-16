@@ -59,5 +59,3 @@ if ("fonts" in document) {
     // JSDom doesn't add document.fonts, and Object.defineProperty doesn't seem to work on document
     document.fonts.onloadingdone = () => globalBus.emit("fontsLoaded");
 }
-
-document.fonts.onloadingdone = () => globalBus.emit("fontsLoaded");
