@@ -393,9 +393,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const moreJobXpPerSpellEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(
             1.25,
-            Object.values(spells).filter(
-                s => isVisible((s as Spell<string>).visibility.value)
-            ).length
+            Object.values(spells).filter(s => isVisible((s as Spell<string>).visibility.value))
+                .length
         )
     );
     const morePotencyPerJobLevelEffect = jobLevelEffect;
@@ -483,9 +482,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
     const moreFlowersPerSpellEffect: ComputedRef<DecimalSource> = computed(
         () =>
-            Object.values(spells).filter(
-                s => isVisible((s as Spell<string>).visibility.value)
-            ).length * 0.25
+            Object.values(spells).filter(s => isVisible((s as Spell<string>).visibility.value))
+                .length * 0.25
     );
     const moreFlowersPerLevelEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(1.1, flowerSpell.level.value)
@@ -682,7 +680,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 experiments.selectedJob.value === id
         })),
         generators.batteries.flowers.timePassing.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
     const chargeMult = createSequentialModifier(() => [
@@ -847,7 +845,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             enabled: flowerSpell.treeNodes.moreJobXpPerFlower.bought
         })),
         generators.batteries.study.xpGain.modifier
-    ]) as WithRequired<Modifier, "description" | "revert">;
+    ]) as WithRequired<Modifier, "description" | "invert">;
 
     const jobXpDischargeRate = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
@@ -931,7 +929,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })),
         generators.batteries.study.resourceGain.modifier,
         breeding.plants.moly.modifier
-    ]) as WithRequired<Modifier, "description" | "revert">;
+    ]) as WithRequired<Modifier, "description" | "invert">;
     const computedFlowerGain = computed(() => flowerGain.apply(0));
 
     const flowerPassiveGain = createSequentialModifier(() => [

@@ -383,7 +383,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             visibility: generators.milestones.machinesMilestone.earned,
             requirements: createCostRequirement(() => ({
                 cost: Formula.variable(machines.amount).pow_base(priceRatio),
-                resource: generators.energeia,
+                resource: generators.energeia
             })),
             display: {
                 description: `Additional ${name.slice(0, -1)}`,
@@ -822,7 +822,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             description: `${job.name} level (x1.1 each)`
         })),
         generators.batteries.breeding.timePassing.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedTimePassing = computed(() => new Decimal(timePassing.apply(1)).toNumber());
 
     const jobXpGain = createSequentialModifier(() => [

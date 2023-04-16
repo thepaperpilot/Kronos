@@ -65,7 +65,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: () =>
             generators.milestones.jobMilestone.earned.value &&
-                breeding.milestones.jobMilestone.earned.value
+            breeding.milestones.jobMilestone.earned.value
     }));
 
     const selectedRunes = persistent<(JobKeys | "")[][]>([]);
@@ -226,7 +226,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 experiments.selectedJob.value === id
         })),
         generators.batteries.breeding.timePassing.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedTimePassing = computed(() => new Decimal(timePassing.apply(1)).toNumber());
 
     const jobXpGain = createSequentialModifier(() => [

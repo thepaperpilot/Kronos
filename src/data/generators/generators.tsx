@@ -60,13 +60,13 @@ export type BatteryType = "timePassing" | "resourceGain" | "xpGain";
 
 export interface Battery extends VueFeature {
     charge: Persistent<DecimalSource>;
-    chargeGain: WithRequired<Modifier, "revert" | "description">;
+    chargeGain: WithRequired<Modifier, "invert" | "description">;
     computedChargeGain: Ref<DecimalSource>;
     color: ProcessedComputable<string>;
     feedAmount: Persistent<number>;
     effect: Ref<DecimalSource>;
     effectDescription: string;
-    modifier: WithRequired<Modifier, "revert" | "description" | "enabled">;
+    modifier: WithRequired<Modifier, "invert" | "description" | "enabled">;
     visibility: ProcessedComputable<Visibility | boolean>;
     setFeedAmount: (value: number) => void;
 }
@@ -195,9 +195,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             const battery = optionsFunc();
 
             const computedColor = computed(() => unref(main.jobs[battery.job].color));
-            const computedVisibility = battery.visibility
-                ? convertComputable(battery.visibility)
-                : Visibility.Visible;
+            const computedVisibility =
+                battery.visibility != null
+                    ? convertComputable(battery.visibility)
+                    : Visibility.Visible;
             const computedEffect = computed(() => battery.effectFormula(charge.value));
 
             const chargeGain = createSequentialModifier(() => [
@@ -322,7 +323,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 experiments.selectedJob.value === id
         })),
         batteries.generators.timePassing.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedTimePassing = computed(() => new Decimal(timePassing.apply(1)).toNumber());
 
     const timeSlotsGenerating = createSequentialModifier(() => [
@@ -352,7 +353,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })),
         batteries.generators.resourceGain.modifier,
         breeding.plants.energeia.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
 
     const jobXpGain = createSequentialModifier(() => [batteries.generators.xpGain.modifier]);
 

@@ -54,9 +54,9 @@ export interface Element {
     color: string;
     resource: Resource;
     conversionAmount: Persistent<number>;
-    cost: WithRequired<Modifier, "revert" | "description">;
+    cost: WithRequired<Modifier, "invert" | "description">;
     computedCost: Ref<DecimalSource>;
-    gain: WithRequired<Modifier, "revert" | "description">;
+    gain: WithRequired<Modifier, "invert" | "description">;
     actualGain: Ref<DecimalSource>;
     tab: JSXFunction;
     tabCollapsed: Persistent<Record<number, boolean>>;
@@ -253,7 +253,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             principleClickable = createRepeatable(() => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const cost = Formula.variable(principleClickable!.amount).pow_base(10);
-                return ({
+                return {
                     display: jsx(() => (
                         <div>
                             Prepare {principle} to gain a portion of {name} whenever the above
@@ -271,10 +271,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     requirements: createCostRequirement(() => ({
                         resource,
                         cost
-                    })),
-                });
+                    }))
+                };
             });
-            showNotif = createDismissableNotify(principleClickable, principleClickable.canClick as Ref<boolean>);
+            showNotif = createDismissableNotify(
+                principleClickable,
+                principleClickable.canClick as Ref<boolean>
+            );
         }
 
         return createLazyProxy(() => {
@@ -307,7 +310,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 })),
                 generators.batteries.distill.resourceGain.modifier,
                 ...element.modifiers()
-            ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+            ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
             const actualGain = computed(() =>
                 Decimal.add(
                     gain.apply(
@@ -555,7 +558,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 experiments.selectedJob.value === id
         })),
         generators.batteries.distill.timePassing.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
     const jobXp = createSequentialModifier(() => [
@@ -576,7 +579,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             description: "Fire Essence"
         })),
         generators.batteries.distill.xpGain.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
 
     const totalFlowerLoss = createSequentialModifier(() => [
         createAdditiveModifier(() => ({

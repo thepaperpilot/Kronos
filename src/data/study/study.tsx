@@ -299,7 +299,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 experiments.selectedJob.value === id
         })),
         generators.batteries.study.timePassing.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
     const propertiesGain = createSequentialModifier(() => [
@@ -314,7 +314,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         })),
         generators.batteries.study.resourceGain.modifier,
         breeding.plants.properties.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedPropertiesGain = computed(() => propertiesGain.apply(10));
 
     const jobXpGain = createSequentialModifier(() => [

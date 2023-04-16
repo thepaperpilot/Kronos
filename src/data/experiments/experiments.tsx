@@ -13,13 +13,7 @@ import generators from "data/generators/generators";
 import { JobKeys, main } from "data/projEntry";
 import study from "data/study/study";
 import { createClickable, GenericClickable } from "features/clickables/clickable";
-import {
-    Component,
-    GatherProps,
-    GenericComponent,
-    jsx,
-    JSXFunction
-} from "features/feature";
+import { Component, GatherProps, GenericComponent, jsx, JSXFunction } from "features/feature";
 import { createJob } from "features/job/job";
 import { createAchievement, GenericAchievement } from "features/achievements/achievement";
 import MainDisplay from "features/resources/MainDisplay.vue";
@@ -481,13 +475,13 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 job.active.value && appliedTimeMilestone.earned.value && selectedJob.value === id
         })),
         generators.batteries.experiments.timePassing.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
     const computedTimePassing = computed(() => timePassing.apply(1));
 
     const jobXpGain = createSequentialModifier(() => [
         jobXPPotential.modifier,
         generators.batteries.experiments.xpGain.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
 
     const totalGrains = createSequentialModifier(() => [effectiveGrainsPotential.modifier]);
     const computedTotalGrains = computed(() => totalGrains.apply(baseTotalGrains.value));
@@ -522,7 +516,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         potentiaGainPotential.modifier,
         generators.batteries.experiments.resourceGain.modifier,
         breeding.plants.potentia.modifier
-    ]) as WithRequired<Modifier, "revert" | "enabled" | "description">;
+    ]) as WithRequired<Modifier, "invert" | "enabled" | "description">;
 
     const potentialsSpeed = createSequentialModifier(() => [potentialsSpeedPotential.modifier]);
 
