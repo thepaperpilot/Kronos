@@ -179,7 +179,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
-            effectDisplay: `Unlock bonus generator in "${generators.job.name}" job`
+            effectDisplay: 'Unlock bonus generator in "Harnessing Power" job'
         },
         visibility: powerupMilestone.earned
     }));
@@ -203,7 +203,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
+            effectDisplay: 'Unlock 1/2 of "Performing Rituals" Job'
         },
         visibility: mutatingMilestone.earned,
         onComplete() {
@@ -401,10 +401,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
             const enabled = convertComputable(machine.enabled);
 
             watch(machines.amount, numMachines => {
-                while (inputs.value.length < numMachines) {
+                while (Decimal.lt(inputs.value.length, numMachines)) {
                     inputs.value.push([]);
                 }
-                while (timers.value.length < numMachines) {
+                while (Decimal.lt(timers.value.length, numMachines)) {
                     timers.value.push(0);
                 }
             });
@@ -420,7 +420,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 machines,
                 setInput: function (machineIndex: number, index: number) {
                     const prevValue = inputs.value[machineIndex]?.[index] ?? "none";
-                    if (prevValue && prevValue !== "none") {
+                    if (prevValue !== "none") {
                         seeds.value.push(prevValue);
                     }
                     const machineInputs = inputs.value[machineIndex] ?? [];
@@ -873,7 +873,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
 
         Object.values(machines).forEach(machine => {
             const timers = machine.timers.value;
-            for (let i = 0; i < machine.machines.amount.value; i++) {
+            for (let i = 0; Decimal.lt(i, machine.machines.amount.value); i++) {
                 const input = machine.inputs.value[i] ?? [];
                 if (machine.isRunning(input, i)) {
                     timers[i] +=

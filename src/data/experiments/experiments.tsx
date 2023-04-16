@@ -192,7 +192,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock "${generators.job.name}" Job`
+            effectDisplay: 'Unlock "Harnessing Power" Job'
         },
         visibility: appliedTimeMilestone.earned,
         onComplete() {

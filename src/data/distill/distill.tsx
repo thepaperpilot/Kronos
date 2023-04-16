@@ -47,6 +47,7 @@ import breeding from "data/breeding/breeding";
 import { createLazyProxy } from "util/proxies";
 import { createBooleanRequirement, createCostRequirement } from "game/requirements";
 import Formula from "game/formulas/formulas";
+import { GenericFormula } from "game/formulas/types";
 
 export interface Element {
     name: string;
@@ -144,7 +145,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
-            effectDisplay: `Unlock "${study.job.name}" Job`
+            effectDisplay: 'Unlock "Studying" Job'
         },
         visibility: principlesMilestone.earned,
         onComplete() {
@@ -171,7 +172,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock "${experiments.job.name}" Job`
+            effectDisplay: 'Unlock "Measuring" Job'
         },
         visibility: fireMilestone.earned,
         onComplete() {
@@ -252,7 +253,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         if (principle) {
             principleClickable = createRepeatable(() => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const cost = Formula.variable(principleClickable!.amount).pow_base(10);
+                const costReq = createCostRequirement(() => ({
+                    resource,
+                    cost: Formula.variable(principleClickable!.amount).pow_base(10)
+                }));
                 return {
                     display: jsx(() => (
                         <div>
@@ -262,16 +266,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             <br />({formatWhole(passiveEssenceGain.apply(0))}%)
                             <br />
                             <br />
-                            Cost: {displayResource(resource, unref(cost.evaluate()))}{" "}
+                            Cost:{" "}
+                            {displayResource(
+                                resource,
+                                unref((costReq.cost as GenericFormula).evaluate())
+                            )}{" "}
                             {resource.displayName}
                             {showNotif?.value ? <Notif style="top: -25px" /> : null}
                         </div>
                     )),
                     visibility: principlesMilestone.earned,
-                    requirements: createCostRequirement(() => ({
-                        resource,
-                        cost
-                    }))
+                    requirements: costReq
                 };
             });
             showNotif = createDismissableNotify(

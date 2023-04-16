@@ -158,13 +158,13 @@ export function createJob<T extends JobOptions>(
 
         job.setQuip = function (quip?: string) {
             const genericJob = job as GenericJob;
-            if (genericJob.currentQuip.value) {
+            if (genericJob.currentQuip.value != null) {
                 genericJob.currentQuip.value = null;
                 nextTick(genericJob.setQuip);
                 return;
             }
 
-            if (quip) {
+            if (quip != null) {
                 genericJob.currentQuip.value = quip;
             } else if (unref(genericJob.randomQuips)) {
                 const quips = unref(genericJob.randomQuips) as string[];

@@ -122,7 +122,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 5)),
         display: {
             requirement: `Achieve ${job.name} Level 5`,
-            effectDisplay: `Unlock buying machines in "${breeding.job.name}" Job`
+            effectDisplay: 'Unlock buying machines in "Breeding Plants" Job'
         },
         visibility: resourceBatteriesMilestone.earned
     })) as GenericAchievement;
@@ -146,7 +146,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock 1/2 of "${rituals.job.name}" Job`
+            effectDisplay: 'Unlock 1/2 of "Performing Rituals" Job'
         },
         visibility: timeBatteriesMilestone.earned,
         onComplete() {

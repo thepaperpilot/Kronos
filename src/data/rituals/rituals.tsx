@@ -74,14 +74,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 2)),
         display: {
             requirement: `Achieve ${job.name} Level 2`,
-            effectDisplay: `Unlock fourth column of runes and ${emolumentum.name}`
+            effectDisplay: 'Unlock fourth column of runes and "Ritual of Emolumentum"'
         }
     }));
     const fourthRowMilestone = createAchievement(() => ({
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 4)),
         display: {
             requirement: `Achieve ${job.name} Level 4`,
-            effectDisplay: `Unlock fourth row of runes and ${melius.name}`
+            effectDisplay: 'Unlock fourth row of runes and "Ritual of Melius"'
         },
         visibility: fourthColMilestone.earned
     }));
@@ -97,7 +97,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 6)),
         display: {
             requirement: `Achieve ${job.name} Level 6`,
-            effectDisplay: `Unlock fifth column of runes and ${collegium.name}`
+            effectDisplay: 'Unlock fifth column of runes and "Ritual of Collegium"'
         },
         visibility: timeSlotMilestone.earned
     }));
@@ -105,7 +105,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 8)),
         display: {
             requirement: `Achieve ${job.name} Level 8`,
-            effectDisplay: `Unlock fifth row of runes and ${celeritas.name}`
+            effectDisplay: 'Unlock fifth row of runes and "Ritual of Celeritas"'
         },
         visibility: fifthColMilestone.earned
     }));

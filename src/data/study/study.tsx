@@ -124,7 +124,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         requirements: createBooleanRequirement(() => Decimal.gte(job.rawLevel.value, 10)),
         display: {
             requirement: `Achieve ${job.name} Level 10`,
-            effectDisplay: `Unlock "${breeding.job.name}" Job`
+            effectDisplay: 'Unlock "Breeding Plants" Job'
         },
         visibility: upgradingMilestone.earned,
         onComplete() {
@@ -162,20 +162,22 @@ const layer = createLayer(id, function (this: BaseLayer) {
             : 1
     );
     let expOptimizationNotif: ToastID | null = null;
-    watch(
-        () => formatWhole(Decimal.times(expOptimization.value, 100).sub(100)),
-        currLevel => {
-            if (settings.active !== player.id) return;
-            if (expOptimizationNotif != null) {
-                toast.dismiss(expOptimizationNotif);
+    nextTick(() =>
+        watch(
+            () => formatWhole(Decimal.times(expOptimization.value, 100).sub(100)),
+            currLevel => {
+                if (settings.active !== player.id) return;
+                if (expOptimizationNotif != null) {
+                    toast.dismiss(expOptimizationNotif);
+                }
+                expOptimizationNotif = toast.info(
+                    <>
+                        <h3>Experience Optimized!</h3>
+                        <div>Experience optimization is now {currLevel}%</div>
+                    </>
+                );
             }
-            expOptimizationNotif = toast.info(
-                <>
-                    <h3>Experience Optimized!</h3>
-                    <div>Experience optimization is now {currLevel}%</div>
-                </>
-            );
-        }
+        )
     );
     const expOptimizationBar = createBar(() => ({
         direction: Direction.Right,
@@ -204,22 +206,24 @@ const layer = createLayer(id, function (this: BaseLayer) {
             : 1
     );
     let studyingOptimizationNotif: ToastID | null = null;
-    watch(
-        () => formatWhole(Decimal.times(studyingOptimization.value, 100).sub(100)),
-        currLevel => {
-            if (settings.active !== player.id) return;
-            if (studyingOptimizationNotif != null) {
-                toast.dismiss(studyingOptimizationNotif);
+    nextTick(() =>
+        watch(
+            () => formatWhole(Decimal.times(studyingOptimization.value, 100).sub(100)),
+            currLevel => {
+                if (settings.active !== player.id) return;
+                if (studyingOptimizationNotif != null) {
+                    toast.dismiss(studyingOptimizationNotif);
+                }
+                studyingOptimizationNotif = toast.info(
+                    <>
+                        <h3>{job.name} Optimized!</h3>
+                        <div>
+                            {job.name} optimization is now {currLevel}%
+                        </div>
+                    </>
+                );
             }
-            studyingOptimizationNotif = toast.info(
-                <>
-                    <h3>{job.name} Optimized!</h3>
-                    <div>
-                        {job.name} optimization is now {currLevel}%
-                    </div>
-                </>
-            );
-        }
+        )
     );
     const studyingOptimizationBar = createBar(() => ({
         direction: Direction.Right,
@@ -248,20 +252,22 @@ const layer = createLayer(id, function (this: BaseLayer) {
             : 1
     );
     let drawTimeOptimizationNotif: ToastID | null = null;
-    watch(
-        () => formatWhole(Decimal.times(drawTimeOptimizaton.value, 100).sub(100)),
-        currLevel => {
-            if (settings.active !== player.id) return;
-            if (drawTimeOptimizationNotif != null) {
-                toast.dismiss(drawTimeOptimizationNotif);
+    nextTick(() =>
+        watch(
+            () => formatWhole(Decimal.times(drawTimeOptimizaton.value, 100).sub(100)),
+            currLevel => {
+                if (settings.active !== player.id) return;
+                if (drawTimeOptimizationNotif != null) {
+                    toast.dismiss(drawTimeOptimizationNotif);
+                }
+                drawTimeOptimizationNotif = toast.info(
+                    <>
+                        <h3>Draw Time Optimized!</h3>
+                        <div>Draw time optimization is now {currLevel}%</div>
+                    </>
+                );
             }
-            drawTimeOptimizationNotif = toast.info(
-                <>
-                    <h3>Draw Time Optimized!</h3>
-                    <div>Draw time optimization is now {currLevel}%</div>
-                </>
-            );
-        }
+        )
     );
     const drawTimeOptimizatonBar = createBar(() => ({
         direction: Direction.Right,
