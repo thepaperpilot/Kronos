@@ -340,12 +340,14 @@ const layer = createLayer(id, function (this: BaseLayer) {
         createMultiplicativeModifier(() => ({
             multiplier: () => Decimal.div(1, drawTimeOptimizaton.value),
             description: "Draw speed optimization",
-            enabled: optimizationsMilestone.earned
+            enabled: optimizationsMilestone.earned,
+            smallerIsBetter: true
         })),
         createMultiplicativeModifier(() => ({
             multiplier: 0.5,
             description: "Faster draw card",
-            enabled: () => fasterDrawTime.value > 0
+            enabled: () => fasterDrawTime.value > 0,
+            smallerIsBetter: true
         }))
     ]);
     const computedDrawTime = computed(() => drawTime.apply(10));
@@ -353,7 +355,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const manualDrawTime = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
             multiplier: 0.5,
-            description: "Manual bonus"
+            description: "Manual bonus",
+            smallerIsBetter: true
         }))
     ]);
     const computedManualDrawTime = computed(() => manualDrawTime.apply(computedDrawTime.value));
@@ -390,13 +393,15 @@ const layer = createLayer(id, function (this: BaseLayer) {
             title: "Automatic Card Draw",
             modifier: drawTime,
             base: 10,
-            unit: "s"
+            unit: "s",
+            smallerIsBetter: true
         },
         {
             title: "Manual Card Draw",
             modifier: manualDrawTime,
             base: computedDrawTime,
-            unit: "s"
+            unit: "s",
+            smallerIsBetter: true
         }
     ]);
 

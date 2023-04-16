@@ -145,7 +145,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         },
         resource: mutations,
         layerID: id,
-        modifierInfo: jsx(() => renderJSX(modifierTabs)),
+        modifierInfo: jsx(() => renderJSX(generalTab)),
         visibility: study.milestones.jobMilestone.earned,
         showNotif: () =>
             Object.values(machines).some(

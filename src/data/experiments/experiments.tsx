@@ -258,7 +258,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 description: name + " potential",
                 enabled: isAdvanced
                     ? advancedPotentialsMilestone.earned
-                    : potentialsMilestone.earned
+                    : potentialsMilestone.earned,
+                smallerIsBetter: Decimal.lt(unref(computedEffectRatio), 1)
             }));
         } else if (modifierType === "additive") {
             modifier = createAdditiveModifier(() => ({
@@ -266,7 +267,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 description: name + " potential",
                 enabled: isAdvanced
                     ? advancedPotentialsMilestone.earned
-                    : potentialsMilestone.earned
+                    : potentialsMilestone.earned,
+                smallerIsBetter: Decimal.lt(unref(computedEffectRatio), 1)
             }));
         } else {
             modifier = createMultiplicativeModifier(() => ({
@@ -274,7 +276,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
                 description: name + " potential",
                 enabled: isAdvanced
                     ? advancedPotentialsMilestone.earned
-                    : potentialsMilestone.earned
+                    : potentialsMilestone.earned,
+                smallerIsBetter: Decimal.lt(unref(computedEffectRatio), 1)
             }));
         }
 
@@ -499,7 +502,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const chippingDuration = createSequentialModifier(() => [
         createMultiplicativeModifier(() => ({
             multiplier: () => Decimal.pow(2, grainSizeLevel.value),
-            description: "Grain size (x2 each split)"
+            description: "Grain size (x2 each split)",
+            smallerIsBetter: true
         })),
         grindingSpeedPotential.modifier
     ]);
@@ -575,7 +579,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             modifier: chippingDuration,
             base: 1,
             unit: "s",
-            visible: chippingMilestone.earned
+            visible: chippingMilestone.earned,
+            smallerIsBetter: true
         },
         {
             title: "Passive grinding",
