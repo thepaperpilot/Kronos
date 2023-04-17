@@ -31,7 +31,7 @@ import {
     createSequentialModifier,
     Modifier
 } from "game/modifiers";
-import { Persistent, persistent } from "game/persistence";
+import { noPersist, Persistent, persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource } from "util/bignum";
 import type { WithRequired } from "util/common";
@@ -97,7 +97,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: energeia,
+        resource: noPersist(energeia),
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: experiments.milestones.jobMilestone.earned

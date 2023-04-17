@@ -283,6 +283,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         activeRituals,
         runeRows,
         runeCols,
+        selectedRunes,
         rituals,
         modifiers,
         milestones,

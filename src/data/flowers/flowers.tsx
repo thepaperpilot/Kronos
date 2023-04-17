@@ -36,7 +36,7 @@ import {
     createSequentialModifier
 } from "game/modifiers";
 import { createDismissableNotify } from "game/notifications";
-import { persistent } from "game/persistence";
+import { noPersist, persistent } from "game/persistence";
 import player from "game/player";
 import settings from "game/settings";
 import Decimal, { DecimalSource, format } from "util/bignum";
@@ -99,7 +99,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: flowers,
+        resource: noPersist(flowers),
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         modifierModalAttrs: {

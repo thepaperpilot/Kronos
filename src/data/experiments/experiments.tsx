@@ -35,7 +35,7 @@ import {
     Modifier
 } from "game/modifiers";
 import { createDismissableNotify } from "game/notifications";
-import type { Persistent } from "game/persistence";
+import { Persistent, noPersist } from "game/persistence";
 import { persistent } from "game/persistence";
 import player from "game/player";
 import settings from "game/settings";
@@ -142,7 +142,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: potentia,
+        resource: noPersist(potentia),
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: distill.milestones.experimentsMilestone.earned,
@@ -393,7 +393,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         xpReqRatio: 1.3,
         baseBoostCost: 100,
         boostCostRatio: 2,
-        boostCostResource: potentia
+        boostCostResource: noPersist(potentia)
     });
     const potentiaGainPotential = createPotential({
         name: "Potentia gain",
@@ -401,7 +401,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         xpReqRatio: 1.08,
         baseBoostCost: 100,
         boostCostRatio: 10,
-        boostCostResource: potentia
+        boostCostResource: noPersist(potentia)
     });
     const fallSpeedPotential = createPotential({
         name: "Grains fall speed",
@@ -410,7 +410,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         xpReqRatio: 1.1,
         baseBoostCost: 100,
         boostCostRatio: 4,
-        boostCostResource: potentia
+        boostCostResource: noPersist(potentia)
     });
     const basicPotentials = { grindingSpeedPotential, potentiaGainPotential, fallSpeedPotential };
 
@@ -421,7 +421,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         xpReqRatio: 1.5,
         baseBoostCost: 10000,
         boostCostRatio: 10,
-        boostCostResource: potentia,
+        boostCostResource: noPersist(potentia),
         isAdvanced: true
     });
     const effectiveGrainsPotential = createPotential({

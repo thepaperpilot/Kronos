@@ -8,7 +8,7 @@ import { createUpgrade } from "features/upgrades/upgrade";
 import { globalBus } from "game/events";
 import type { BaseLayer, GenericLayer } from "game/layers";
 import { addLayer, createLayer } from "game/layers";
-import { persistent } from "game/persistence";
+import { noPersist, persistent } from "game/persistence";
 import type { LayerData, Player } from "game/player";
 import player from "game/player";
 import settings from "game/settings";
@@ -58,7 +58,7 @@ const id = "main";
 export const main = createLayer(id, function (this: BaseLayer) {
     const chapter = persistent<number>(0);
 
-    const jobs = {
+    const jobs = noPersist({
         flowers: flowers.job as GenericJob,
         distill: distill.job as GenericJob,
         study: study.job as GenericJob,
@@ -66,7 +66,7 @@ export const main = createLayer(id, function (this: BaseLayer) {
         generators: generators.job as GenericJob,
         breeding: breeding.job as GenericJob,
         rituals: rituals.job as GenericJob
-    } as Record<JobKeys, GenericJob>;
+    }) as Record<JobKeys, GenericJob>;
 
     const timeSlots = computed(() => {
         let slots = 0;
@@ -315,10 +315,10 @@ export const main = createLayer(id, function (this: BaseLayer) {
             ) : (
                 <>
                     {player.devSpeed === 0 ? <div>Game Paused</div> : null}
-                    {player.devSpeed && player.devSpeed !== 1 ? (
+                    {player.devSpeed != null && player.devSpeed !== 1 ? (
                         <div>Dev Speed: {format(player.devSpeed)}x</div>
                     ) : null}
-                    {player.offlineTime ? (
+                    {player.offlineTime != null ? (
                         <div>Offline Time: {formatTime(player.offlineTime)}</div>
                     ) : null}
                     {player.devSpeed != null || player.offlineTime != null ? <Spacer /> : null}
@@ -346,8 +346,7 @@ globalBus.on("update", diff => {
 });
 
 export const numJobs = computed(
-    () =>
-        jobKeys.filter(jobKey => isVisible(main.jobs[jobKey].visibility)).length
+    () => jobKeys.filter(jobKey => isVisible(main.jobs[jobKey].visibility)).length
 );
 
 /**

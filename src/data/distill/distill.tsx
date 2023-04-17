@@ -29,7 +29,7 @@ import {
     Modifier
 } from "game/modifiers";
 import { createDismissableNotify } from "game/notifications";
-import { Persistent, persistent } from "game/persistence";
+import { Persistent, noPersist, persistent } from "game/persistence";
 import player from "game/player";
 import Decimal, { DecimalSource, formatWhole } from "util/bignum";
 import { camelToTitle, WithRequired } from "util/common";
@@ -119,7 +119,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: essentia,
+        resource: noPersist(essentia),
         layerID: id,
         modifierInfo: jsx(() => renderJSX(modifierTabs)),
         visibility: isPastChapter1,
@@ -254,7 +254,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             principleClickable = createRepeatable(() => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const costReq = createCostRequirement(() => ({
-                    resource,
+                    resource: noPersist(resource),
                     cost: Formula.variable(principleClickable!.amount).pow_base(10)
                 }));
                 return {
@@ -460,7 +460,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             color: "blue",
             particlesConfig: getElementParticlesConfig("#0D8CFF", "#0C46E8"),
             modifiers: () => [breeding.plants.waterEssence.modifier],
-            prevElement: earth,
+            prevElement: noPersist(earth),
             visible: waterMilestone.earned
         }),
         "salt"
@@ -472,7 +472,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             color: "yellow",
             particlesConfig: getElementParticlesConfig("#FFCE0D", "#E8D20C"),
             modifiers: () => [breeding.plants.airEssence.modifier],
-            prevElement: water,
+            prevElement: noPersist(water),
             visible: airMilestone.earned
         }),
         "mercury"
@@ -484,7 +484,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
             color: "red",
             particlesConfig: getElementParticlesConfig("#FF530D", "#E82C0C"),
             modifiers: () => [breeding.plants.fireEssence.modifier],
-            prevElement: air,
+            prevElement: noPersist(air),
             visible: fireMilestone.earned
         }),
         "sulfur"
@@ -542,7 +542,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         return {
             name,
             symbol,
-            element,
+            element: noPersist(element),
             display
         };
     }

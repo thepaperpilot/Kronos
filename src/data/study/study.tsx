@@ -27,7 +27,7 @@ import { createTabFamily } from "features/tabs/tabFamily";
 import { addTooltip } from "features/tooltips/tooltip";
 import { addLayer, BaseLayer, createLayer } from "game/layers";
 import { createMultiplicativeModifier, createSequentialModifier, Modifier } from "game/modifiers";
-import { persistent } from "game/persistence";
+import { noPersist, persistent } from "game/persistence";
 import player from "game/player";
 import settings from "game/settings";
 import Decimal, { DecimalSource, format, formatTime, formatWhole } from "util/bignum";
@@ -74,7 +74,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
         randomQuips() {
             return [...alwaysQuips, ...globalQuips];
         },
-        resource: properties,
+        resource: noPersist(properties),
         layerID: id,
         modifierInfo: jsx(() => renderJSX(generalTab)),
         visibility: distill.milestones.studyMilestone.earned,

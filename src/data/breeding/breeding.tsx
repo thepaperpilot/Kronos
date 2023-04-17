@@ -282,7 +282,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                     ),
                     [GatherProps]: () => ({})
                 },
-                [Component]: Plant,
+                [Component]: Plant as GenericComponent,
                 [GatherProps]: function (this: Plant) {
                     const {
                         name,
