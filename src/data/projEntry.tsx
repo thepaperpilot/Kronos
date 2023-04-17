@@ -59,13 +59,13 @@ export const main = createLayer(id, function (this: BaseLayer) {
     const chapter = persistent<number>(0);
 
     const jobs = noPersist({
-        flowers: flowers.job as GenericJob,
-        distill: distill.job as GenericJob,
-        study: study.job as GenericJob,
-        experiments: experiments.job as GenericJob,
-        generators: generators.job as GenericJob,
-        breeding: breeding.job as GenericJob,
-        rituals: rituals.job as GenericJob
+        flowers: flowers.job,
+        distill: distill.job,
+        study: study.job,
+        experiments: experiments.job,
+        generators: generators.job,
+        breeding: breeding.job,
+        rituals: rituals.job
     }) as Record<JobKeys, GenericJob>;
 
     const timeSlots = computed(() => {
