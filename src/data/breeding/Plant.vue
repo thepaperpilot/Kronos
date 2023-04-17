@@ -14,7 +14,7 @@
                 <br />{{ buttonText }}
             </button>
         </div>
-        <div v-if="unref(consumedTimeRemaining) > 0">
+        <div v-if="Decimal.gt(unref(consumedTimeRemaining), 0)">
             Current bonus: {{ format(unref(multiplier)) }}x {{ effectDescription }} for
             {{ formatTime(unref(consumedTimeRemaining)) }}
         </div>

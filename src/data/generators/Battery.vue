@@ -26,7 +26,7 @@
         <Slider
             :max="100 - unref(sumFeedAmounts) + unref(feedAmount)"
             :modelValue="unref(feedAmount)"
-            @update:model-value="value => setFeedAmount(value)"
+            @update:model-value="(value: number) => setFeedAmount(value)"
         />
     </div>
 </template>
