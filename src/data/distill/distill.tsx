@@ -251,11 +251,10 @@ const layer = createLayer(id, function (this: BaseLayer) {
         ]);
 
         if (principle) {
-            principleClickable = createRepeatable(() => {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            principleClickable = createRepeatable(repeatable => {
                 const costReq = createCostRequirement(() => ({
                     resource: noPersist(resource),
-                    cost: Formula.variable(principleClickable!.amount).pow_base(10)
+                    cost: Formula.variable(repeatable.amount).pow_base(10)
                 }));
                 return {
                     display: jsx(() => (

@@ -99,8 +99,8 @@ export function createJob<T extends JobOptions>(
 ): Job<T> {
     const xp = createResource<DecimalSource>(0, name + " XP");
     const timeLoopActive = persistent<boolean>(false);
-    return createLazyProxy(() => {
-        const job = optionsFunc();
+    return createLazyProxy(feature => {
+        const job = optionsFunc.call(feature, feature);
         job.id = getUniqueID("job-");
         job.type = JobType;
         job[Component] = JobComponent as GenericComponent;

@@ -113,8 +113,8 @@ export type GenericCard = Replace<
 export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, BaseCard>): Card<T> {
     const amount = persistent<number>(0);
     const level = persistent<DecimalSource>(0);
-    return createLazyProxy(() => {
-        const card = optionsFunc();
+    return createLazyProxy(feature => {
+        const card = optionsFunc.call(feature, feature);
 
         card.id = getUniqueID("card-");
         card.type = CardType;
@@ -122,7 +122,7 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
 
         card.amount = amount;
         card.level = level;
-        if (card.startingAmount) {
+        if (card.startingAmount != null) {
             amount[DefaultValue] = amount.value = card.startingAmount;
         }
 
@@ -143,7 +143,7 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                 <>
                     <Description />
                     <div class="metal">{metalSymbols[genericCard.metal]}</div>
-                    {genericCard.formula ? (
+                    {genericCard.formula != null ? (
                         <div class="formula">
                             <Formula />
                         </div>
@@ -168,7 +168,7 @@ export function createCard<T extends CardOptions>(optionsFunc: OptionsFunc<T, Ba
                 <>
                     <Description />
                     <div class="metal">{metalSymbols[genericCard.metal]}</div>
-                    {genericCard.formula ? (
+                    {genericCard.formula != null ? (
                         <div class="formula">
                             <Formula />
                         </div>

@@ -51,6 +51,7 @@ import { globalBus } from "game/events";
 import { createRepeatable, GenericRepeatable } from "features/repeatable";
 import { createBooleanRequirement, createCostRequirement } from "game/requirements";
 import Formula from "game/formulas/formulas";
+import { OptionsFunc } from "features/feature";
 
 export type SeedTypes =
     | "moly"
@@ -238,20 +239,20 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     function createPlant(
-        optionsFunc: () => {
+        optionsFunc: OptionsFunc<{
             name: string;
             symbol: string;
             color: string;
             effectDescription: string;
-        }
+        }>
     ): Plant {
         const amount = persistent<DecimalSource>(0);
         const consumedAmount = persistent<DecimalSource>(0);
         const consumedTimeRemaining = persistent<number>(0);
         const discovered = persistent<boolean>(false);
 
-        return createLazyProxy(() => {
-            const plant = optionsFunc();
+        return createLazyProxy(feature => {
+            const plant = optionsFunc.call(feature, feature);
 
             const multiplier = computed(() => Decimal.add(consumedAmount.value, 1).log10().add(1));
 
@@ -363,7 +364,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     function createMachine(
         name: string,
         priceRatio: DecimalSource,
-        optionsFunc: () => {
+        optionsFunc: OptionsFunc<{
             id: MachineTypes;
             enabled: Computable<boolean>;
             numInputs: number;
@@ -372,17 +373,17 @@ const layer = createLayer(id, function (this: BaseLayer) {
             isRunning: (inputs: OptionalSeed[], machineIndex: number) => boolean;
             onActivate: (inputs: OptionalSeed[], machineIndex: number) => void;
             outputDisplay: (inputs: OptionalSeed[], machineIndex: number) => CoercableComponent;
-        }
+        }>
     ): Machine {
         const inputs = persistent<OptionalSeed[][]>([]);
         const timers = persistent<number[]>([]);
         const collapsed = persistent<boolean>(false);
 
-        const machines = createRepeatable(() => ({
+        const machines = createRepeatable(repeatable => ({
             initialValue: 1,
             visibility: generators.milestones.machinesMilestone.earned,
             requirements: createCostRequirement(() => ({
-                cost: Formula.variable(machines.amount).pow_base(priceRatio),
+                cost: Formula.variable(repeatable.amount).pow_base(priceRatio),
                 resource: generators.energeia
             })),
             display: {
@@ -395,8 +396,8 @@ const layer = createLayer(id, function (this: BaseLayer) {
             }
         })) as GenericRepeatable;
 
-        return createLazyProxy(() => {
-            const machine = optionsFunc();
+        return createLazyProxy(feature => {
+            const machine = optionsFunc.call(feature, feature);
 
             const enabled = convertComputable(machine.enabled);
 
