@@ -5,17 +5,17 @@ import {
     setupPassiveGeneration
 } from "features/conversion";
 import { createResource, Resource } from "features/resources/resource";
-import { GenericFormula } from "game/formulas/types";
+import { InvertibleIntegralFormula } from "game/formulas/types";
 import { createLayer, GenericLayer } from "game/layers";
 import Decimal from "util/bignum";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { ref, unref } from "vue";
 import "../utils";
 
 describe("Creating conversion", () => {
     let baseResource: Resource;
     let gainResource: Resource;
-    let formula: (x: GenericFormula) => GenericFormula;
+    let formula: (x: InvertibleIntegralFormula) => InvertibleIntegralFormula;
     beforeEach(() => {
         baseResource = createResource(ref(40));
         gainResource = createResource(ref(1));
@@ -449,7 +449,7 @@ describe("Creating conversion", () => {
 describe("Passive generation", () => {
     let baseResource: Resource;
     let gainResource: Resource;
-    let formula: (x: GenericFormula) => GenericFormula;
+    let formula: (x: InvertibleIntegralFormula) => InvertibleIntegralFormula;
     let conversion: GenericConversion;
     let layer: GenericLayer;
     beforeEach(() => {
@@ -472,15 +472,15 @@ describe("Passive generation", () => {
         setupPassiveGeneration(layer, conversion);
         layer.emit("preUpdate", 1);
         expect(gainResource.value).compare_tolerance(2);
-    })
+    });
     test("Rate is 100", () => {
         setupPassiveGeneration(layer, conversion, () => 100);
         layer.emit("preUpdate", 1);
         expect(gainResource.value).compare_tolerance(101);
-    })
+    });
     test("Obeys cap", () => {
         setupPassiveGeneration(layer, conversion, 100, () => 100);
         layer.emit("preUpdate", 1);
         expect(gainResource.value).compare_tolerance(100);
-    })
+    });
 });

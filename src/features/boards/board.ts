@@ -12,7 +12,7 @@ import { globalBus } from "game/events";
 import { DefaultValue, deletePersistent, Persistent, State } from "game/persistence";
 import { persistent } from "game/persistence";
 import type { Unsubscribe } from "nanoevents";
-import { isFunction } from "util/common";
+import { Direction, isFunction } from "util/common";
 import type {
     Computable,
     GetComputableType,
@@ -21,7 +21,7 @@ import type {
 } from "util/computed";
 import { processComputable } from "util/computed";
 import { createLazyProxy } from "util/proxies";
-import { computed, ref, Ref, unref } from "vue";
+import { computed, isRef, ref, Ref, unref } from "vue";
 import panZoom from "vue-panzoom";
 import type { Link } from "../links/links";
 
@@ -33,7 +33,9 @@ export const BoardType = Symbol("Board");
 /**
  * A type representing a computable value for a node on the board. Used for node types to return different values based on the given node and the state of the board.
  */
-export type NodeComputable<T> = Computable<T> | ((node: BoardNode) => T);
+export type NodeComputable<T, S extends unknown[] = []> =
+    | Computable<T>
+    | ((node: BoardNode, ...args: S) => T);
 
 /** Ways to display progress of an action with a duration. */
 export enum ProgressDisplay {
@@ -63,6 +65,8 @@ export interface BoardNode {
 export interface BoardNodeLink extends Omit<Link, "startNode" | "endNode"> {
     startNode: BoardNode;
     endNode: BoardNode;
+    stroke: string;
+    strokeWidth: number;
     pulsing?: boolean;
 }
 
@@ -90,13 +94,17 @@ export interface NodeTypeOptions {
     label?: NodeComputable<NodeLabel | null>;
     /** The size of the node - diameter for circles, width and height for squares. */
     size: NodeComputable<number>;
+    /** CSS to apply to this node. */
+    style?: NodeComputable<StyleValue>;
+    /** Dictionary of CSS classes to apply to this node. */
+    classes?: NodeComputable<Record<string, boolean>>;
     /** Whether the node is draggable or not. */
     draggable?: NodeComputable<boolean>;
     /** The shape of the node. */
     shape: NodeComputable<Shape>;
     /** Whether the node can accept another node being dropped upon it. */
-    canAccept?: boolean | Ref<boolean> | ((node: BoardNode, otherNode: BoardNode) => boolean);
-    /** The progress value of the node. */
+    canAccept?: NodeComputable<boolean, [BoardNode]>;
+    /** The progress value of the node, from 0 to 1. */
     progress?: NodeComputable<number>;
     /** How the progress should be displayed on the node. */
     progressDisplay?: NodeComputable<ProgressDisplay>;
@@ -110,7 +118,7 @@ export interface NodeTypeOptions {
     titleColor?: NodeComputable<string>;
     /** The list of action options for the node. */
     actions?: BoardNodeActionOptions[];
-    /** The distance between the center of the node and its actions. */
+    /** The arc between each action, in radians. */
     actionDistance?: NodeComputable<number>;
     /** A function that is called when the node is clicked. */
     onClick?: (node: BoardNode) => void;
@@ -135,6 +143,8 @@ export type NodeType<T extends NodeTypeOptions> = Replace<
         title: GetComputableType<T["title"]>;
         label: GetComputableType<T["label"]>;
         size: GetComputableTypeWithDefault<T["size"], 50>;
+        style: GetComputableType<T["style"]>;
+        classes: GetComputableType<T["classes"]>;
         draggable: GetComputableTypeWithDefault<T["draggable"], false>;
         shape: GetComputableTypeWithDefault<T["shape"], Shape.Circle>;
         canAccept: GetComputableTypeWithDefault<T["canAccept"], false>;
@@ -156,7 +166,7 @@ export type GenericNodeType = Replace<
         size: NodeComputable<number>;
         draggable: NodeComputable<boolean>;
         shape: NodeComputable<Shape>;
-        canAccept: NodeComputable<boolean>;
+        canAccept: NodeComputable<boolean, [BoardNode]>;
         progressDisplay: NodeComputable<ProgressDisplay>;
         progressColor: NodeComputable<string>;
         actionDistance: NodeComputable<number>;
@@ -176,11 +186,13 @@ export interface BoardNodeActionOptions {
     /** The fill color of the action. */
     fillColor?: NodeComputable<string>;
     /** The tooltip text to display for the action. */
-    tooltip: NodeComputable<string>;
+    tooltip: NodeComputable<NodeLabel>;
+    /** The confirmation label that appears under the action. */
+    confirmationLabel?: NodeComputable<NodeLabel>;
     /** An array of board node links associated with the action. They appear when the action is focused. */
     links?: NodeComputable<BoardNodeLink[]>;
     /** A function that is called when the action is clicked. */
-    onClick: (node: BoardNode) => boolean | undefined;
+    onClick: (node: BoardNode) => void;
 }
 
 /**
@@ -198,6 +210,7 @@ export type BoardNodeAction<T extends BoardNodeActionOptions> = Replace<
         icon: GetComputableType<T["icon"]>;
         fillColor: GetComputableType<T["fillColor"]>;
         tooltip: GetComputableType<T["tooltip"]>;
+        confirmationLabel: GetComputableTypeWithDefault<T["confirmationLabel"], NodeLabel>;
         links: GetComputableType<T["links"]>;
     }
 >;
@@ -207,6 +220,7 @@ export type GenericBoardNodeAction = Replace<
     BoardNodeAction<BoardNodeActionOptions>,
     {
         visibility: NodeComputable<Visibility | boolean>;
+        confirmationLabel: NodeComputable<NodeLabel>;
     }
 >;
 
@@ -246,8 +260,14 @@ export interface BaseBoard {
     selectedNode: Ref<BoardNode | null>;
     /** The currently selected action, if any. */
     selectedAction: Ref<GenericBoardNodeAction | null>;
+    /** The currently being dragged node, if any. */
+    draggingNode: Ref<BoardNode | null>;
+    /** If dragging a node, the node it's currently being hovered over, if any. */
+    receivingNode: Ref<BoardNode | null>;
     /** The current mouse position, if over the board. */
     mousePosition: Ref<{ x: number; y: number } | null>;
+    /** Places a node in the nearest empty space in the given direction with the specified space around it. */
+    placeInAvailableSpace: (node: BoardNode, radius?: number, direction?: Direction) => void;
     /** A symbol that helps identify features of the same type. */
     type: typeof BoardType;
     /** The Vue component used to render this feature. */
@@ -319,26 +339,51 @@ export function createBoard<T extends BoardOptions>(
         }
 
         board.nodes = computed(() => unref(processedBoard.state).nodes);
-        board.selectedNode = computed(
-            () =>
-                processedBoard.nodes.value.find(
-                    node => node.id === unref(processedBoard.state).selectedNode
-                ) || null
-        );
-        board.selectedAction = computed(() => {
-            const selectedNode = processedBoard.selectedNode.value;
-            if (selectedNode == null) {
-                return null;
+        board.selectedNode = computed({
+            get() {
+                return (
+                    processedBoard.nodes.value.find(
+                        node => node.id === unref(processedBoard.state).selectedNode
+                    ) || null
+                );
+            },
+            set(node) {
+                if (isRef(processedBoard.state)) {
+                    processedBoard.state.value = {
+                        ...processedBoard.state.value,
+                        selectedNode: node?.id ?? null
+                    };
+                } else {
+                    processedBoard.state.selectedNode = node?.id ?? null;
+                }
             }
-            const type = processedBoard.types[selectedNode.type];
-            if (type.actions == null) {
-                return null;
+        });
+        board.selectedAction = computed({
+            get() {
+                const selectedNode = processedBoard.selectedNode.value;
+                if (selectedNode == null) {
+                    return null;
+                }
+                const type = processedBoard.types[selectedNode.type];
+                if (type.actions == null) {
+                    return null;
+                }
+                return (
+                    type.actions.find(
+                        action => action.id === unref(processedBoard.state).selectedAction
+                    ) || null
+                );
+            },
+            set(action) {
+                if (isRef(processedBoard.state)) {
+                    processedBoard.state.value = {
+                        ...processedBoard.state.value,
+                        selectedAction: action?.id ?? null
+                    };
+                } else {
+                    processedBoard.state.selectedAction = action?.id ?? null;
+                }
             }
-            return (
-                type.actions.find(
-                    action => action.id === unref(processedBoard.state).selectedAction
-                ) || null
-            );
         });
         board.mousePosition = ref(null);
         if (board.links) {
@@ -360,12 +405,14 @@ export function createBoard<T extends BoardOptions>(
                 return null;
             });
         }
+        board.draggingNode = ref(null);
+        board.receivingNode = ref(null);
         processComputable(board as T, "visibility");
         setDefault(board, "visibility", Visibility.Visible);
         processComputable(board as T, "width");
         setDefault(board, "width", "100%");
         processComputable(board as T, "height");
-        setDefault(board, "height", "400px");
+        setDefault(board, "height", "100%");
         processComputable(board as T, "classes");
         processComputable(board as T, "style");
 
@@ -376,6 +423,8 @@ export function createBoard<T extends BoardOptions>(
             processComputable(nodeType as NodeTypeOptions, "label");
             processComputable(nodeType as NodeTypeOptions, "size");
             setDefault(nodeType, "size", 50);
+            processComputable(nodeType as NodeTypeOptions, "style");
+            processComputable(nodeType as NodeTypeOptions, "classes");
             processComputable(nodeType as NodeTypeOptions, "draggable");
             setDefault(nodeType, "draggable", false);
             processComputable(nodeType as NodeTypeOptions, "shape");
@@ -406,10 +455,91 @@ export function createBoard<T extends BoardOptions>(
                     processComputable(action, "icon");
                     processComputable(action, "fillColor");
                     processComputable(action, "tooltip");
+                    processComputable(action, "confirmationLabel");
+                    setDefault(action, "confirmationLabel", { text: "Tap again to confirm" });
                     processComputable(action, "links");
                 }
             }
         }
+
+        function setDraggingNode(node: BoardNode | null) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            board.draggingNode!.value = node;
+        }
+        function setReceivingNode(node: BoardNode | null) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            board.receivingNode!.value = node;
+        }
+
+        board.placeInAvailableSpace = function (
+            node: BoardNode,
+            radius = 100,
+            direction = Direction.Right
+        ) {
+            const nodes = processedBoard.nodes.value
+                .slice()
+                .filter(n => {
+                    // Exclude self
+                    if (n === node) {
+                        return false;
+                    }
+
+                    // Exclude nodes that aren't within the corridor we'll be moving within
+                    if (
+                        (direction === Direction.Down || direction === Direction.Up) &&
+                        Math.abs(n.position.x - node.position.x) > radius
+                    ) {
+                        return false;
+                    }
+                    if (
+                        (direction === Direction.Left || direction === Direction.Right) &&
+                        Math.abs(n.position.y - node.position.y) > radius
+                    ) {
+                        return false;
+                    }
+
+                    // Exclude nodes in the wrong direction
+                    return !(
+                        (direction === Direction.Right &&
+                            n.position.x < node.position.x - radius) ||
+                        (direction === Direction.Left && n.position.x > node.position.x + radius) ||
+                        (direction === Direction.Up && n.position.y > node.position.y + radius) ||
+                        (direction === Direction.Down && n.position.y < node.position.y - radius)
+                    );
+                })
+                .sort(
+                    direction === Direction.Right
+                        ? (a, b) => a.position.x - b.position.x
+                        : direction === Direction.Left
+                        ? (a, b) => b.position.x - a.position.x
+                        : direction === Direction.Up
+                        ? (a, b) => b.position.y - a.position.y
+                        : (a, b) => a.position.y - b.position.y
+                );
+            for (let i = 0; i < nodes.length; i++) {
+                const nodeToCheck = nodes[i];
+                const distance =
+                    direction === Direction.Right || direction === Direction.Left
+                        ? Math.abs(node.position.x - nodeToCheck.position.x)
+                        : Math.abs(node.position.y - nodeToCheck.position.y);
+
+                // If we're too close to this node, move further
+                if (distance < radius) {
+                    if (direction === Direction.Right) {
+                        node.position.x = nodeToCheck.position.x + radius;
+                    } else if (direction === Direction.Left) {
+                        node.position.x = nodeToCheck.position.x - radius;
+                    } else if (direction === Direction.Up) {
+                        node.position.y = nodeToCheck.position.y - radius;
+                    } else if (direction === Direction.Down) {
+                        node.position.y = nodeToCheck.position.y + radius;
+                    }
+                } else if (i > 0 && distance > radius) {
+                    // If we're further from this node than the radius, then the nodes are past us and we can early exit
+                    break;
+                }
+            }
+        };
 
         board[GatherProps] = function (this: GenericBoard) {
             const {
@@ -424,7 +554,9 @@ export function createBoard<T extends BoardOptions>(
                 links,
                 selectedAction,
                 selectedNode,
-                mousePosition
+                mousePosition,
+                draggingNode,
+                receivingNode
             } = this;
             return {
                 nodes,
@@ -438,7 +570,11 @@ export function createBoard<T extends BoardOptions>(
                 links,
                 selectedAction,
                 selectedNode,
-                mousePosition
+                mousePosition,
+                draggingNode,
+                receivingNode,
+                setDraggingNode,
+                setReceivingNode
             };
         };
 
@@ -453,8 +589,14 @@ export function createBoard<T extends BoardOptions>(
  * @param property The property to find the value of
  * @param node The node to get the property of
  */
-export function getNodeProperty<T>(property: NodeComputable<T>, node: BoardNode): T {
-    return isFunction<T, [BoardNode], Computable<T>>(property) ? property(node) : unref(property);
+export function getNodeProperty<T, S extends unknown[]>(
+    property: NodeComputable<T, S>,
+    node: BoardNode,
+    ...args: S
+): T {
+    return isFunction<T, [BoardNode, ...S], Computable<T>>(property)
+        ? property(node, ...args)
+        : unref(property);
 }
 
 /**

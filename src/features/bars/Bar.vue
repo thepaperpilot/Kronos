@@ -120,7 +120,7 @@ export default defineComponent({
                     barStyle.clipPath = `inset(0% ${normalizedProgress.value}% 0% 0%)`;
                     break;
                 case Direction.Left:
-                    barStyle.clipPath = `inset(0% 0% 0% ${normalizedProgress.value} + '%)`;
+                    barStyle.clipPath = `inset(0% 0% 0% ${normalizedProgress.value}%)`;
                     break;
                 case Direction.Default:
                     barStyle.clipPath = "inset(0% 50% 0% 0%)";
@@ -179,5 +179,6 @@ export default defineComponent({
     margin-left: -0.5px;
     transition-duration: 0.2s;
     z-index: 2;
+    transition-duration: 0.05s;
 }
 </style>

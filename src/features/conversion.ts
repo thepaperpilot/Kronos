@@ -1,12 +1,8 @@
-import type { OptionsFunc, Replace } from "features/feature";
+import type { CoercableComponent, OptionsFunc, Replace } from "features/feature";
 import { setDefault } from "features/feature";
 import type { Resource } from "features/resources/resource";
 import Formula from "game/formulas/formulas";
-import {
-    IntegrableFormula,
-    InvertibleFormula,
-    InvertibleIntegralFormula
-} from "game/formulas/types";
+import { InvertibleFormula, InvertibleIntegralFormula } from "game/formulas/types";
 import type { BaseLayer } from "game/layers";
 import type { DecimalSource } from "util/bignum";
 import Decimal from "util/bignum";
@@ -15,6 +11,8 @@ import { convertComputable, processComputable } from "util/computed";
 import { createLazyProxy } from "util/proxies";
 import type { Ref } from "vue";
 import { computed, unref } from "vue";
+import { GenericDecorator } from "./decorators/common";
+import { createBooleanRequirement } from "game/requirements";
 
 /** An object that configures a {@link Conversion}. */
 export interface ConversionOptions {
@@ -22,9 +20,7 @@ export interface ConversionOptions {
      * The formula used to determine how much {@link gainResource} should be earned by this converting.
      * The passed value will be a Formula representing the {@link baseResource} variable.
      */
-    formula: (
-        variable: InvertibleFormula & IntegrableFormula & InvertibleIntegralFormula
-    ) => InvertibleFormula;
+    formula: (variable: InvertibleIntegralFormula) => InvertibleFormula;
     /**
      * How much of the output resource the conversion can currently convert for.
      * Typically this will be set for you in a conversion constructor.
@@ -123,10 +119,15 @@ export type GenericConversion = Replace<
  * @see {@link createIndependentConversion}.
  */
 export function createConversion<T extends ConversionOptions>(
-    optionsFunc: OptionsFunc<T, BaseConversion, GenericConversion>
+    optionsFunc: OptionsFunc<T, BaseConversion, GenericConversion>,
+    ...decorators: GenericDecorator[]
 ): Conversion<T> {
     return createLazyProxy(feature => {
         const conversion = optionsFunc.call(feature, feature);
+
+        for (const decorator of decorators) {
+            decorator.preConstruct?.(conversion);
+        }
 
         (conversion as GenericConversion).formula = conversion.formula(
             Formula.variable(conversion.baseResource)
@@ -186,6 +187,10 @@ export function createConversion<T extends ConversionOptions>(
         processComputable(conversion as T, "nextAt");
         processComputable(conversion as T, "buyMax");
         setDefault(conversion, "buyMax", true);
+
+        for (const decorator of decorators) {
+            decorator.postConstruct?.(conversion);
+        }
 
         return conversion as unknown as Conversion<T>;
     });
@@ -287,4 +292,21 @@ export function setupPassiveGeneration(
                 .max(conversion.gainResource.value);
         }
     });
+}
+
+/**
+ * Creates requirement that is met when the conversion hits a specified gain amount
+ * @param conversion The conversion to check the gain amount of
+ * @param minGainAmount The minimum gain amount that must be met for the requirement to be met
+ */
+export function createCanConvertRequirement(
+    conversion: GenericConversion,
+    minGainAmount: Computable<DecimalSource> = 1,
+    display?: CoercableComponent
+) {
+    const computedMinGainAmount = convertComputable(minGainAmount);
+    return createBooleanRequirement(
+        () => Decimal.gte(unref(conversion.actualGain), unref(computedMinGainAmount)),
+        display
+    );
 }

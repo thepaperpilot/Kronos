@@ -1,8 +1,9 @@
 import type { OptionsFunc, Replace } from "features/feature";
 import { getUniqueID } from "features/feature";
 import { globalBus } from "game/events";
+import Formula from "game/formulas/formulas";
 import type { BaseLayer } from "game/layers";
-import type { NonPersistent, Persistent } from "game/persistence";
+import { NonPersistent, Persistent, SkipPersistence } from "game/persistence";
 import { DefaultValue, persistent } from "game/persistence";
 import type { Unsubscribe } from "nanoevents";
 import Decimal from "util/bignum";
@@ -19,7 +20,7 @@ export const ResetType = Symbol("Reset");
  */
 export interface ResetOptions {
     /** List of things to reset. Can include objects which will be recursed over for persistent values. */
-    thingsToReset: Computable<Record<string, unknown>[]>;
+    thingsToReset: Computable<unknown[]>;
     /** A function that is called when the reset is performed. */
     onReset?: VoidFunction;
 }
@@ -61,7 +62,15 @@ export function createReset<T extends ResetOptions>(
 
         reset.reset = function () {
             const handleObject = (obj: unknown) => {
-                if (obj != null && typeof obj === "object") {
+                if (
+                    obj != null &&
+                    typeof obj === "object" &&
+                    !(obj instanceof Decimal) &&
+                    !(obj instanceof Formula)
+                ) {
+                    if (SkipPersistence in obj && obj[SkipPersistence] === true) {
+                        return;
+                    }
                     if (DefaultValue in obj) {
                         const persistent = obj as NonPersistent;
                         persistent.value = persistent[DefaultValue];

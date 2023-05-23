@@ -1,4 +1,5 @@
 import { isArray } from "@vue/shared";
+import { GenericDecorator } from "features/decorators/common";
 import type {
     CoercableComponent,
     GenericComponent,
@@ -8,20 +9,20 @@ import type {
 } from "features/feature";
 import {
     Component,
-    findFeatures,
     GatherProps,
+    Visibility,
+    findFeatures,
     getUniqueID,
-    setDefault,
-    Visibility
+    setDefault
 } from "features/feature";
 import UpgradeComponent from "features/upgrades/Upgrade.vue";
 import type { GenericLayer } from "game/layers";
 import type { Persistent } from "game/persistence";
 import { persistent } from "game/persistence";
 import {
+    Requirements,
     createVisibilityRequirement,
     payRequirements,
-    Requirements,
     requirementsMet
 } from "game/requirements";
 import { isFunction } from "util/common";
@@ -115,17 +116,30 @@ export type GenericUpgrade = Replace<
  * @param optionsFunc Upgrade options.
  */
 export function createUpgrade<T extends UpgradeOptions>(
-    optionsFunc: OptionsFunc<T, BaseUpgrade, GenericUpgrade>
+    optionsFunc: OptionsFunc<T, BaseUpgrade, GenericUpgrade>,
+    ...decorators: GenericDecorator[]
 ): Upgrade<T> {
     const bought = persistent<boolean>(false, false);
+    const decoratedData = decorators.reduce(
+        (current, next) => Object.assign(current, next.getPersistentData?.()),
+        {}
+    );
     return createLazyProxy(feature => {
         const upgrade = optionsFunc.call(feature, feature);
         upgrade.id = getUniqueID("upgrade-");
         upgrade.type = UpgradeType;
         upgrade[Component] = UpgradeComponent as GenericComponent;
 
+        for (const decorator of decorators) {
+            decorator.preConstruct?.(upgrade);
+        }
+
         upgrade.bought = bought;
-        upgrade.canPurchase = computed(() => requirementsMet(upgrade.requirements));
+        Object.assign(upgrade, decoratedData);
+
+        upgrade.canPurchase = computed(
+            () => !bought.value && requirementsMet(upgrade.requirements)
+        );
         upgrade.purchase = function () {
             const genericUpgrade = upgrade as GenericUpgrade;
             if (!unref(genericUpgrade.canPurchase)) {
@@ -150,6 +164,14 @@ export function createUpgrade<T extends UpgradeOptions>(
         processComputable(upgrade as T, "display");
         processComputable(upgrade as T, "mark");
 
+        for (const decorator of decorators) {
+            decorator.postConstruct?.(upgrade);
+        }
+
+        const decoratedProps = decorators.reduce(
+            (current, next) => Object.assign(current, next.getGatheredProps?.(upgrade)),
+            {}
+        );
         upgrade[GatherProps] = function (this: GenericUpgrade) {
             const {
                 display,
@@ -173,7 +195,8 @@ export function createUpgrade<T extends UpgradeOptions>(
                 bought,
                 mark,
                 id,
-                purchase
+                purchase,
+                ...decoratedProps
             };
         };
 

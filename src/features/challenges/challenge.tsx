@@ -1,6 +1,7 @@
 import { isArray } from "@vue/shared";
 import Toggle from "components/fields/Toggle.vue";
 import ChallengeComponent from "features/challenges/Challenge.vue";
+import { GenericDecorator } from "features/decorators/common";
 import type {
     CoercableComponent,
     GenericComponent,
@@ -11,17 +12,17 @@ import type {
 import {
     Component,
     GatherProps,
+    Visibility,
     getUniqueID,
     isVisible,
     jsx,
-    setDefault,
-    Visibility
+    setDefault
 } from "features/feature";
 import type { GenericReset } from "features/reset";
 import { globalBus } from "game/events";
 import type { Persistent } from "game/persistence";
 import { persistent } from "game/persistence";
-import { maxRequirementsMet, Requirements } from "game/requirements";
+import { Requirements, maxRequirementsMet } from "game/requirements";
 import settings, { registerSettingField } from "game/settings";
 import type { DecimalSource } from "util/bignum";
 import Decimal from "util/bignum";
@@ -51,8 +52,6 @@ export interface ChallengeOptions {
     reset?: GenericReset;
     /** The requirement(s) to complete this challenge. */
     requirements: Requirements;
-    /** Whether or not completing this challenge should grant multiple completions if requirements met. Requires {@link requirements} to be a requirement or array of requirements with {@link Requirement.canMaximize} true. */
-    maximize?: Computable<boolean>;
     /** The maximum number of times the challenge can be completed. */
     completionLimit?: Computable<DecimalSource>;
     /** Shows a marker on the corner of the feature. */
@@ -123,7 +122,6 @@ export type Challenge<T extends ChallengeOptions> = Replace<
         visibility: GetComputableTypeWithDefault<T["visibility"], Visibility.Visible>;
         canStart: GetComputableTypeWithDefault<T["canStart"], true>;
         requirements: GetComputableType<T["requirements"]>;
-        maximize: GetComputableType<T["maximize"]>;
         completionLimit: GetComputableTypeWithDefault<T["completionLimit"], 1>;
         mark: GetComputableTypeWithDefault<T["mark"], Ref<boolean>>;
         classes: GetComputableType<T["classes"]>;
@@ -148,10 +146,15 @@ export type GenericChallenge = Replace<
  * @param optionsFunc Challenge options.
  */
 export function createChallenge<T extends ChallengeOptions>(
-    optionsFunc: OptionsFunc<T, BaseChallenge, GenericChallenge>
+    optionsFunc: OptionsFunc<T, BaseChallenge, GenericChallenge>,
+    ...decorators: GenericDecorator[]
 ): Challenge<T> {
     const completions = persistent(0);
     const active = persistent(false, false);
+    const decoratedData = decorators.reduce(
+        (current, next) => Object.assign(current, next.getPersistentData?.()),
+        {}
+    );
     return createLazyProxy(feature => {
         const challenge = optionsFunc.call(feature, feature);
 
@@ -159,8 +162,14 @@ export function createChallenge<T extends ChallengeOptions>(
         challenge.type = ChallengeType;
         challenge[Component] = ChallengeComponent as GenericComponent;
 
+        for (const decorator of decorators) {
+            decorator.preConstruct?.(challenge);
+        }
+
         challenge.completions = completions;
         challenge.active = active;
+        Object.assign(challenge, decoratedData);
+
         challenge.completed = computed(() =>
             Decimal.gt((challenge as GenericChallenge).completions.value, 0)
         );
@@ -198,10 +207,7 @@ export function createChallenge<T extends ChallengeOptions>(
             }
         };
         challenge.canComplete = computed(() =>
-            Decimal.max(
-                maxRequirementsMet((challenge as GenericChallenge).requirements),
-                unref((challenge as GenericChallenge).maximize) ? Decimal.dInf : 1
-            )
+            maxRequirementsMet((challenge as GenericChallenge).requirements)
         );
         challenge.complete = function (remainInChallenge?: boolean) {
             const genericChallenge = challenge as GenericChallenge;
@@ -242,7 +248,6 @@ export function createChallenge<T extends ChallengeOptions>(
 
         processComputable(challenge as T, "canStart");
         setDefault(challenge, "canStart", true);
-        processComputable(challenge as T, "maximize");
         processComputable(challenge as T, "completionLimit");
         setDefault(challenge, "completionLimit", 1);
         processComputable(challenge as T, "mark");
@@ -258,6 +263,14 @@ export function createChallenge<T extends ChallengeOptions>(
             });
         }
 
+        for (const decorator of decorators) {
+            decorator.postConstruct?.(challenge);
+        }
+
+        const decoratedProps = decorators.reduce(
+            (current, next) => Object.assign(current, next.getGatheredProps?.(challenge)),
+            {}
+        );
         challenge[GatherProps] = function (this: GenericChallenge) {
             const {
                 active,
@@ -287,7 +300,8 @@ export function createChallenge<T extends ChallengeOptions>(
                 mark,
                 id,
                 toggle,
-                requirements
+                requirements,
+                ...decoratedProps
             };
         };
 

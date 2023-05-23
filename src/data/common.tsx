@@ -16,7 +16,7 @@ import player from "game/player";
 import settings from "game/settings";
 import type { DecimalSource } from "util/bignum";
 import Decimal, { format, formatSmall, formatTime } from "util/bignum";
-import type { WithRequired } from "util/common";
+import { WithRequired, camelToTitle } from "util/common";
 import type {
     Computable,
     GetComputableType,
@@ -133,10 +133,10 @@ export function createResetButton<T extends ClickableOptions & ResetButtonOption
                             {unref(resetButton.conversion.buyMax) ? "Next:" : "Req:"}{" "}
                             {displayResource(
                                 resetButton.conversion.baseResource,
-                                unref(resetButton.conversion.buyMax) ||
-                                    Decimal.floor(unref(resetButton.conversion.actualGain)).neq(1)
-                                    ? unref(resetButton.conversion.nextAt)
-                                    : unref(resetButton.conversion.currentAt)
+                                !unref(resetButton.conversion.buyMax) ||
+                                    Decimal.lt(unref(resetButton.conversion.actualGain), 1)
+                                    ? unref(resetButton.conversion.currentAt)
+                                    : unref(resetButton.conversion.nextAt)
                             )}{" "}
                             {resetButton.conversion.baseResource.displayName}
                         </div>
@@ -177,11 +177,6 @@ export interface LayerTreeNodeOptions extends TreeNodeOptions {
     layerID: string;
     /** The color to display this tree node as */
     color: Computable<string>; // marking as required
-    /**
-     * The content to display in the tree node.
-     * Defaults to the layer's ID
-     */
-    display?: Computable<CoercableComponent>;
     /** Whether or not to append the layer to the tabs list.
      * If set to false, then the tree node will instead always remove all tabs to its right and then add the layer tab.
      * Defaults to true.
@@ -214,12 +209,10 @@ export function createLayerTreeNode<T extends LayerTreeNodeOptions>(
 ): LayerTreeNode<T> {
     return createTreeNode(feature => {
         const options = optionsFunc.call(feature, feature);
-        processComputable(options as T, "display");
-        setDefault(options, "display", options.layerID);
+        setDefault(options, "display", camelToTitle(options.layerID));
         processComputable(options as T, "append");
         return {
             ...options,
-            display: options.display,
             onClick: unref((options as unknown as GenericLayerTreeNode).append)
                 ? function () {
                       if (player.tabs.includes(options.layerID)) {
@@ -444,7 +437,7 @@ export function estimateTime(
         const currTarget = unref(processedTarget);
         if (Decimal.gte(resource.value, currTarget)) {
             return "Now";
-        } else if (Decimal.lt(currRate, 0)) {
+        } else if (Decimal.lte(currRate, 0)) {
             return "Never";
         }
         return formatTime(Decimal.sub(currTarget, resource.value).div(currRate));
@@ -462,13 +455,13 @@ export function createFormulaPreview(
     formula: GenericFormula,
     showPreview: Computable<boolean>,
     previewAmount: Computable<DecimalSource> = 1
-): ComputedRef<CoercableComponent> {
+) {
     const processedShowPreview = convertComputable(showPreview);
     const processedPreviewAmount = convertComputable(previewAmount);
     if (!formula.hasVariable()) {
-        throw new Error("Cannot create formula preview if the formula does not have a variable");
+        console.error("Cannot create formula preview if the formula does not have a variable");
     }
-    return computed(() => {
+    return jsx(() => {
         if (unref(processedShowPreview)) {
             const curr = formatSmall(formula.evaluate());
             const preview = formatSmall(
@@ -479,16 +472,16 @@ export function createFormulaPreview(
                     )
                 )
             );
-            return jsx(() => (
+            return (
                 <>
                     <b>
                         <i>
-                            {curr}→{preview}
+                            {curr} → {preview}
                         </i>
                     </b>
                 </>
-            ));
+            );
         }
-        return formatSmall(formula.evaluate());
+        return <>{formatSmall(formula.evaluate())}</>;
     });
 }

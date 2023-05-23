@@ -33,12 +33,12 @@
                 </div>
                 <div>
                     <a
-                        href="https://discord.gg/WzejVAx"
+                        href="https://discord.gg/yJ4fjnjU54"
                         class="info-modal-discord-link"
                         target="_blank"
                     >
                         <span class="material-icons info-modal-discord">discord</span>
-                        The Paper Pilot Community
+                        Profectus & Friends
                     </a>
                 </div>
                 <div>
