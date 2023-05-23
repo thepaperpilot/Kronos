@@ -539,11 +539,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
                             <Spacer />
                             {joinJSX(
                                 Object.values(batteries)
-                                    .filter(
-                                        b =>
-                                            unref(main.jobs[b.job].visibility) ===
-                                            Visibility.Visible
-                                    )
+                                    .filter(b => isVisible(main.jobs[b.job].visibility))
                                     .map(batteriesCategory => (
                                         <>
                                             <h2>{main.jobs[batteriesCategory.job].name}</h2>

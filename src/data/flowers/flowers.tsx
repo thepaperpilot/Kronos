@@ -391,11 +391,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const moreJobXpPerSpellEffect: ComputedRef<DecimalSource> = computed(() =>
-        Decimal.pow(
-            1.25,
-            Object.values(spells).filter(s => isVisible((s as Spell<string>).visibility.value))
-                .length
-        )
+        Decimal.pow(1.25, Object.values(spells).filter(s => isVisible(s.visibility)).length)
     );
     const morePotencyPerJobLevelEffect = jobLevelEffect;
     const moreJobXpPerJobLevelEffect = jobLevelEffect;
@@ -481,9 +477,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     );
 
     const moreFlowersPerSpellEffect: ComputedRef<DecimalSource> = computed(
-        () =>
-            Object.values(spells).filter(s => isVisible((s as Spell<string>).visibility.value))
-                .length * 0.25
+        () => Object.values(spells).filter(s => isVisible(s.visibility)).length * 0.25
     );
     const moreFlowersPerLevelEffect: ComputedRef<DecimalSource> = computed(() =>
         Decimal.pow(1.1, flowerSpell.level.value)

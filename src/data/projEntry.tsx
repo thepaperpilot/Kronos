@@ -266,15 +266,9 @@ export const main = createLayer(id, function (this: BaseLayer) {
         layerID: "unknown",
         symbol: "",
         loopable: false,
-        visibility: () => {
-            if (
-                generators.milestones.jobMilestone.earned.value !==
-                breeding.milestones.jobMilestone.earned.value
-            ) {
-                return Visibility.Visible;
-            }
-            return Visibility.None;
-        },
+        visibility: (): boolean =>
+            generators.milestones.jobMilestone.earned.value !==
+            breeding.milestones.jobMilestone.earned.value,
         classes: { broken: true },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         open: () => {}
