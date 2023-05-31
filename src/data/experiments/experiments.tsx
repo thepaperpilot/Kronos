@@ -113,7 +113,7 @@ const layer = createLayer(id, function (this: BaseLayer) {
     const grainsFallen = persistent<DecimalSource>(0);
     const flippingProgress = persistent<number>(1);
     const chippingProgress = persistent<number>(0);
-    const selectedJob = persistent<JobKeys>("experiments");
+    const selectedJob = persistent<JobKeys>("experiments", false);
 
     const potentialsNotif = computed(() => {
         if (!potentialsMilestone.earned.value) {

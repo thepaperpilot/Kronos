@@ -13,9 +13,11 @@ import {
 } from "features/feature";
 import JobComponent from "features/job/Job.vue";
 import { createResource, Resource } from "features/resources/resource";
+import Formula from "game/formulas/formulas";
+import { InvertibleFormula, InvertibleIntegralFormula } from "game/formulas/types";
 import { Persistent, persistent } from "game/persistence";
 import player from "game/player";
-import Decimal, { DecimalSource } from "util/bignum";
+import Decimal, { DecimalSource, format } from "util/bignum";
 import {
     Computable,
     GetComputableType,
@@ -59,10 +61,11 @@ export interface BaseJob {
     id: string;
     name: string;
     xp: Resource;
+    levelFormula: InvertibleIntegralFormula;
     rawLevel: Ref<DecimalSource>;
     level: Resource;
     levelProgress: Ref<number>;
-    timeLoopActive: Persistent<boolean>;
+    timeLoopActive: Ref<boolean>;
     active: Ref<boolean>;
     currentQuip: Ref<string | null>;
     setQuip: (quip?: string) => void;
@@ -97,8 +100,12 @@ export function createJob<T extends JobOptions>(
     name: string,
     optionsFunc: OptionsFunc<T, BaseJob, GenericJob>
 ): Job<T> {
-    const xp = createResource<DecimalSource>(0, name + " XP");
-    const timeLoopActive = persistent<boolean>(false);
+    const xp = createResource<DecimalSource>(
+        import.meta.env.VITEST == null ? 0 : ref(0),
+        name + " XP"
+    );
+    const timeLoopActive =
+        import.meta.env.VITEST == null ? persistent<boolean>(false) : ref<boolean>(false);
     return createLazyProxy(feature => {
         const job = optionsFunc.call(feature, feature);
         job.id = getUniqueID("job-");
@@ -108,27 +115,20 @@ export function createJob<T extends JobOptions>(
         job.name = name;
         job.xp = xp;
         job.timeLoopActive = timeLoopActive;
-        job.rawLevel = computed(() => {
-            const genericJob = job as GenericJob;
-            if (Decimal.eq(genericJob.xp.value, 0)) {
-                return 1;
-            }
-            let baseLevel = Decimal.clampMin(genericJob.xp.value, 1).log10().add(1);
-            if (baseLevel.gt(25)) {
-                baseLevel = baseLevel.sub(25).pow(levelSoftcapPower).add(25);
-            }
-            return baseLevel.floor();
-        });
-        job.level = createResource<DecimalSource>(
-            computed(() => (job as GenericJob).rawLevel.value),
-            job.name + " Levels"
-        );
+        job.levelFormula = Formula.variable(xp)
+            .clampMin(1)
+            .log10()
+            .add(1)
+            .step(25, x => x.pow(levelSoftcapPower))
+            .floor();
+        job.rawLevel = computed(() => (job as GenericJob).levelFormula.evaluate());
+        job.level = createResource<DecimalSource>(job.rawLevel, job.name + " Levels");
         job.levelProgress = computed(() => {
             const genericJob = job as GenericJob;
-            const level = genericJob.rawLevel.value;
+            const level = genericJob.levelFormula.evaluate();
 
-            const prevRequirement = getXPRequirement(level);
-            const nextRequirement = getXPRequirement(Decimal.add(level, 1));
+            const prevRequirement = genericJob.levelFormula.invert(level);
+            const nextRequirement = genericJob.levelFormula.invert(Decimal.add(level, 1));
 
             let progress;
             if (Decimal.lt(level, 25)) {
@@ -142,6 +142,10 @@ export function createJob<T extends JobOptions>(
                     .sub(Decimal.log10(prevRequirement))
                     .div(Decimal.log10(nextRequirement).sub(Decimal.log10(prevRequirement)))
                     .toNumber();
+            }
+            // Check if it's NaN, which is typically from the denominator being 0 (from precision issues at high level numbers)
+            if (Number.isNaN(progress)) {
+                progress = 0;
             }
             return progress;
         });
@@ -235,16 +239,4 @@ export function createJob<T extends JobOptions>(
 
         return job as unknown as Job<T>;
     });
-}
-
-function getXPRequirement(level: DecimalSource): DecimalSource {
-    if (Decimal.eq(level, 1)) {
-        return 0;
-    }
-    if (Decimal.gt(level, 25)) {
-        level = Decimal.sub(level, 25)
-            .pow(1 / levelSoftcapPower)
-            .add(25);
-    }
-    return Decimal.sub(level, 1).pow10();
 }

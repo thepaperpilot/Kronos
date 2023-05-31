@@ -1,0 +1,25 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Level Formula > Level softcap applies after 25 > 1: > XP required 1`] = `"ee402.9831218108071"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 25: > XP required 1`] = `"1e24"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 26: > XP required 1`] = `"1e25"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 27: > XP required 1`] = `"2.9967080466297658e26"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 28: > XP required 1`] = `"1.6209790383568656e28"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 29: > XP required 1`] = `"1.360716504380679e30"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 30: > XP required 1`] = `"1.6345656220869154e32"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 31: > XP required 1`] = `"2.667606476594593e34"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 32: > XP required 1`] = `"5.701864508501798e36"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 33: > XP required 1`] = `"1.5529644564242793e39"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 34: > XP required 1`] = `"5.275039883599332e41"`;
+
+exports[`Level Formula > Level softcap applies after 25 > 100: > XP required 1`] = `"9.806005514434617e307"`;

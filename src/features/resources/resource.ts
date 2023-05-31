@@ -39,6 +39,12 @@ export function createResource<T extends State>(
 ): Resource<T>;
 export function createResource<T extends State>(
     defaultValue: T | Ref<T>,
+    displayName?: string,
+    precision?: number,
+    small?: boolean | undefined
+): Resource<T>;
+export function createResource<T extends State>(
+    defaultValue: T | Ref<T>,
     displayName = "points",
     precision = 0,
     small: boolean | undefined = undefined
