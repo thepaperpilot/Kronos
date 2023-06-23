@@ -180,5 +180,6 @@ export default defineComponent({
     transition-duration: 0.2s;
     z-index: 2;
     transition-duration: 0.05s;
+    border-radius: inherit;
 }
 </style>
