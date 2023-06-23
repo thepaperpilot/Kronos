@@ -86,7 +86,7 @@ const clickableComponent = render(clickable);
 }
 
 .spell-tree-container > :deep(.row) {
-    margin: 20px auto;
+    margin: 20px auto !important;
 }
 
 .spell-tree {

@@ -33,14 +33,10 @@
             <div class="job-title">
                 <h2>{{ name }}</h2>
                 <span style="margin-bottom: 0">Lv. {{ formatWhole(level.value) }}</span>
-                <span style="flex-grow: 1" />
-                <ModifierInfo
-                    v-if="modifierInfo"
-                    :display="modifierInfo"
-                    :name="name"
-                    v-bind="modifierModalAttrs"
-                />
             </div>
+        </div>
+        <div class="time-loop-container" :style="unref(timeLoopActive) ? '' : 'opacity: 0'">
+            <div class="time-loop" />
         </div>
         <div v-if="selected && unref(currentQuip)" class="job-quip">"{{ unref(currentQuip) }}"</div>
         <div class="job-clipping-container">
@@ -53,19 +49,25 @@
             :direction="Direction.Left"
             display="Toggle Time Loop"
             class="job-loop-toggle"
+            :class="{
+                active: unref(timeLoopActive)
+            }"
         >
             <button
                 class="material-icons"
                 @click.stop="timeLoopActive.value = !unref(timeLoopActive)"
                 v-if="finishedFirstChapter"
-                :class="{
-                    active: unref(timeLoopActive)
-                }"
                 :disabled="!hasTimeSlotAvailable && !unref(timeLoopActive)"
             >
                 all_inclusive
             </button>
         </Tooltip>
+        <ModifierInfo
+            v-if="modifierInfo"
+            :display="modifierInfo"
+            :name="name"
+            v-bind="modifierModalAttrs"
+        />
         <Node :id="id" />
         <Notif v-if="unref(showNotif)" />
     </span>
@@ -181,7 +183,7 @@ export default defineComponent({
         watchEffect(() => {
             clearInterval(quipTimer);
             const quips = unwrapRef(randomQuips) ?? [];
-            if (currentQuip.value) {
+            if (currentQuip.value != null) {
                 quipTimer = setTimeout(() => {
                     currentQuip.value = null;
                 }, 15000);
@@ -292,15 +294,32 @@ export default defineComponent({
     color: var(--feature-foreground);
     border: none;
     padding: 0;
-    margin: 10px;
+    margin: 5px;
+    cursor: not-allowed;
     background: var(--foreground);
     border-radius: 50%;
     border: solid 2px var(--feature-foreground);
 }
 
-.job-loop-toggle button.active {
-    color: var(--points);
-    box-shadow: 0 0 8px 4px var(--feature-foreground);
+.time-loop-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 68px;
+    height: 68px;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.time-loop {
+    position: absolute;
+    background: var(--bought);
+    transform: rotateZ(45deg);
+    width: 100px;
+    height: 100px;
+    top: -75%;
+    right: -75%;
 }
 
 .job-loop-toggle button:not([disabled]):hover {
@@ -332,6 +351,7 @@ export default defineComponent({
 
 .job-title h2 {
     margin-right: 10px;
+    margin-left: 0;
 }
 
 .job-resource {
